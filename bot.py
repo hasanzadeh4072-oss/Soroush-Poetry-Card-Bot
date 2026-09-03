@@ -1,5 +1,4 @@
 import os
-import math
 import random
 import requests
 from flask import Flask, request
@@ -16,9 +15,9 @@ CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
 TEXT_COLOR = (248, 244, 235)
-ACCENT_COLOR = (205, 172, 105)
+ACCENT_COLOR = (214, 181, 112)
 SUBTITLE_COLOR = (190, 175, 150)
-BORDER_COLOR = (150, 120, 70)
+BORDER_COLOR = (145, 112, 68)
 
 POEM_FONT = "BNazanin.ttf"
 TITLE_FONT = "BTitrBd.ttf"
@@ -30,6 +29,10 @@ def get_font(font_name, size):
     return ImageFont.truetype(font_name, size)
 
 
+# ==================================
+# Luxury Background
+# ==================================
+
 def create_gradient_background():
 
     image = Image.new(
@@ -39,17 +42,17 @@ def create_gradient_background():
 
     pixels = image.load()
 
-    top = (42, 26, 66)
-    middle = (31, 22, 52)
-    bottom = (15, 14, 28)
+    top = (47, 27, 70)
+    middle = (29, 20, 49)
+    bottom = (12, 11, 23)
 
     for y in range(CARD_HEIGHT):
 
         ratio = y / (CARD_HEIGHT - 1)
 
-        if ratio < 0.55:
+        if ratio < 0.52:
 
-            t = ratio / 0.55
+            t = ratio / 0.52
 
             r = int(top[0] * (1 - t) + middle[0] * t)
             g = int(top[1] * (1 - t) + middle[1] * t)
@@ -57,17 +60,18 @@ def create_gradient_background():
 
         else:
 
-            t = (ratio - 0.55) / 0.45
+            t = (ratio - 0.52) / 0.48
 
             r = int(middle[0] * (1 - t) + bottom[0] * t)
             g = int(middle[1] * (1 - t) + bottom[1] * t)
             b = int(middle[2] * (1 - t) + bottom[2] * t)
 
         for x in range(CARD_WIDTH):
+
             pixels[x, y] = (r, g, b)
 
     # --------------------------------
-    # Soft light / glow layer
+    # Large soft glow
     # --------------------------------
 
     glow = Image.new(
@@ -79,17 +83,22 @@ def create_gradient_background():
     glow_draw = ImageDraw.Draw(glow)
 
     glow_draw.ellipse(
-        (-180, -120, 620, 520),
-        fill=(135, 95, 180, 32)
+        (-260, -180, 650, 560),
+        fill=(150, 105, 190, 38)
     )
 
     glow_draw.ellipse(
-        (650, 650, 1250, 1250),
-        fill=(90, 60, 140, 20)
+        (690, 690, 1250, 1250),
+        fill=(105, 70, 160, 22)
+    )
+
+    glow_draw.ellipse(
+        (250, 350, 850, 950),
+        fill=(100, 65, 145, 10)
     )
 
     glow = glow.filter(
-        ImageFilter.GaussianBlur(90)
+        ImageFilter.GaussianBlur(110)
     )
 
     image = Image.alpha_composite(
@@ -111,15 +120,15 @@ def create_gradient_background():
 
     random.seed(8)
 
-    for _ in range(18000):
+    for _ in range(14000):
 
         x = random.randrange(CARD_WIDTH)
         y = random.randrange(CARD_HEIGHT)
 
         value = random.choice(
             [
-                (255, 255, 255, 4),
-                (0, 0, 0, 5)
+                (255, 255, 255, 3),
+                (0, 0, 0, 4)
             ]
         )
 
@@ -132,6 +141,10 @@ def create_gradient_background():
 
     return image.convert("RGB")
 
+
+# ==================================
+# Text Helpers
+# ==================================
 
 def normalize_text(text):
 
@@ -238,10 +251,15 @@ def calculate_text_height(
         total += height + line_spacing
 
     if lines[-1] is not None:
+
         total -= line_spacing
 
     return total
 
+
+# ==================================
+# Create Poetry Card
+# ==================================
 
 def create_poetry_card(text):
 
@@ -250,10 +268,10 @@ def create_poetry_card(text):
     draw = ImageDraw.Draw(image)
 
     # ==================================
-    # Outer border
+    # Outer frame
     # ==================================
 
-    margin = 42
+    margin = 40
 
     draw.rounded_rectangle(
         (
@@ -262,9 +280,25 @@ def create_poetry_card(text):
             CARD_WIDTH - margin,
             CARD_HEIGHT - margin
         ),
-        radius=38,
-        outline=BORDER_COLOR,
+        radius=42,
+        outline=(173, 137, 82),
         width=2
+    )
+
+    # Inner subtle frame
+
+    inner_margin = 49
+
+    draw.rounded_rectangle(
+        (
+            inner_margin,
+            inner_margin,
+            CARD_WIDTH - inner_margin,
+            CARD_HEIGHT - inner_margin
+        ),
+        radius=35,
+        outline=(205, 172, 105),
+        width=1
     )
 
     # ==================================
@@ -273,7 +307,7 @@ def create_poetry_card(text):
 
     title_font = get_font(
         TITLE_FONT,
-        48
+        50
     )
 
     title = "شعرکده"
@@ -294,7 +328,7 @@ def create_poetry_card(text):
 
     subtitle_font = get_font(
         SUBTITLE_FONT,
-        24
+        23
     )
 
     subtitle = "( سروش پلاس )"
@@ -313,11 +347,11 @@ def create_poetry_card(text):
         subtitle_bbox[3] - subtitle_bbox[1]
     )
 
-    title_y = 82
+    title_y = 78
 
     header_center = CARD_WIDTH // 2
 
-    gap = 18
+    gap = 20
 
     title_x = header_center + 10
 
@@ -333,88 +367,118 @@ def create_poetry_card(text):
         - 3
     )
 
+    # Very soft title shadow
+
     draw.text(
-        (title_x, title_y),
+        (
+            title_x + 2,
+            title_y + 3
+        ),
+        title,
+        font=title_font,
+        fill=(0, 0, 0, 80)
+    )
+
+    draw.text(
+        (
+            title_x,
+            title_y
+        ),
         title,
         font=title_font,
         fill=ACCENT_COLOR
     )
 
     draw.text(
-        (subtitle_x, subtitle_y),
+        (
+            subtitle_x,
+            subtitle_y
+        ),
         subtitle,
         font=subtitle_font,
         fill=SUBTITLE_COLOR
     )
 
     # ==================================
-    # Header decoration
+    # Header Ornament
     # ==================================
-
-    line_width = 120
 
     line_y = (
         title_y
         + title_height
-        + 24
+        + 25
     )
 
-    draw.line(
-        (
-            (CARD_WIDTH - line_width) // 2,
-            line_y,
-            (CARD_WIDTH + line_width) // 2,
-            line_y
-        ),
-        fill=BORDER_COLOR,
-        width=2
-    )
+    line_width = 150
 
     center_x = CARD_WIDTH // 2
 
-    draw.ellipse(
+    # left line
+
+    draw.line(
         (
-            center_x - 4,
-            line_y - 4,
-            center_x + 4,
-            line_y + 4
+            center_x - line_width,
+            line_y,
+            center_x - 12,
+            line_y
         ),
+        fill=(145, 112, 68),
+        width=1
+    )
+
+    # right line
+
+    draw.line(
+        (
+            center_x + 12,
+            line_y,
+            center_x + line_width,
+            line_y
+        ),
+        fill=(145, 112, 68),
+        width=1
+    )
+
+    # center diamond
+
+    diamond_size = 5
+
+    draw.polygon(
+        [
+            (center_x, line_y - diamond_size),
+            (center_x + diamond_size, line_y),
+            (center_x, line_y + diamond_size),
+            (center_x - diamond_size, line_y)
+        ],
         fill=ACCENT_COLOR
     )
 
     # ==================================
-    # Poem area
+    # Poem Area
     # ==================================
 
-    # کمی فضای بیشتر برای متن
     text_left = 75
     text_right = 1005
 
     max_width = text_right - text_left
 
-    text_top = 220
-    text_bottom = 900
+    text_top = 218
+    text_bottom = 895
 
     available_height = (
         text_bottom - text_top
     )
 
-    # فونت پایه کمی بزرگ‌تر شده
     font_size = 62
-
-    # حداقل فونت همچنان حفظ شده
     min_font_size = 28
 
-    # فاصله خطوط کمی کمتر شده تا فونت
-    # در شعرهای متوسط مجبور به کوچک شدن نشود
     line_spacing = 16
-
     blank_line_spacing = 44
 
     lines = []
 
     # ==================================
-    # Adaptive font sizing
+    # Smart Font Sizing
     # ==================================
 
     while font_size >= min_font_size:
@@ -439,9 +503,8 @@ def create_poetry_card(text):
             blank_line_spacing
         )
 
-        # اگر متن از نظر ارتفاع جا شد،
-        # همین اندازه فونت انتخاب می‌شود.
         if total_height <= available_height:
+
             break
 
         font_size -= 2
@@ -464,16 +527,16 @@ def create_poetry_card(text):
     )
 
     # ==================================
-    # Subtle poem panel
+    # Luxury Glass Panel
     # ==================================
 
     panel_top = max(
-        text_top - 35,
+        text_top - 38,
         160
     )
 
     panel_bottom = min(
-        text_bottom + 35,
+        text_bottom + 38,
         940
     )
 
@@ -485,21 +548,50 @@ def create_poetry_card(text):
 
     panel_draw = ImageDraw.Draw(panel)
 
+    # Outer shadow
+
     panel_draw.rounded_rectangle(
         (
-            65,
+            62,
+            panel_top + 4,
+            1018,
+            panel_bottom + 6
+        ),
+        radius=45,
+        fill=(0, 0, 0, 28)
+    )
+
+    # Main panel
+
+    panel_draw.rounded_rectangle(
+        (
+            62,
             panel_top,
-            1015,
+            1018,
             panel_bottom
         ),
-        radius=42,
-        fill=(255, 255, 255, 7),
-        outline=(205, 172, 105, 18),
+        radius=45,
+        fill=(255, 255, 255, 8),
+        outline=(205, 172, 105, 24),
+        width=1
+    )
+
+    # Inner highlight
+
+    panel_draw.rounded_rectangle(
+        (
+            72,
+            panel_top + 10,
+            1008,
+            panel_bottom - 10
+        ),
+        radius=37,
+        outline=(255, 255, 255, 8),
         width=1
     )
 
     panel = panel.filter(
-        ImageFilter.GaussianBlur(0.5)
+        ImageFilter.GaussianBlur(0.35)
     )
 
     image = Image.alpha_composite(
@@ -510,7 +602,7 @@ def create_poetry_card(text):
     draw = ImageDraw.Draw(image)
 
     # ==================================
-    # Decorative side marks
+    # Side Ornaments
     # ==================================
 
     deco_y = (
@@ -518,26 +610,50 @@ def create_poetry_card(text):
         + available_height // 2
     )
 
-    draw.line(
-        (
-            78,
-            deco_y - 28,
-            78,
-            deco_y + 28
-        ),
-        fill=(205, 172, 105, 90),
-        width=1
-    )
+    # left
 
     draw.line(
         (
-            1002,
-            deco_y - 28,
-            1002,
-            deco_y + 28
+            79,
+            deco_y - 30,
+            79,
+            deco_y + 30
         ),
-        fill=(205, 172, 105, 90),
+        fill=(205, 172, 105, 75),
         width=1
+    )
+
+    draw.ellipse(
+        (
+            76,
+            deco_y - 3,
+            82,
+            deco_y + 3
+        ),
+        fill=(205, 172, 105, 100)
+    )
+
+    # right
+
+    draw.line(
+        (
+            1001,
+            deco_y - 30,
+            1001,
+            deco_y + 30
+        ),
+        fill=(205, 172, 105, 75),
+        width=1
+    )
+
+    draw.ellipse(
+        (
+            998,
+            deco_y - 3,
+            1004,
+            deco_y + 3
+        ),
+        fill=(205, 172, 105, 100)
     )
 
     # ==================================
@@ -563,6 +679,7 @@ def create_poetry_card(text):
         )
 
         width = bbox[2] - bbox[0]
+
         height = bbox[3] - bbox[1]
 
         x = (
@@ -570,7 +687,10 @@ def create_poetry_card(text):
         ) // 2
 
         draw.text(
-            (x, y),
+            (
+                x,
+                y
+            ),
             line,
             font=poem_font,
             fill=TEXT_COLOR
@@ -584,7 +704,7 @@ def create_poetry_card(text):
 
     footer_font = get_font(
         FOOTER_FONT,
-        24
+        23
     )
 
     footer = "کارت شعر"
@@ -603,15 +723,34 @@ def create_poetry_card(text):
         CARD_WIDTH - footer_width
     ) // 2
 
+    footer_y = CARD_HEIGHT - 86
+
+    # tiny separator
+
+    draw.line(
+        (
+            center_x - 35,
+            footer_y - 13,
+            center_x + 35,
+            footer_y - 13
+        ),
+        fill=(145, 112, 68),
+        width=1
+    )
+
     draw.text(
         (
             footer_x,
-            CARD_HEIGHT - 90
+            footer_y
         ),
         footer,
         font=footer_font,
         fill=ACCENT_COLOR
     )
+
+    # ==================================
+    # Save
+    # ==================================
 
     filename = "/tmp/poetry_card.png"
 
@@ -827,10 +966,6 @@ def webhook():
             user_id,
             filename
         )
-
-        # --------------------------------
-        # Photo sent successfully
-        # --------------------------------
 
         if (
             photo_response is not None
