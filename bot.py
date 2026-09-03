@@ -54,8 +54,8 @@ PALETTES = [
         "accent": (244, 210, 137),
         "subtitle": (205, 191, 168),
         "ornament": (145, 112, 68),
-        "panel_outline": (205, 172, 105, 24),
-        "panel_inner": (255, 255, 255, 8),
+        "panel_outline": (205, 172, 105, 38),
+        "panel_inner": (255, 255, 255, 12),
         "side_line": (205, 172, 105, 75),
         "side_dot": (205, 172, 105, 100),
     },
@@ -74,8 +74,8 @@ PALETTES = [
         "accent": (239, 210, 139),
         "subtitle": (195, 204, 211),
         "ornament": (140, 125, 82),
-        "panel_outline": (190, 170, 110, 24),
-        "panel_inner": (255, 255, 255, 8),
+        "panel_outline": (190, 170, 110, 38),
+        "panel_inner": (255, 255, 255, 12),
         "side_line": (200, 175, 110, 75),
         "side_dot": (215, 185, 115, 100),
     },
@@ -94,8 +94,8 @@ PALETTES = [
         "accent": (224, 199, 132),
         "subtitle": (188, 209, 208),
         "ornament": (130, 137, 91),
-        "panel_outline": (185, 170, 110, 24),
-        "panel_inner": (255, 255, 255, 8),
+        "panel_outline": (185, 170, 110, 38),
+        "panel_inner": (255, 255, 255, 12),
         "side_line": (185, 175, 110, 75),
         "side_dot": (210, 190, 120, 100),
     },
@@ -114,8 +114,8 @@ PALETTES = [
         "accent": (239, 211, 137),
         "subtitle": (194, 207, 197),
         "ornament": (140, 118, 70),
-        "panel_outline": (190, 165, 100, 24),
-        "panel_inner": (255, 255, 255, 8),
+        "panel_outline": (190, 165, 100, 38),
+        "panel_inner": (255, 255, 255, 12),
         "side_line": (190, 170, 105, 75),
         "side_dot": (210, 180, 110, 100),
     },
@@ -134,8 +134,8 @@ PALETTES = [
         "accent": (226, 201, 128),
         "subtitle": (204, 199, 171),
         "ornament": (143, 127, 67),
-        "panel_outline": (190, 170, 100, 24),
-        "panel_inner": (255, 255, 255, 8),
+        "panel_outline": (190, 170, 100, 38),
+        "panel_inner": (255, 255, 255, 12),
         "side_line": (195, 175, 100, 75),
         "side_dot": (215, 190, 110, 100),
     },
@@ -154,8 +154,8 @@ PALETTES = [
         "accent": (241, 210, 139),
         "subtitle": (211, 193, 181),
         "ornament": (145, 105, 65),
-        "panel_outline": (195, 155, 95, 24),
-        "panel_inner": (255, 255, 255, 8),
+        "panel_outline": (195, 155, 95, 38),
+        "panel_inner": (255, 255, 255, 12),
         "side_line": (200, 160, 100, 75),
         "side_dot": (215, 175, 105, 100),
     },
@@ -174,8 +174,8 @@ PALETTES = [
         "accent": (239, 205, 132),
         "subtitle": (211, 195, 174),
         "ornament": (145, 105, 62),
-        "panel_outline": (195, 155, 90, 24),
-        "panel_inner": (255, 255, 255, 8),
+        "panel_outline": (195, 155, 90, 38),
+        "panel_inner": (255, 255, 255, 12),
         "side_line": (200, 160, 95, 75),
         "side_dot": (215, 175, 105, 100),
     },
@@ -194,8 +194,8 @@ PALETTES = [
         "accent": (235, 181, 163),
         "subtitle": (216, 194, 187),
         "ornament": (164, 112, 106),
-        "panel_outline": (215, 160, 150, 24),
-        "panel_inner": (255, 255, 255, 8),
+        "panel_outline": (215, 160, 150, 38),
+        "panel_inner": (255, 255, 255, 12),
         "side_line": (210, 155, 145, 75),
         "side_dot": (225, 170, 158, 100),
     },
@@ -214,8 +214,8 @@ PALETTES = [
         "accent": (240, 208, 133),
         "subtitle": (197, 194, 184),
         "ornament": (140, 115, 68),
-        "panel_outline": (190, 150, 85, 24),
-        "panel_inner": (255, 255, 255, 8),
+        "panel_outline": (190, 150, 85, 38),
+        "panel_inner": (255, 255, 255, 12),
         "side_line": (195, 160, 95, 75),
         "side_dot": (215, 175, 105, 100),
     },
@@ -765,6 +765,66 @@ def create_poetry_card(
             fill=palette["accent"]
         )
 
+    else:
+
+        # ==================================
+        # Public Card Top Ornament
+        # ==================================
+
+        ornament_y = 112
+
+        ornament_width = 82
+
+        center_x = (
+            CARD_WIDTH // 2
+        )
+
+        draw.line(
+            (
+                center_x - ornament_width,
+                ornament_y,
+                center_x - 14,
+                ornament_y
+            ),
+            fill=palette["ornament"],
+            width=1
+        )
+
+        draw.line(
+            (
+                center_x + 14,
+                ornament_y,
+                center_x + ornament_width,
+                ornament_y
+            ),
+            fill=palette["ornament"],
+            width=1
+        )
+
+        diamond_size = 4
+
+        draw.polygon(
+            [
+                (
+                    center_x,
+                    ornament_y - diamond_size
+                ),
+                (
+                    center_x + diamond_size,
+                    ornament_y
+                ),
+                (
+                    center_x,
+                    ornament_y + diamond_size
+                ),
+                (
+                    center_x - diamond_size,
+                    ornament_y
+                )
+            ],
+            fill=palette["accent"]
+        )
+
     # ==================================
     # Poem Area
     # ==================================
@@ -881,7 +941,7 @@ def create_poetry_card(
             panel_bottom + 6
         ),
         radius=45,
-        fill=(0, 0, 0, 28)
+        fill=(0, 0, 0, 34)
     )
 
     panel_draw.rounded_rectangle(
@@ -892,7 +952,7 @@ def create_poetry_card(
             panel_bottom
         ),
         radius=45,
-        fill=(255, 255, 255, 8),
+        fill=(255, 255, 255, 14),
         outline=palette["panel_outline"],
         width=1
     )
