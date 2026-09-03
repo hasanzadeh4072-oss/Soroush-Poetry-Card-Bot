@@ -1,15 +1,27 @@
 import os
 import random
 import requests
+
 from flask import Flask, request
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
+
 app = Flask(__name__)
+
+
+# =========================================================
+# Soroush Plus
+# =========================================================
 
 TOKEN = os.environ.get("SOROUSH_TOKEN")
 API = f"https://api.splus.ir/bot{TOKEN}"
 
 CHANNEL_URL = "https://splus.ir/life_m23"
+
+
+# =========================================================
+# Card settings
+# =========================================================
 
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
@@ -19,18 +31,70 @@ ACCENT_COLOR = (205, 172, 105)
 SUBTITLE_COLOR = (190, 175, 150)
 BORDER_COLOR = (150, 120, 70)
 
+
+# =========================================================
+# Fonts
+# =========================================================
+
 POEM_FONT = "BNazanin.ttf"
 FALLBACK_FONT = "Vazirmatn-Regular.ttf"
-EMOJI_FONT = "NotoColorEmoji.ttf"
 
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
+EMOJI_FONT = "NotoColorEmoji.ttf"
+
+# IMPORTANT:
+# NotoColorEmoji is a bitmap/color font and does not accept
+# arbitrary pixel sizes. 109 is the supported base size.
+EMOJI_BASE_SIZE = 109
+
+
+# =========================================================
+# Font cache
+# =========================================================
+
+_font_cache = {}
+_emoji_cache = {}
+
 
 def get_font(font_name, size):
-    return ImageFont.truetype(font_name, size)
+    """
+    Load and cache normal fonts.
+    """
 
+    key = (font_name, size)
+
+    if key not in _font_cache:
+        _font_cache[key] = ImageFont.truetype(
+            font_name,
+            size
+        )
+
+    return _font_cache[key]
+
+
+def get_emoji_font():
+    """
+    Load NotoColorEmoji ONLY at its supported base size.
+    """
+
+    key = (EMOJI_FONT, EMOJI_BASE_SIZE)
+
+    if key not in _font_cache:
+
+        _font_cache[key] = ImageFont.truetype(
+            EMOJI_FONT,
+            EMOJI_BASE_SIZE
+        )
+
+    return _font_cache[key]
+
+
+# =========================================================
+# Background
+# =========================================================
 
 def create_gradient_background():
 
@@ -53,20 +117,51 @@ def create_gradient_background():
 
             t = ratio / 0.55
 
-            r = int(top[0] * (1 - t) + middle[0] * t)
-            g = int(top[1] * (1 - t) + middle[1] * t)
-            b = int(top[2] * (1 - t) + middle[2] * t)
+            r = int(
+                top[0] * (1 - t)
+                + middle[0] * t
+            )
+
+            g = int(
+                top[1] * (1 - t)
+                + middle[1] * t
+            )
+
+            b = int(
+                top[2] * (1 - t)
+                + middle[2] * t
+            )
 
         else:
 
             t = (ratio - 0.55) / 0.45
 
-            r = int(middle[0] * (1 - t) + bottom[0] * t)
-            g = int(middle[1] * (1 - t) + bottom[1] * t)
-            b = int(middle[2] * (1 - t) + bottom[2] * t)
+            r = int(
+                middle[0] * (1 - t)
+                + bottom[0] * t
+            )
+
+            g = int(
+                middle[1] * (1 - t)
+                + bottom[1] * t
+            )
+
+            b = int(
+                middle[2] * (1 - t)
+                + bottom[2] * t
+            )
 
         for x in range(CARD_WIDTH):
-            pixels[x, y] = (r, g, b)
+
+            pixels[x, y] = (
+                r,
+                g,
+                b
+            )
+
+    # -----------------------------------------------------
+    # Soft glow
+    # -----------------------------------------------------
 
     glow = Image.new(
         "RGBA",
@@ -94,6 +189,10 @@ def create_gradient_background():
         image.convert("RGBA"),
         glow
     )
+
+    # -----------------------------------------------------
+    # Subtle texture
+    # -----------------------------------------------------
 
     texture = Image.new(
         "RGBA",
@@ -127,11 +226,23 @@ def create_gradient_background():
     return image.convert("RGBA")
 
 
+# =========================================================
+# Text normalization
+# =========================================================
+
 def normalize_text(text):
+
+    # BNazanin may display … incorrectly.
+    # Use three normal dots instead.
     return text.replace("…", "...")
 
 
-def is_emoji(char):
+# =========================================================
+# Character / emoji detection
+# =========================================================
+
+def is_emoji_base(char):
+
     code = ord(char)
 
     return (
@@ -142,9 +253,187 @@ def is_emoji(char):
     )
 
 
+def is_variation_selector(char):
+
+    code = ord(char)
+
+    return (
+        0xFE00 <= code <= 0xFE0F
+    )
+
+
+def is_skin_tone(char):
+
+    code = ord(char)
+
+    return (
+        0x1F3FB <= code <= 0x1F3FF
+    )
+
+
+def is_regional_indicator(char):
+
+    code = ord(char)
+
+    return (
+        0x1F1E6 <= code <= 0x1F1FF
+    )
+
+
+def is_combining_mark(char):
+
+    code = ord(char)
+
+    return (
+        0x0300 <= code <= 0x036F
+        or 0x1AB0 <= code <= 0x1AFF
+        or 0x1DC0 <= code <= 0x1DFF
+        or 0x20D0 <= code <= 0x20FF
+        or 0xFE20 <= code <= 0xFE2F
+    )
+
+
+def split_graphemes(text):
+
+    """
+    A lightweight Unicode grapheme/emoji cluster splitter.
+
+    This keeps sequences such as:
+        ❤️
+        👩‍💻
+        👍🏽
+        🇮🇷
+        #️⃣
+
+    together instead of treating every Unicode codepoint
+    as a separate character.
+    """
+
+    clusters = []
+
+    i = 0
+
+    while i < len(text):
+
+        char = text[i]
+
+        # -------------------------------------------------
+        # Newline
+        # -------------------------------------------------
+
+        if char == "\n":
+
+            clusters.append("\n")
+            i += 1
+            continue
+
+        cluster = char
+
+        # -------------------------------------------------
+        # Regional indicator pair (flags)
+        # -------------------------------------------------
+
+        if is_regional_indicator(char):
+
+            if (
+                i + 1 < len(text)
+                and is_regional_indicator(text[i + 1])
+            ):
+
+                cluster += text[i + 1]
+                i += 2
+
+                clusters.append(cluster)
+                continue
+
+        # -------------------------------------------------
+        # Variation selector / skin tone / combining mark
+        # -------------------------------------------------
+
+        j = i + 1
+
+        while j < len(text):
+
+            next_char = text[j]
+
+            if (
+                is_variation_selector(next_char)
+                or is_skin_tone(next_char)
+                or is_combining_mark(next_char)
+            ):
+
+                cluster += next_char
+                j += 1
+                continue
+
+            break
+
+        # -------------------------------------------------
+        # ZWJ emoji sequence
+        # -------------------------------------------------
+
+        while (
+            j < len(text)
+            and text[j] == "\u200d"
+        ):
+
+            cluster += text[j]
+            j += 1
+
+            if j < len(text):
+
+                cluster += text[j]
+                j += 1
+
+            while j < len(text):
+
+                next_char = text[j]
+
+                if (
+                    is_variation_selector(next_char)
+                    or is_skin_tone(next_char)
+                    or is_combining_mark(next_char)
+                ):
+
+                    cluster += next_char
+                    j += 1
+
+                else:
+
+                    break
+
+        clusters.append(cluster)
+
+        i = max(j, i + 1)
+
+    return clusters
+
+
+def is_emoji_cluster(cluster):
+
+    if not cluster:
+        return False
+
+    for char in cluster:
+
+        if is_emoji_base(char):
+            return True
+
+    # Keycap emoji:
+    # #️⃣  *️⃣  1️⃣
+    if (
+        "\ufe0f" in cluster
+        and "\u20e3" in cluster
+    ):
+
+        return True
+
+    return False
+
+
 def is_fallback_character(char):
 
-    if is_emoji(char):
+    if is_emoji_base(char):
         return False
 
     code = ord(char)
@@ -154,6 +443,7 @@ def is_fallback_character(char):
         0x0041 <= code <= 0x005A
         or 0x0061 <= code <= 0x007A
     ):
+
         return True
 
     # Numbers
@@ -167,63 +457,200 @@ def is_fallback_character(char):
     return False
 
 
-def get_text_width(draw, text, primary_font, fallback_font, emoji_font):
+# =========================================================
+# Emoji rendering
+# =========================================================
+
+def render_emoji(cluster, target_size):
+
+    """
+    Render one emoji cluster using NotoColorEmoji at its
+    fixed supported size (109px), then resize it.
+
+    This completely avoids the:
+        OSError: invalid pixel size
+    """
+
+    cache_key = (
+        cluster,
+        target_size
+    )
+
+    if cache_key in _emoji_cache:
+
+        return _emoji_cache[cache_key]
+
+    try:
+
+        emoji_font = get_emoji_font()
+
+        # Large transparent canvas
+        canvas_size = EMOJI_BASE_SIZE * 2
+
+        canvas = Image.new(
+            "RGBA",
+            (
+                canvas_size,
+                canvas_size
+            ),
+            (0, 0, 0, 0)
+        )
+
+        emoji_draw = ImageDraw.Draw(canvas)
+
+        emoji_draw.text(
+            (
+                EMOJI_BASE_SIZE // 2,
+                EMOJI_BASE_SIZE // 2
+            ),
+            cluster,
+            font=emoji_font,
+            embedded_color=True
+        )
+
+        bbox = canvas.getbbox()
+
+        if bbox is None:
+
+            return None
+
+        cropped = canvas.crop(bbox)
+
+        # Keep emoji proportional.
+        max_height = max(
+            int(target_size * 1.05),
+            1
+        )
+
+        scale = (
+            max_height
+            / cropped.height
+        )
+
+        new_width = max(
+            int(cropped.width * scale),
+            1
+        )
+
+        new_height = max(
+            int(cropped.height * scale),
+            1
+        )
+
+        resized = cropped.resize(
+            (
+                new_width,
+                new_height
+            ),
+            Image.Resampling.LANCZOS
+        )
+
+        _emoji_cache[cache_key] = resized
+
+        return resized
+
+    except Exception as error:
+
+        print(
+            "Emoji render error:",
+            repr(error),
+            "cluster:",
+            repr(cluster)
+        )
+
+        return None
+
+
+def get_cluster_width(
+    cluster,
+    primary_font,
+    fallback_font,
+    target_size
+):
+
+    # -----------------------------------------------------
+    # Emoji
+    # -----------------------------------------------------
+
+    if is_emoji_cluster(cluster):
+
+        emoji_image = render_emoji(
+            cluster,
+            target_size
+        )
+
+        if emoji_image is not None:
+
+            return emoji_image.width
+
+        # Safe fallback if emoji rendering fails.
+        fallback_bbox = fallback_font.getbbox(
+            cluster
+        )
+
+        return max(
+            fallback_bbox[2] - fallback_bbox[0],
+            target_size // 2
+        )
+
+    # -----------------------------------------------------
+    # Fallback characters
+    # -----------------------------------------------------
+
+    if len(cluster) == 1 and is_fallback_character(cluster):
+
+        bbox = fallback_font.getbbox(
+            cluster
+        )
+
+        return bbox[2] - bbox[0]
+
+    # -----------------------------------------------------
+    # Normal Persian text
+    # -----------------------------------------------------
+
+    bbox = primary_font.getbbox(
+        cluster
+    )
+
+    return bbox[2] - bbox[0]
+
+
+def get_text_width(
+    text,
+    primary_font,
+    fallback_font,
+    target_size
+):
 
     total = 0
 
-    for char in text:
+    clusters = split_graphemes(text)
 
-        if is_emoji(char):
+    for cluster in clusters:
 
-            try:
-                box = draw.textbbox(
-                    (0, 0),
-                    char,
-                    font=emoji_font,
-                    embedded_color=True
-                )
+        if cluster == "\n":
+            continue
 
-                total += box[2] - box[0]
-
-            except Exception:
-
-                box = draw.textbbox(
-                    (0, 0),
-                    char,
-                    font=fallback_font
-                )
-
-                total += box[2] - box[0]
-
-        elif is_fallback_character(char):
-
-            box = draw.textbbox(
-                (0, 0),
-                char,
-                font=fallback_font
-            )
-
-            total += box[2] - box[0]
-
-        else:
-
-            box = draw.textbbox(
-                (0, 0),
-                char,
-                font=primary_font
-            )
-
-            total += box[2] - box[0]
+        total += get_cluster_width(
+            cluster,
+            primary_font,
+            fallback_font,
+            target_size
+        )
 
     return total
 
 
+# =========================================================
+# Text wrapping
+# =========================================================
+
 def wrap_text(
-    draw,
     text,
     primary_font,
     fallback_font,
-    emoji_font,
+    target_size,
     max_width
 ):
 
@@ -233,18 +660,22 @@ def wrap_text(
         return []
 
     lines = []
+
     current = words[0]
 
     for word in words[1:]:
 
-        test = current + " " + word
+        test = (
+            current
+            + " "
+            + word
+        )
 
         width = get_text_width(
-            draw,
             test,
             primary_font,
             fallback_font,
-            emoji_font
+            target_size
         )
 
         if width <= max_width:
@@ -263,11 +694,10 @@ def wrap_text(
 
 
 def prepare_poem_lines(
-    draw,
     text,
     primary_font,
     fallback_font,
-    emoji_font,
+    target_size,
     max_width
 ):
 
@@ -279,17 +709,17 @@ def prepare_poem_lines(
 
     for line in raw_lines:
 
+        # Preserve user's blank lines.
         if not line.strip():
 
             final_lines.append(None)
             continue
 
         wrapped = wrap_text(
-            draw,
             line.strip(),
             primary_font,
             fallback_font,
-            emoji_font,
+            target_size,
             max_width
         )
 
@@ -298,8 +728,11 @@ def prepare_poem_lines(
     return final_lines
 
 
+# =========================================================
+# Text height
+# =========================================================
+
 def calculate_text_height(
-    draw,
     lines,
     font,
     line_spacing,
@@ -318,115 +751,149 @@ def calculate_text_height(
             total += blank_line_spacing
             continue
 
-        bbox = draw.textbbox(
-            (0, 0),
-            line,
-            font=font
+        bbox = font.getbbox(
+            line
         )
 
-        height = bbox[3] - bbox[1]
+        height = (
+            bbox[3] - bbox[1]
+        )
 
-        total += height + line_spacing
+        total += (
+            height
+            + line_spacing
+        )
 
     if lines[-1] is not None:
+
         total -= line_spacing
 
     return total
 
 
+# =========================================================
+# Draw mixed Persian + fallback + emoji
+# =========================================================
+
 def draw_text_with_fallback(
-    draw,
+    image,
     position,
     text,
     primary_font,
     fallback_font,
-    emoji_font,
+    target_size,
     fill
 ):
 
+    draw = ImageDraw.Draw(image)
+
     x, y = position
 
-    for char in text:
+    clusters = split_graphemes(text)
 
-        if is_emoji(char):
+    # Primary font metrics for approximate baseline.
+    primary_bbox = primary_font.getbbox("آ")
 
-            try:
+    primary_bottom = primary_bbox[3]
 
-                bbox = draw.textbbox(
-                    (0, 0),
-                    char,
-                    font=emoji_font,
-                    embedded_color=True
+    for cluster in clusters:
+
+        if cluster == "\n":
+            continue
+
+        # -------------------------------------------------
+        # Emoji
+        # -------------------------------------------------
+
+        if is_emoji_cluster(cluster):
+
+            emoji_image = render_emoji(
+                cluster,
+                target_size
+            )
+
+            if emoji_image is not None:
+
+                # Align emoji visually with text baseline.
+                emoji_y = (
+                    y
+                    + primary_bottom
+                    - emoji_image.height
                 )
 
-                draw.text(
-                    (x, y),
-                    char,
-                    font=emoji_font,
-                    embedded_color=True
+                image.alpha_composite(
+                    emoji_image,
+                    (
+                        int(x),
+                        int(emoji_y)
+                    )
                 )
 
-                width = bbox[2] - bbox[0]
+                x += emoji_image.width
 
-            except Exception:
+                continue
 
-                bbox = draw.textbbox(
-                    (0, 0),
-                    char,
-                    font=fallback_font
-                )
+            # If emoji rendering failed,
+            # safely fall through to fallback font.
 
-                draw.text(
-                    (x, y),
-                    char,
-                    font=fallback_font,
-                    fill=fill
-                )
+        # -------------------------------------------------
+        # Fallback
+        # -------------------------------------------------
 
-                width = bbox[2] - bbox[0]
+        if len(cluster) == 1 and is_fallback_character(cluster):
 
-        elif is_fallback_character(char):
-
-            bbox = draw.textbbox(
-                (0, 0),
-                char,
-                font=fallback_font
+            bbox = fallback_font.getbbox(
+                cluster
             )
 
             draw.text(
                 (x, y),
-                char,
+                cluster,
                 font=fallback_font,
                 fill=fill
             )
 
-            width = bbox[2] - bbox[0]
-
-        else:
-
-            bbox = draw.textbbox(
-                (0, 0),
-                char,
-                font=primary_font
+            x += (
+                bbox[2]
+                - bbox[0]
             )
 
-            draw.text(
-                (x, y),
-                char,
-                font=primary_font,
-                fill=fill
-            )
+            continue
 
-            width = bbox[2] - bbox[0]
+        # -------------------------------------------------
+        # Normal Persian
+        # -------------------------------------------------
 
-        x += width
+        bbox = primary_font.getbbox(
+            cluster
+        )
 
+        draw.text(
+            (x, y),
+            cluster,
+            font=primary_font,
+            fill=fill
+        )
+
+        x += (
+            bbox[2]
+            - bbox[0]
+        )
+
+
+# =========================================================
+# Create poetry card
+# =========================================================
 
 def create_poetry_card(text):
 
     image = create_gradient_background()
 
     draw = ImageDraw.Draw(image)
+
+    # -----------------------------------------------------
+    # Outer border
+    # -----------------------------------------------------
 
     margin = 42
 
@@ -442,6 +909,10 @@ def create_poetry_card(text):
         width=2
     )
 
+    # -----------------------------------------------------
+    # Header
+    # -----------------------------------------------------
+
     title_font = get_font(
         TITLE_FONT,
         48
@@ -456,11 +927,13 @@ def create_poetry_card(text):
     )
 
     title_width = (
-        title_bbox[2] - title_bbox[0]
+        title_bbox[2]
+        - title_bbox[0]
     )
 
     title_height = (
-        title_bbox[3] - title_bbox[1]
+        title_bbox[3]
+        - title_bbox[1]
     )
 
     subtitle_font = get_font(
@@ -477,11 +950,13 @@ def create_poetry_card(text):
     )
 
     subtitle_width = (
-        subtitle_bbox[2] - subtitle_bbox[0]
+        subtitle_bbox[2]
+        - subtitle_bbox[0]
     )
 
     subtitle_height = (
-        subtitle_bbox[3] - subtitle_bbox[1]
+        subtitle_bbox[3]
+        - subtitle_bbox[1]
     )
 
     title_y = 82
@@ -505,18 +980,28 @@ def create_poetry_card(text):
     )
 
     draw.text(
-        (title_x, title_y),
+        (
+            title_x,
+            title_y
+        ),
         title,
         font=title_font,
         fill=ACCENT_COLOR
     )
 
     draw.text(
-        (subtitle_x, subtitle_y),
+        (
+            subtitle_x,
+            subtitle_y
+        ),
         subtitle,
         font=subtitle_font,
         fill=SUBTITLE_COLOR
     )
+
+    # -----------------------------------------------------
+    # Header line
+    # -----------------------------------------------------
 
     line_width = 120
 
@@ -549,27 +1034,37 @@ def create_poetry_card(text):
         fill=ACCENT_COLOR
     )
 
+    # -----------------------------------------------------
+    # Poem area
+    # -----------------------------------------------------
+
     text_left = 90
     text_right = 990
 
-    max_width = text_right - text_left
+    max_width = (
+        text_right
+        - text_left
+    )
 
     text_top = 220
     text_bottom = 900
 
     available_height = (
-        text_bottom - text_top
+        text_bottom
+        - text_top
     )
 
     font_size = 58
-
     min_font_size = 28
 
     line_spacing = 20
-
     blank_line_spacing = 48
 
     lines = []
+
+    # -----------------------------------------------------
+    # Adaptive font size
+    # -----------------------------------------------------
 
     while font_size >= min_font_size:
 
@@ -583,22 +1078,15 @@ def create_poetry_card(text):
             font_size
         )
 
-        emoji_font = get_font(
-            EMOJI_FONT,
-            font_size
-        )
-
         lines = prepare_poem_lines(
-            draw,
             text,
             poem_font,
             fallback_font,
-            emoji_font,
+            font_size,
             max_width
         )
 
         total_height = calculate_text_height(
-            draw,
             lines,
             poem_font,
             line_spacing,
@@ -609,6 +1097,10 @@ def create_poetry_card(text):
             break
 
         font_size -= 2
+
+    # -----------------------------------------------------
+    # Empty text safety
+    # -----------------------------------------------------
 
     if not lines:
 
@@ -622,22 +1114,26 @@ def create_poetry_card(text):
             48
         )
 
-        emoji_font = get_font(
-            EMOJI_FONT,
-            48
-        )
+        font_size = 48
 
         lines = [
             "متن خالی است"
         ]
 
+    # -----------------------------------------------------
+    # Final poem height
+    # -----------------------------------------------------
+
     total_height = calculate_text_height(
-        draw,
         lines,
         poem_font,
         line_spacing,
         blank_line_spacing
     )
+
+    # -----------------------------------------------------
+    # Glass poem panel
+    # -----------------------------------------------------
 
     panel_top = max(
         text_top - 35,
@@ -651,7 +1147,10 @@ def create_poetry_card(text):
 
     panel = Image.new(
         "RGBA",
-        (CARD_WIDTH, CARD_HEIGHT),
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
         (0, 0, 0, 0)
     )
 
@@ -681,6 +1180,10 @@ def create_poetry_card(text):
 
     draw = ImageDraw.Draw(image)
 
+    # -----------------------------------------------------
+    # Decorative side marks
+    # -----------------------------------------------------
+
     deco_y = (
         text_top
         + available_height // 2
@@ -708,9 +1211,16 @@ def create_poetry_card(text):
         width=1
     )
 
+    # -----------------------------------------------------
+    # Draw poem
+    # -----------------------------------------------------
+
     y = (
         text_top
-        + (available_height - total_height) // 2
+        + (
+            available_height
+            - total_height
+        ) // 2
     )
 
     for line in lines:
@@ -718,40 +1228,50 @@ def create_poetry_card(text):
         if line is None:
 
             y += blank_line_spacing
-
             continue
 
         width = get_text_width(
-            draw,
             line,
             poem_font,
             fallback_font,
-            emoji_font
+            font_size
         )
 
-        bbox = draw.textbbox(
-            (0, 0),
-            line,
-            font=poem_font
+        bbox = poem_font.getbbox(
+            line
         )
 
-        height = bbox[3] - bbox[1]
+        height = (
+            bbox[3]
+            - bbox[1]
+        )
 
         x = (
-            CARD_WIDTH - width
+            CARD_WIDTH
+            - width
         ) // 2
 
         draw_text_with_fallback(
-            draw,
-            (x, y),
+            image,
+            (
+                x,
+                y
+            ),
             line,
             poem_font,
             fallback_font,
-            emoji_font,
+            font_size,
             TEXT_COLOR
         )
 
-        y += height + line_spacing
+        y += (
+            height
+            + line_spacing
+        )
+
+    # -----------------------------------------------------
+    # Footer
+    # -----------------------------------------------------
 
     footer_font = get_font(
         FOOTER_FONT,
@@ -767,11 +1287,13 @@ def create_poetry_card(text):
     )
 
     footer_width = (
-        footer_bbox[2] - footer_bbox[0]
+        footer_bbox[2]
+        - footer_bbox[0]
     )
 
     footer_x = (
-        CARD_WIDTH - footer_width
+        CARD_WIDTH
+        - footer_width
     ) // 2
 
     draw.text(
@@ -784,6 +1306,10 @@ def create_poetry_card(text):
         fill=ACCENT_COLOR
     )
 
+    # -----------------------------------------------------
+    # Save
+    # -----------------------------------------------------
+
     filename = "/tmp/poetry_card.png"
 
     image.convert("RGB").save(
@@ -794,6 +1320,10 @@ def create_poetry_card(text):
 
     return filename
 
+
+# =========================================================
+# Soroush Plus messaging
+# =========================================================
 
 def send_message(chat_id, text):
 
@@ -831,7 +1361,10 @@ def send_photo(chat_id, filename):
 
     try:
 
-        with open(filename, "rb") as photo:
+        with open(
+            filename,
+            "rb"
+        ) as photo:
 
             response = requests.post(
                 f"{API}/sendPhoto",
@@ -866,6 +1399,10 @@ def send_photo(chat_id, filename):
         return None
 
 
+# =========================================================
+# Start message
+# =========================================================
+
 def send_start_message(chat_id):
 
     text = (
@@ -882,6 +1419,10 @@ def send_start_message(chat_id):
         text
     )
 
+
+# =========================================================
+# After card message
+# =========================================================
 
 def send_after_card_message(chat_id):
 
@@ -900,6 +1441,10 @@ def send_after_card_message(chat_id):
     )
 
 
+# =========================================================
+# Home
+# =========================================================
+
 @app.route("/")
 def home():
 
@@ -908,6 +1453,10 @@ def home():
         200
     )
 
+
+# =========================================================
+# Webhook
+# =========================================================
 
 @app.route(
     "/webhook",
@@ -944,6 +1493,10 @@ def webhook():
     if not text:
         return "OK", 200
 
+    # -----------------------------------------------------
+    # /start
+    # -----------------------------------------------------
+
     if text == "/start":
 
         send_start_message(
@@ -951,6 +1504,10 @@ def webhook():
         )
 
         return "OK", 200
+
+    # -----------------------------------------------------
+    # Create and send card
+    # -----------------------------------------------------
 
     try:
 
@@ -996,7 +1553,7 @@ def webhook():
 
         print(
             "Card creation error:",
-            error
+            repr(error)
         )
 
         send_message(
@@ -1006,6 +1563,10 @@ def webhook():
 
     return "OK", 200
 
+
+# =========================================================
+# Run
+# =========================================================
 
 if __name__ == "__main__":
 
@@ -1019,4 +1580,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
+        )
