@@ -266,14 +266,14 @@ def create_poetry_card(text):
     #
     # شعرکده سمت راست
     # سروش پلاس سمت چپ آن
-    # مختصات کاملاً مستقل
     # =========================
 
     title_y = 82
 
     header_center = CARD_WIDTH // 2
 
-    gap = 28
+    # فاصله کمتر بین دو نوشته
+    gap = 18
 
     # عنوان در سمت راست مرکز
     title_x = header_center + 10
@@ -281,10 +281,11 @@ def create_poetry_card(text):
     # زیرعنوان در سمت چپ عنوان
     subtitle_x = title_x - subtitle_width - gap
 
+    # اصلاح تراز عمودی
     subtitle_y = (
         title_y
         + (title_height - subtitle_height) // 2
-        + 3
+        - 3
     )
 
     draw.text(
@@ -703,3 +704,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port
     )
+
+
