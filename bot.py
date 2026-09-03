@@ -21,8 +21,7 @@ FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 
 def prepare_persian_text(text):
-    reshaped = arabic_reshaper.reshape(text)
-    return get_display(reshaped)
+    return text
 
 
 def get_font(size):
@@ -307,64 +306,4 @@ def webhook():
             user_id,
             "\u0633\u0644\u0627\u0645 \ud83d\udc4b\n\n"
             "\ud83d\uddbc\ufe0f \u0628\u0647 \u0628\u0627\u062a \u06a9\u0627\u0631\u062a \u0634\u0639\u0631 \u062e\u0648\u0634 \u0622\u0645\u062f\u06cc.\n\n"
-            "\u0634\u0639\u0631\u062a \u0631\u0627 \u0647\u0645\u06cc\u0646\u200c\u062c\u0627 \u0628\u0641\u0631\u0633\u062a \u062a\u0627 \u0628\u0631\u0627\u06cc\u062a \u06a9\u0627\u0631\u062a \u0634\u0639\u0631 \u0628\u0633\u0627\u0632\u0645. \u2728"
-        )
-
-        return "OK", 200
-
-    try:
-
-        filename = create_poetry_card(text)
-
-        print(
-            f"Poetry card created: {filename}"
-        )
-
-        # ارسال تصویر
-        photo_response = send_photo(
-            user_id,
-            filename
-        )
-
-        # اگر ارسال عکس موفق بود، پیام موفقیت نمی‌فرستیم
-        if photo_response is not None and photo_response.ok:
-
-            print("Poetry card sent successfully.")
-
-        else:
-
-            print("Photo sending failed.")
-
-            send_message(
-                user_id,
-                "\u2705 \u06a9\u0627\u0631\u062a \u0633\u0627\u062e\u062a\u0647 \u0634\u062f\u060c \u0627\u0645\u0627 \u0627\u0631\u0633\u0627\u0644 \u062a\u0635\u0648\u06cc\u0631 \u0645\u0648\u0641\u0642 \u0646\u0634\u062f."
-            )
-
-    except Exception as error:
-
-        print(
-            "Card creation error:",
-            error
-        )
-
-        send_message(
-            user_id,
-            "\u274c \u0647\u0646\u06af\u0627\u0645 \u0633\u0627\u062e\u062a \u06a9\u0627\u0631\u062a \u0645\u0634\u06a9\u0644\u06cc \u067e\u06cc\u0634 \u0622\u0645\u062f."
-        )
-
-    return "OK", 200
-
-
-if __name__ == "__main__":
-
-    port = int(
-        os.environ.get(
-            "PORT",
-            10000
-        )
-    )
-
-    app.run(
-        host="0.0.0.0",
-        port=port
-    )
+            "\u0634\u0639\u0631\u062a \u0631\u0627 \u0647\u0645
