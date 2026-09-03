@@ -14,26 +14,129 @@ CHANNEL_URL = "https://splus.ir/life_m23"
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-TEXT_COLOR = (248, 244, 235)
-ACCENT_COLOR = (214, 181, 112)
-SUBTITLE_COLOR = (190, 175, 150)
-BORDER_COLOR = (145, 112, 68)
-
 POEM_FONT = "BNazanin.ttf"
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
 
+# ==================================
+# Color Palettes
+# ==================================
+
+PALETTES = [
+
+    # 1 - Royal Purple
+    {
+        "top": (47, 27, 70),
+        "middle": (29, 20, 49),
+        "bottom": (12, 11, 23),
+
+        "glow1": (150, 105, 190, 38),
+        "glow2": (105, 70, 160, 22),
+
+        "text": (248, 244, 235),
+        "accent": (214, 181, 112),
+        "subtitle": (190, 175, 150),
+        "border": (173, 137, 82),
+        "ornament": (205, 172, 105),
+    },
+
+    # 2 - Deep Violet
+    {
+        "top": (57, 29, 84),
+        "middle": (34, 18, 57),
+        "bottom": (13, 9, 25),
+
+        "glow1": (175, 105, 210, 34),
+        "glow2": (125, 70, 175, 20),
+
+        "text": (250, 246, 238),
+        "accent": (225, 193, 126),
+        "subtitle": (198, 181, 158),
+        "border": (166, 126, 82),
+        "ornament": (214, 179, 109),
+    },
+
+    # 3 - Midnight Indigo
+    {
+        "top": (31, 39, 78),
+        "middle": (19, 24, 53),
+        "bottom": (8, 10, 24),
+
+        "glow1": (85, 105, 190, 34),
+        "glow2": (65, 75, 155, 20),
+
+        "text": (242, 245, 239),
+        "accent": (218, 192, 130),
+        "subtitle": (181, 186, 178),
+        "border": (143, 128, 91),
+        "ornament": (211, 184, 116),
+    },
+
+    # 4 - Plum
+    {
+        "top": (67, 29, 62),
+        "middle": (40, 18, 39),
+        "bottom": (16, 9, 20),
+
+        "glow1": (185, 90, 145, 30),
+        "glow2": (125, 55, 110, 20),
+
+        "text": (250, 241, 232),
+        "accent": (218, 166, 128),
+        "subtitle": (202, 174, 155),
+        "border": (157, 106, 81),
+        "ornament": (215, 170, 126),
+    },
+
+    # 5 - Aubergine
+    {
+        "top": (55, 25, 63),
+        "middle": (32, 15, 39),
+        "bottom": (12, 8, 17),
+
+        "glow1": (145, 75, 165, 32),
+        "glow2": (105, 50, 125, 20),
+
+        "text": (248, 243, 232),
+        "accent": (210, 177, 112),
+        "subtitle": (193, 174, 150),
+        "border": (151, 116, 76),
+        "ornament": (205, 169, 106),
+    },
+
+    # 6 - Burgundy Violet
+    {
+        "top": (67, 25, 48),
+        "middle": (39, 14, 31),
+        "bottom": (14, 7, 15),
+
+        "glow1": (175, 70, 105, 30),
+        "glow2": (120, 45, 80, 20),
+
+        "text": (251, 242, 229),
+        "accent": (218, 174, 116),
+        "subtitle": (199, 170, 145),
+        "border": (160, 111, 76),
+        "ornament": (211, 168, 108),
+    }
+]
+
+
+# ==================================
+# Font
+# ==================================
+
 def get_font(font_name, size):
     return ImageFont.truetype(font_name, size)
 
 
 # ==================================
-# Luxury Background
+# Background
 # ==================================
 
-def create_gradient_background():
+def create_gradient_background(palette):
 
     image = Image.new(
         "RGB",
@@ -42,9 +145,9 @@ def create_gradient_background():
 
     pixels = image.load()
 
-    top = (47, 27, 70)
-    middle = (29, 20, 49)
-    bottom = (12, 11, 23)
+    top = palette["top"]
+    middle = palette["middle"]
+    bottom = palette["bottom"]
 
     for y in range(CARD_HEIGHT):
 
@@ -71,7 +174,7 @@ def create_gradient_background():
             pixels[x, y] = (r, g, b)
 
     # --------------------------------
-    # Large soft glow
+    # Soft glow
     # --------------------------------
 
     glow = Image.new(
@@ -84,17 +187,22 @@ def create_gradient_background():
 
     glow_draw.ellipse(
         (-260, -180, 650, 560),
-        fill=(150, 105, 190, 38)
+        fill=palette["glow1"]
     )
 
     glow_draw.ellipse(
         (690, 690, 1250, 1250),
-        fill=(105, 70, 160, 22)
+        fill=palette["glow2"]
     )
 
     glow_draw.ellipse(
         (250, 350, 850, 950),
-        fill=(100, 65, 145, 10)
+        fill=(
+            palette["glow1"][0],
+            palette["glow1"][1],
+            palette["glow1"][2],
+            10
+        )
     )
 
     glow = glow.filter(
@@ -107,7 +215,7 @@ def create_gradient_background():
     )
 
     # --------------------------------
-    # Very subtle texture
+    # Subtle texture
     # --------------------------------
 
     texture = Image.new(
@@ -125,12 +233,10 @@ def create_gradient_background():
         x = random.randrange(CARD_WIDTH)
         y = random.randrange(CARD_HEIGHT)
 
-        value = random.choice(
-            [
-                (255, 255, 255, 3),
-                (0, 0, 0, 4)
-            ]
-        )
+        value = random.choice([
+            (255, 255, 255, 3),
+            (0, 0, 0, 4)
+        ])
 
         texture_pixels[x, y] = value
 
@@ -159,6 +265,7 @@ def wrap_text(draw, text, font, max_width):
         return []
 
     lines = []
+
     current = words[0]
 
     for word in words[1:]:
@@ -263,7 +370,17 @@ def calculate_text_height(
 
 def create_poetry_card(text):
 
-    image = create_gradient_background()
+    # Random palette
+    palette = random.choice(PALETTES)
+
+    print(
+        "Selected palette:",
+        palette
+    )
+
+    image = create_gradient_background(
+        palette
+    )
 
     draw = ImageDraw.Draw(image)
 
@@ -281,11 +398,9 @@ def create_poetry_card(text):
             CARD_HEIGHT - margin
         ),
         radius=42,
-        outline=(173, 137, 82),
+        outline=palette["border"],
         width=2
     )
-
-    # Inner subtle frame
 
     inner_margin = 49
 
@@ -297,7 +412,7 @@ def create_poetry_card(text):
             CARD_HEIGHT - inner_margin
         ),
         radius=35,
-        outline=(205, 172, 105),
+        outline=palette["accent"],
         width=1
     )
 
@@ -367,7 +482,7 @@ def create_poetry_card(text):
         - 3
     )
 
-    # Very soft title shadow
+    # Title shadow
 
     draw.text(
         (
@@ -379,6 +494,8 @@ def create_poetry_card(text):
         fill=(0, 0, 0, 80)
     )
 
+    # Title
+
     draw.text(
         (
             title_x,
@@ -386,8 +503,10 @@ def create_poetry_card(text):
         ),
         title,
         font=title_font,
-        fill=ACCENT_COLOR
+        fill=palette["accent"]
     )
+
+    # Subtitle
 
     draw.text(
         (
@@ -396,7 +515,7 @@ def create_poetry_card(text):
         ),
         subtitle,
         font=subtitle_font,
-        fill=SUBTITLE_COLOR
+        fill=palette["subtitle"]
     )
 
     # ==================================
@@ -413,8 +532,6 @@ def create_poetry_card(text):
 
     center_x = CARD_WIDTH // 2
 
-    # left line
-
     draw.line(
         (
             center_x - line_width,
@@ -422,11 +539,9 @@ def create_poetry_card(text):
             center_x - 12,
             line_y
         ),
-        fill=(145, 112, 68),
+        fill=palette["border"],
         width=1
     )
-
-    # right line
 
     draw.line(
         (
@@ -435,11 +550,9 @@ def create_poetry_card(text):
             center_x + line_width,
             line_y
         ),
-        fill=(145, 112, 68),
+        fill=palette["border"],
         width=1
     )
-
-    # center diamond
 
     diamond_size = 5
 
@@ -450,7 +563,7 @@ def create_poetry_card(text):
             (center_x, line_y + diamond_size),
             (center_x - diamond_size, line_y)
         ],
-        fill=ACCENT_COLOR
+        fill=palette["accent"]
     )
 
     # ==================================
@@ -548,7 +661,7 @@ def create_poetry_card(text):
 
     panel_draw = ImageDraw.Draw(panel)
 
-    # Outer shadow
+    # Shadow
 
     panel_draw.rounded_rectangle(
         (
@@ -572,7 +685,12 @@ def create_poetry_card(text):
         ),
         radius=45,
         fill=(255, 255, 255, 8),
-        outline=(205, 172, 105, 24),
+        outline=(
+            palette["accent"][0],
+            palette["accent"][1],
+            palette["accent"][2],
+            24
+        ),
         width=1
     )
 
@@ -610,8 +728,6 @@ def create_poetry_card(text):
         + available_height // 2
     )
 
-    # left
-
     draw.line(
         (
             79,
@@ -619,7 +735,12 @@ def create_poetry_card(text):
             79,
             deco_y + 30
         ),
-        fill=(205, 172, 105, 75),
+        fill=(
+            palette["ornament"][0],
+            palette["ornament"][1],
+            palette["ornament"][2],
+            75
+        ),
         width=1
     )
 
@@ -630,10 +751,13 @@ def create_poetry_card(text):
             82,
             deco_y + 3
         ),
-        fill=(205, 172, 105, 100)
+        fill=(
+            palette["ornament"][0],
+            palette["ornament"][1],
+            palette["ornament"][2],
+            100
+        )
     )
-
-    # right
 
     draw.line(
         (
@@ -642,7 +766,12 @@ def create_poetry_card(text):
             1001,
             deco_y + 30
         ),
-        fill=(205, 172, 105, 75),
+        fill=(
+            palette["ornament"][0],
+            palette["ornament"][1],
+            palette["ornament"][2],
+            75
+        ),
         width=1
     )
 
@@ -653,7 +782,12 @@ def create_poetry_card(text):
             1004,
             deco_y + 3
         ),
-        fill=(205, 172, 105, 100)
+        fill=(
+            palette["ornament"][0],
+            palette["ornament"][1],
+            palette["ornament"][2],
+            100
+        )
     )
 
     # ==================================
@@ -693,7 +827,7 @@ def create_poetry_card(text):
             ),
             line,
             font=poem_font,
-            fill=TEXT_COLOR
+            fill=palette["text"]
         )
 
         y += height + line_spacing
@@ -725,8 +859,6 @@ def create_poetry_card(text):
 
     footer_y = CARD_HEIGHT - 86
 
-    # tiny separator
-
     draw.line(
         (
             center_x - 35,
@@ -734,7 +866,7 @@ def create_poetry_card(text):
             center_x + 35,
             footer_y - 13
         ),
-        fill=(145, 112, 68),
+        fill=palette["border"],
         width=1
     )
 
@@ -745,7 +877,7 @@ def create_poetry_card(text):
         ),
         footer,
         font=footer_font,
-        fill=ACCENT_COLOR
+        fill=palette["accent"]
     )
 
     # ==================================
@@ -1024,3 +1156,6 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port
     )
+
+
+
