@@ -39,7 +39,6 @@ PENDING_POEMS = {}
 # ==================================
 
 PALETTES = [
-
     {
         "name": "بنفش سلطنتی",
         "top": (55, 25, 82),
@@ -59,7 +58,6 @@ PALETTES = [
         "side_line": (205, 172, 105, 75),
         "side_dot": (205, 172, 105, 100),
     },
-
     {
         "name": "آبی شبانه",
         "top": (18, 39, 76),
@@ -79,7 +77,6 @@ PALETTES = [
         "side_line": (200, 175, 110, 75),
         "side_dot": (215, 185, 115, 100),
     },
-
     {
         "name": "فیروزه‌ای تیره",
         "top": (10, 61, 67),
@@ -99,7 +96,6 @@ PALETTES = [
         "side_line": (185, 175, 110, 75),
         "side_dot": (210, 190, 120, 100),
     },
-
     {
         "name": "سبز زمردی",
         "top": (12, 59, 51),
@@ -119,7 +115,6 @@ PALETTES = [
         "side_line": (190, 170, 105, 75),
         "side_dot": (210, 180, 110, 100),
     },
-
     {
         "name": "زیتونی تیره",
         "top": (55, 57, 27),
@@ -139,7 +134,6 @@ PALETTES = [
         "side_line": (195, 175, 100, 75),
         "side_dot": (215, 190, 110, 100),
     },
-
     {
         "name": "شرابی",
         "top": (76, 19, 37),
@@ -159,7 +153,6 @@ PALETTES = [
         "side_line": (200, 160, 100, 75),
         "side_dot": (215, 175, 105, 100),
     },
-
     {
         "name": "قهوه‌ای شکلاتی",
         "top": (59, 37, 24),
@@ -179,7 +172,6 @@ PALETTES = [
         "side_line": (200, 160, 95, 75),
         "side_dot": (215, 175, 105, 100),
     },
-
     {
         "name": "رزگلد",
         "top": (72, 35, 48),
@@ -199,7 +191,6 @@ PALETTES = [
         "side_line": (210, 155, 145, 75),
         "side_dot": (225, 170, 158, 100),
     },
-
     {
         "name": "ذغالی طلایی",
         "top": (28, 28, 30),
@@ -227,241 +218,9 @@ PALETTES = [
 # ==================================
 
 def get_font(font_name, size):
-
     return ImageFont.truetype(
         font_name,
         size
-    )
-
-
-# ==================================
-# Background Tazhib
-# ==================================
-
-def draw_modern_tazhib(
-    image,
-    palette
-):
-
-    ornament = Image.new(
-        "RGBA",
-        (
-            CARD_WIDTH,
-            CARD_HEIGHT
-        ),
-        (0, 0, 0, 0)
-    )
-
-    draw = ImageDraw.Draw(
-        ornament
-    )
-
-    ornament_color = (
-        palette["ornament"] + (78,)
-    )
-
-    accent_color = (
-        palette["accent"] + (52,)
-    )
-
-    soft_color = (
-        palette["ornament"] + (34,)
-    )
-
-    # ==================================
-    # Four Main Corner Motifs
-    # ==================================
-
-    corners = [
-        (76, 76, 1, 1),
-        (CARD_WIDTH - 76, 76, -1, 1),
-        (76, CARD_HEIGHT - 76, 1, -1),
-        (
-            CARD_WIDTH - 76,
-            CARD_HEIGHT - 76,
-            -1,
-            -1
-        )
-    ]
-
-    for cx, cy, sx, sy in corners:
-
-        # Main curved form
-
-        draw.arc(
-            (
-                cx - sx * 74,
-                cy - sy * 74,
-                cx + sx * 74,
-                cy + sy * 74
-            ),
-            0,
-            90,
-            fill=ornament_color,
-            width=3
-        )
-
-        # Secondary curved form
-
-        draw.arc(
-            (
-                cx - sx * 55,
-                cy - sy * 55,
-                cx + sx * 55,
-                cy + sy * 55
-            ),
-            0,
-            90,
-            fill=soft_color,
-            width=3
-        )
-
-        # Inner decorative curve
-
-        draw.arc(
-            (
-                cx - sx * 34,
-                cy - sy * 34,
-                cx + sx * 34,
-                cy + sy * 34
-            ),
-            0,
-            90,
-            fill=accent_color,
-            width=2
-        )
-
-        # Small leaves
-
-        for i in range(3):
-
-            offset_x = 18 + i * 18
-            offset_y = 14 + i * 13
-
-            px = cx + sx * offset_x
-            py = cy + sy * offset_y
-
-            leaf_size = 9 - i
-
-            draw.polygon(
-                [
-                    (
-                        px,
-                        py
-                    ),
-                    (
-                        px + sx * leaf_size,
-                        py + sy * 4
-                    ),
-                    (
-                        px + sx * 4,
-                        py + sy * leaf_size
-                    )
-                ],
-                outline=ornament_color
-            )
-
-        # Corner center point
-
-        draw.ellipse(
-            (
-                cx - 3,
-                cy - 3,
-                cx + 3,
-                cy + 3
-            ),
-            fill=accent_color
-        )
-
-    # ==================================
-    # Soft Central Side Arabesques
-    # ==================================
-
-    left_x = 165
-    right_x = CARD_WIDTH - 165
-
-    draw.arc(
-        (
-            left_x - 90,
-            355,
-            left_x + 90,
-            535
-        ),
-        220,
-        320,
-        fill=soft_color,
-        width=3
-    )
-
-    draw.arc(
-        (
-            right_x - 90,
-            355,
-            right_x + 90,
-            535
-        ),
-        40,
-        140,
-        fill=soft_color,
-        width=3
-    )
-
-    draw.arc(
-        (
-            left_x - 90,
-            545,
-            left_x + 90,
-            725
-        ),
-        40,
-        140,
-        fill=soft_color,
-        width=3
-    )
-
-    draw.arc(
-        (
-            right_x - 90,
-            545,
-            right_x + 90,
-            725
-        ),
-        220,
-        320,
-        fill=soft_color,
-        width=3
-    )
-
-    # ==================================
-    # Small Decorative Dots
-    # ==================================
-
-    for x, y in [
-        (148, 445),
-        (932, 445),
-        (148, 635),
-        (932, 635)
-    ]:
-
-        draw.ellipse(
-            (
-                x - 3,
-                y - 3,
-                x + 3,
-                y + 3
-            ),
-            fill=accent_color
-        )
-
-    # Slight blur prevents harsh digital edges
-
-    ornament = ornament.filter(
-        ImageFilter.GaussianBlur(0.25)
-    )
-
-    return Image.alpha_composite(
-        image.convert("RGBA"),
-        ornament
     )
 
 
@@ -577,7 +336,7 @@ def create_gradient_background(palette):
     )
 
     # ==================================
-    # Very Subtle Texture
+    # Very subtle texture
     # ==================================
 
     texture = Image.new(
@@ -617,16 +376,248 @@ def create_gradient_background(palette):
         texture
     )
 
-    # ==================================
-    # Modern Persian Illumination
-    # ==================================
+    return image.convert("RGB")
 
-    image = draw_modern_tazhib(
-        image,
-        palette
+
+# ==================================
+# Modern Persian Illumination
+# ==================================
+
+def draw_modern_tazhib(image, palette):
+
+    ornament = Image.new(
+        "RGBA",
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
+        (0, 0, 0, 0)
     )
 
-    return image.convert("RGB")
+    draw = ImageDraw.Draw(
+        ornament
+    )
+
+    base_color = palette["ornament"]
+
+    main_color = (
+        base_color[0],
+        base_color[1],
+        base_color[2],
+        68
+    )
+
+    soft_color = (
+        base_color[0],
+        base_color[1],
+        base_color[2],
+        28
+    )
+
+    accent_color = (
+        palette["accent"][0],
+        palette["accent"][1],
+        palette["accent"][2],
+        55
+    )
+
+    # ==================================
+    # Corner Motif Tile
+    # ==================================
+
+    tile_size = 220
+
+    tile = Image.new(
+        "RGBA",
+        (
+            tile_size,
+            tile_size
+        ),
+        (0, 0, 0, 0)
+    )
+
+    tile_draw = ImageDraw.Draw(
+        tile
+    )
+
+    tile_draw.arc(
+        (28, 28, 190, 190),
+        180,
+        270,
+        fill=main_color,
+        width=3
+    )
+
+    tile_draw.arc(
+        (46, 46, 172, 172),
+        180,
+        270,
+        fill=soft_color,
+        width=2
+    )
+
+    tile_draw.arc(
+        (65, 65, 154, 154),
+        180,
+        270,
+        fill=soft_color,
+        width=2
+    )
+
+    tile_draw.line(
+        (
+            30,
+            128,
+            92,
+            128
+        ),
+        fill=main_color,
+        width=2
+    )
+
+    tile_draw.line(
+        (
+            128,
+            30,
+            128,
+            92
+        ),
+        fill=main_color,
+        width=2
+    )
+
+    tile_draw.ellipse(
+        (
+            122,
+            122,
+            134,
+            134
+        ),
+        fill=accent_color
+    )
+
+    # ==================================
+    # Four Corners
+    # ==================================
+
+    positions = [
+        (18, 18, 0),
+        (842, 18, 90),
+        (842, 842, 180),
+        (18, 842, 270),
+    ]
+
+    for x, y, angle in positions:
+
+        rotated = tile.rotate(
+            angle,
+            resample=Image.Resampling.BICUBIC,
+            expand=False
+        )
+
+        ornament.alpha_composite(
+            rotated,
+            (
+                x,
+                y
+            )
+        )
+
+    # ==================================
+    # Soft Side Arabesques
+    # ==================================
+
+    # Left
+    draw.arc(
+        (
+            -95,
+            355,
+            145,
+            725
+        ),
+        285,
+        75,
+        fill=soft_color,
+        width=3
+    )
+
+    draw.arc(
+        (
+            -58,
+            405,
+            112,
+            675
+        ),
+        285,
+        75,
+        fill=soft_color,
+        width=2
+    )
+
+    # Right
+    draw.arc(
+        (
+            935,
+            355,
+            1175,
+            725
+        ),
+        105,
+        255,
+        fill=soft_color,
+        width=3
+    )
+
+    draw.arc(
+        (
+            968,
+            405,
+            1138,
+            675
+        ),
+        105,
+        255,
+        fill=soft_color,
+        width=2
+    )
+
+    # ==================================
+    # Small Decorative Dots
+    # ==================================
+
+    dot_positions = [
+        (104, 190),
+        (976, 190),
+        (104, 890),
+        (976, 890),
+    ]
+
+    for x, y in dot_positions:
+
+        draw.ellipse(
+            (
+                x - 3,
+                y - 3,
+                x + 3,
+                y + 3
+            ),
+            fill=accent_color
+        )
+
+    # ==================================
+    # Subtle Blur
+    # ==================================
+
+    ornament = ornament.filter(
+        ImageFilter.GaussianBlur(0.25)
+    )
+
+    image = Image.alpha_composite(
+        image.convert("RGBA"),
+        ornament
+    )
+
+    return image
 
 
 # ==================================
@@ -651,7 +642,6 @@ def wrap_text(
     words = text.split()
 
     if not words:
-
         return []
 
     lines = []
@@ -660,7 +650,11 @@ def wrap_text(
 
     for word in words[1:]:
 
-        test = current + " " + word
+        test = (
+            current
+            + " "
+            + word
+        )
 
         bbox = draw.textbbox(
             (0, 0),
@@ -669,7 +663,8 @@ def wrap_text(
         )
 
         width = (
-            bbox[2] - bbox[0]
+            bbox[2]
+            - bbox[0]
         )
 
         if width <= max_width:
@@ -741,7 +736,6 @@ def calculate_text_height(
 ):
 
     if not lines:
-
         return 0
 
     total = 0
@@ -750,7 +744,9 @@ def calculate_text_height(
 
         if line is None:
 
-            total += blank_line_spacing
+            total += (
+                blank_line_spacing
+            )
 
             continue
 
@@ -761,7 +757,8 @@ def calculate_text_height(
         )
 
         height = (
-            bbox[3] - bbox[1]
+            bbox[3]
+            - bbox[1]
         )
 
         total += (
@@ -777,6 +774,210 @@ def calculate_text_height(
 
 
 # ==================================
+# Panel Corner Ornaments
+# ==================================
+
+def draw_panel_ornaments(
+    image,
+    palette,
+    panel_top,
+    panel_bottom
+):
+
+    ornament = Image.new(
+        "RGBA",
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
+        (0, 0, 0, 0)
+    )
+
+    draw = ImageDraw.Draw(
+        ornament
+    )
+
+    color = (
+        palette["ornament"][0],
+        palette["ornament"][1],
+        palette["ornament"][2],
+        58
+    )
+
+    accent = (
+        palette["accent"][0],
+        palette["accent"][1],
+        palette["accent"][2],
+        48
+    )
+
+    # ==================================
+    # Top Left
+    # ==================================
+
+    draw.arc(
+        (
+            68,
+            panel_top + 6,
+            155,
+            panel_top + 93
+        ),
+        180,
+        270,
+        fill=color,
+        width=2
+    )
+
+    draw.arc(
+        (
+            80,
+            panel_top + 18,
+            143,
+            panel_top + 81
+        ),
+        180,
+        270,
+        fill=color,
+        width=2
+    )
+
+    draw.ellipse(
+        (
+            91,
+            panel_top + 47,
+            97,
+            panel_top + 53
+        ),
+        fill=accent
+    )
+
+    # ==================================
+    # Top Right
+    # ==================================
+
+    draw.arc(
+        (
+            925,
+            panel_top + 6,
+            1012,
+            panel_top + 93
+        ),
+        270,
+        360,
+        fill=color,
+        width=2
+    )
+
+    draw.arc(
+        (
+            937,
+            panel_top + 18,
+            1000,
+            panel_top + 81
+        ),
+        270,
+        360,
+        fill=color,
+        width=2
+    )
+
+    draw.ellipse(
+        (
+            983,
+            panel_top + 47,
+            989,
+            panel_top + 53
+        ),
+        fill=accent
+    )
+
+    # ==================================
+    # Bottom Left
+    # ==================================
+
+    draw.arc(
+        (
+            68,
+            panel_bottom - 93,
+            155,
+            panel_bottom - 6
+        ),
+        90,
+        180,
+        fill=color,
+        width=2
+    )
+
+    draw.arc(
+        (
+            80,
+            panel_bottom - 81,
+            143,
+            panel_bottom - 18
+        ),
+        90,
+        180,
+        fill=color,
+        width=2
+    )
+
+    draw.ellipse(
+        (
+            91,
+            panel_bottom - 53,
+            97,
+            panel_bottom - 47
+        ),
+        fill=accent
+    )
+
+    # ==================================
+    # Bottom Right
+    # ==================================
+
+    draw.arc(
+        (
+            925,
+            panel_bottom - 93,
+            1012,
+            panel_bottom - 6
+        ),
+        0,
+        90,
+        fill=color,
+        width=2
+    )
+
+    draw.arc(
+        (
+            937,
+            panel_bottom - 81,
+            1000,
+            panel_bottom - 18
+        ),
+        0,
+        90,
+        fill=color,
+        width=2
+    )
+
+    draw.ellipse(
+        (
+            983,
+            panel_bottom - 53,
+            989,
+            panel_bottom - 47
+        ),
+        fill=accent
+    )
+
+    return Image.alpha_composite(
+        image.convert("RGBA"),
+        ornament
+    )
+
+
+# ==================================
 # Create Poetry Card
 # ==================================
 
@@ -786,7 +987,20 @@ def create_poetry_card(
     branded=True
 ):
 
+    # ==================================
+    # Background
+    # ==================================
+
     image = create_gradient_background(
+        palette
+    )
+
+    # ==================================
+    # Modern Persian Illumination
+    # ==================================
+
+    image = draw_modern_tazhib(
+        image,
         palette
     )
 
@@ -1118,7 +1332,6 @@ def create_poetry_card(
         )
 
         if total_height <= available_height:
-
             break
 
         font_size -= 2
@@ -1218,95 +1431,20 @@ def create_poetry_card(
         panel
     )
 
+    # ==================================
+    # Panel Tazhib Corners
+    # ==================================
+
+    image = draw_panel_ornaments(
+        image,
+        palette,
+        panel_top,
+        panel_bottom
+    )
+
     draw = ImageDraw.Draw(
         image
     )
-
-    # ==================================
-    # Panel Corner Ornaments
-    # ==================================
-
-    panel_ornament = (
-        palette["ornament"] + (105,)
-    )
-
-    panel_accent = (
-        palette["accent"] + (75,)
-    )
-
-    panel_corners = [
-        (
-            82,
-            panel_top + 23,
-            1,
-            1
-        ),
-        (
-            998,
-            panel_top + 23,
-            -1,
-            1
-        ),
-        (
-            82,
-            panel_bottom - 23,
-            1,
-            -1
-        ),
-        (
-            998,
-            panel_bottom - 23,
-            -1,
-            -1
-        )
-    ]
-
-    for cx, cy, sx, sy in panel_corners:
-
-        draw.arc(
-            (
-                cx - sx * 25,
-                cy - sy * 25,
-                cx + sx * 25,
-                cy + sy * 25
-            ),
-            0,
-            90,
-            fill=panel_ornament,
-            width=2
-        )
-
-        draw.line(
-            (
-                cx,
-                cy + sy * 3,
-                cx + sx * 29,
-                cy + sy * 3
-            ),
-            fill=panel_ornament,
-            width=2
-        )
-
-        draw.line(
-            (
-                cx + sx * 3,
-                cy,
-                cx + sx * 3,
-                cy + sy * 29
-            ),
-            fill=panel_ornament,
-            width=2
-        )
-
-        draw.ellipse(
-            (
-                cx - 3,
-                cy - 3,
-                cx + 3,
-                cy + 3
-            ),
-            fill=panel_accent
-        )
 
     # ==================================
     # Side Ornaments
@@ -1456,7 +1594,7 @@ def create_poetry_card(
             footer_y - 13
         ),
         fill=palette["ornament"],
-        width=1
+        width=2
     )
 
     draw.text(
@@ -1504,7 +1642,9 @@ def send_message(
 
         if reply_markup is not None:
 
-            data["reply_markup"] = reply_markup
+            data["reply_markup"] = (
+                reply_markup
+            )
 
         response = requests.post(
             f"{API}/sendMessage",
@@ -1626,14 +1766,18 @@ def get_card_type_keyboard():
         "inline_keyboard": [
             [
                 {
-                    "text": "🖋️ با امضای شعرکده",
-                    "callback_data": "type_branded"
+                    "text":
+                        "🖋️ با امضای شعرکده",
+                    "callback_data":
+                        "type_branded"
                 }
             ],
             [
                 {
-                    "text": "◻️ کارت عمومی، بدون امضا",
-                    "callback_data": "type_public"
+                    "text":
+                        "◻️ کارت عمومی، بدون امضا",
+                    "callback_data":
+                        "type_public"
                 }
             ]
         ]
@@ -1673,44 +1817,62 @@ def get_color_keyboard():
         "inline_keyboard": [
             [
                 {
-                    "text": "🟣 بنفش سلطنتی",
-                    "callback_data": "color_0"
+                    "text":
+                        "🟣 بنفش سلطنتی",
+                    "callback_data":
+                        "color_0"
                 },
                 {
-                    "text": "🔵 آبی شبانه",
-                    "callback_data": "color_1"
+                    "text":
+                        "🔵 آبی شبانه",
+                    "callback_data":
+                        "color_1"
                 },
                 {
-                    "text": "🩵 فیروزه‌ای تیره",
-                    "callback_data": "color_2"
+                    "text":
+                        "🩵 فیروزه‌ای تیره",
+                    "callback_data":
+                        "color_2"
                 }
             ],
             [
                 {
-                    "text": "🟢 سبز زمردی",
-                    "callback_data": "color_3"
+                    "text":
+                        "🟢 سبز زمردی",
+                    "callback_data":
+                        "color_3"
                 },
                 {
-                    "text": "🫒 زیتونی تیره",
-                    "callback_data": "color_4"
+                    "text":
+                        "🫒 زیتونی تیره",
+                    "callback_data":
+                        "color_4"
                 },
                 {
-                    "text": "🔴 شرابی",
-                    "callback_data": "color_5"
+                    "text":
+                        "🔴 شرابی",
+                    "callback_data":
+                        "color_5"
                 }
             ],
             [
                 {
-                    "text": "🟤 قهوه‌ای شکلاتی",
-                    "callback_data": "color_6"
+                    "text":
+                        "🟤 قهوه‌ای شکلاتی",
+                    "callback_data":
+                        "color_6"
                 },
                 {
-                    "text": "🩷 رزگلد",
-                    "callback_data": "color_7"
+                    "text":
+                        "🩷 رزگلد",
+                    "callback_data":
+                        "color_7"
                 },
                 {
-                    "text": "⚫ ذغالی طلایی",
-                    "callback_data": "color_8"
+                    "text":
+                        "⚫ ذغالی طلایی",
+                    "callback_data":
+                        "color_8"
                 }
             ]
         ]
@@ -1827,7 +1989,9 @@ def process_card_type_selection(
         or {}
     )
 
-    chat_id = chat.get("id")
+    chat_id = chat.get(
+        "id"
+    )
 
     if not chat_id:
 
@@ -1916,7 +2080,9 @@ def process_color_selection(
         or {}
     )
 
-    chat_id = chat.get("id")
+    chat_id = chat.get(
+        "id"
+    )
 
     if not chat_id:
 
@@ -2213,4 +2379,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
+            )
