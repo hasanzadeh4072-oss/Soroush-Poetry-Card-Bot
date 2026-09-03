@@ -25,21 +25,12 @@ def send_message(chat_id, text):
             timeout=30
         )
 
-        print(
-            "sendMessage:",
-            response.status_code,
-            response.text
-        )
+        print("sendMessage:", response.status_code, response.text)
 
         return response
 
     except Exception as error:
-
-        print(
-            "sendMessage error:",
-            error
-        )
-
+        print("sendMessage error:", error)
         return None
 
 
@@ -64,21 +55,12 @@ def send_photo(chat_id, filename):
                 timeout=60
             )
 
-        print(
-            "sendPhoto:",
-            response.status_code,
-            response.text
-        )
+        print("sendPhoto:", response.status_code, response.text)
 
         return response
 
     except Exception as error:
-
-        print(
-            "sendPhoto error:",
-            error
-        )
-
+        print("sendPhoto error:", error)
         return None
 
 
@@ -87,19 +69,38 @@ def create_poetry_card(text, user_id):
     payload = {
         "type": "quote",
         "format": "png",
-        "backgroundColor": "#1e182d",
-        "width": 512,
-        "height": 768,
+
+        # پس‌زمینه گرادیانی به‌جای مشکی ساده
+        "backgroundColor": "#17122b/#4b245f",
+
+        # کارت تقریباً مربعی
+        "width": 600,
+        "height": 600,
+
+        # کیفیت خروجی
         "scale": 2,
+
         "emojiBrand": "apple",
+
         "messages": [
             {
                 "from": {
                     "id": user_id,
                     "name": "شعرکده"
                 },
+
                 "text": text,
-                "entities": [],
+
+                # کل شعر بولد و خواناتر
+                "entities": [
+                    {
+                        "type": "bold",
+                        "offset": 0,
+                        "length": len(text)
+                    }
+                ],
+
+                # بدون آواتار
                 "avatar": False
             }
         ]
@@ -107,10 +108,8 @@ def create_poetry_card(text, user_id):
 
     try:
 
-        print(
-            "Sending request to QUOTE_API:",
-            QUOTE_API
-        )
+        print("QUOTE API:", QUOTE_API)
+        print("QUOTE PAYLOAD:", payload)
 
         response = requests.post(
             QUOTE_API,
@@ -119,7 +118,7 @@ def create_poetry_card(text, user_id):
         )
 
         print(
-            "QUOTE API:",
+            "QUOTE API RESPONSE:",
             response.status_code,
             response.headers.get("content-type")
         )
@@ -141,7 +140,7 @@ def create_poetry_card(text, user_id):
         if "image" not in content_type:
 
             print(
-                "QUOTE API returned non-image response:",
+                "QUOTE API returned non-image:",
                 response.text
             )
 
@@ -150,11 +149,11 @@ def create_poetry_card(text, user_id):
         filename = "/tmp/poetry_card.png"
 
         with open(filename, "wb") as file:
-
             file.write(response.content)
 
         print(
-            f"Quote image created: {filename}"
+            "Quote image created:",
+            filename
         )
 
         return filename
@@ -196,11 +195,9 @@ def webhook():
     user_id = chat.get("id")
 
     if not user_id:
-
         return "OK", 200
 
     if not text:
-
         return "OK", 200
 
     if text == "/start":
@@ -279,4 +276,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
+            )
