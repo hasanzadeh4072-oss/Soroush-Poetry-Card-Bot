@@ -1,5 +1,4 @@
 import os
-import math
 import random
 import requests
 from flask import Flask, request
@@ -21,6 +20,9 @@ SUBTITLE_COLOR = (190, 175, 150)
 BORDER_COLOR = (150, 120, 70)
 
 POEM_FONT = "BNazanin.ttf"
+FALLBACK_FONT = "Vazirmatn-Regular.ttf"
+EMOJI_FONT = "NotoColorEmoji.ttf"
+
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
@@ -64,12 +66,7 @@ def create_gradient_background():
             b = int(middle[2] * (1 - t) + bottom[2] * t)
 
         for x in range(CARD_WIDTH):
-
             pixels[x, y] = (r, g, b)
-
-    # --------------------------------
-    # Soft light / glow layer
-    # --------------------------------
 
     glow = Image.new(
         "RGBA",
@@ -97,10 +94,6 @@ def create_gradient_background():
         image.convert("RGBA"),
         glow
     )
-
-    # --------------------------------
-    # Very subtle texture
-    # --------------------------------
 
     texture = Image.new(
         "RGBA",
@@ -131,15 +124,108 @@ def create_gradient_background():
         texture
     )
 
-    return image.convert("RGB")
+    return image.convert("RGBA")
 
 
 def normalize_text(text):
-
     return text.replace("…", "...")
 
 
-def wrap_text(draw, text, font, max_width):
+def is_emoji(char):
+    code = ord(char)
+
+    return (
+        0x1F000 <= code <= 0x1FAFF
+        or 0x2600 <= code <= 0x27BF
+        or 0x2300 <= code <= 0x23FF
+        or 0x2B00 <= code <= 0x2BFF
+    )
+
+
+def is_fallback_character(char):
+
+    if is_emoji(char):
+        return False
+
+    code = ord(char)
+
+    # Latin
+    if (
+        0x0041 <= code <= 0x005A
+        or 0x0061 <= code <= 0x007A
+    ):
+        return True
+
+    # Numbers
+    if 0x0030 <= code <= 0x0039:
+        return True
+
+    # Common symbols
+    if char in "#@&%$+-=_*/<>[]{}|\\^~`":
+        return True
+
+    return False
+
+
+def get_text_width(draw, text, primary_font, fallback_font, emoji_font):
+
+    total = 0
+
+    for char in text:
+
+        if is_emoji(char):
+
+            try:
+                box = draw.textbbox(
+                    (0, 0),
+                    char,
+                    font=emoji_font,
+                    embedded_color=True
+                )
+
+                total += box[2] - box[0]
+
+            except Exception:
+
+                box = draw.textbbox(
+                    (0, 0),
+                    char,
+                    font=fallback_font
+                )
+
+                total += box[2] - box[0]
+
+        elif is_fallback_character(char):
+
+            box = draw.textbbox(
+                (0, 0),
+                char,
+                font=fallback_font
+            )
+
+            total += box[2] - box[0]
+
+        else:
+
+            box = draw.textbbox(
+                (0, 0),
+                char,
+                font=primary_font
+            )
+
+            total += box[2] - box[0]
+
+    return total
+
+
+def wrap_text(
+    draw,
+    text,
+    primary_font,
+    fallback_font,
+    emoji_font,
+    max_width
+):
 
     words = text.split()
 
@@ -153,13 +239,13 @@ def wrap_text(draw, text, font, max_width):
 
         test = current + " " + word
 
-        bbox = draw.textbbox(
-            (0, 0),
+        width = get_text_width(
+            draw,
             test,
-            font=font
+            primary_font,
+            fallback_font,
+            emoji_font
         )
-
-        width = bbox[2] - bbox[0]
 
         if width <= max_width:
 
@@ -179,7 +265,9 @@ def wrap_text(draw, text, font, max_width):
 def prepare_poem_lines(
     draw,
     text,
-    font,
+    primary_font,
+    fallback_font,
+    emoji_font,
     max_width
 ):
 
@@ -199,7 +287,9 @@ def prepare_poem_lines(
         wrapped = wrap_text(
             draw,
             line.strip(),
-            font,
+            primary_font,
+            fallback_font,
+            emoji_font,
             max_width
         )
 
@@ -239,10 +329,97 @@ def calculate_text_height(
         total += height + line_spacing
 
     if lines[-1] is not None:
-
         total -= line_spacing
 
     return total
+
+
+def draw_text_with_fallback(
+    draw,
+    position,
+    text,
+    primary_font,
+    fallback_font,
+    emoji_font,
+    fill
+):
+
+    x, y = position
+
+    for char in text:
+
+        if is_emoji(char):
+
+            try:
+
+                bbox = draw.textbbox(
+                    (0, 0),
+                    char,
+                    font=emoji_font,
+                    embedded_color=True
+                )
+
+                draw.text(
+                    (x, y),
+                    char,
+                    font=emoji_font,
+                    embedded_color=True
+                )
+
+                width = bbox[2] - bbox[0]
+
+            except Exception:
+
+                bbox = draw.textbbox(
+                    (0, 0),
+                    char,
+                    font=fallback_font
+                )
+
+                draw.text(
+                    (x, y),
+                    char,
+                    font=fallback_font,
+                    fill=fill
+                )
+
+                width = bbox[2] - bbox[0]
+
+        elif is_fallback_character(char):
+
+            bbox = draw.textbbox(
+                (0, 0),
+                char,
+                font=fallback_font
+            )
+
+            draw.text(
+                (x, y),
+                char,
+                font=fallback_font,
+                fill=fill
+            )
+
+            width = bbox[2] - bbox[0]
+
+        else:
+
+            bbox = draw.textbbox(
+                (0, 0),
+                char,
+                font=primary_font
+            )
+
+            draw.text(
+                (x, y),
+                char,
+                font=primary_font,
+                fill=fill
+            )
+
+            width = bbox[2] - bbox[0]
+
+        x += width
 
 
 def create_poetry_card(text):
@@ -250,10 +427,6 @@ def create_poetry_card(text):
     image = create_gradient_background()
 
     draw = ImageDraw.Draw(image)
-
-    # ==================================
-    # Outer border
-    # ==================================
 
     margin = 42
 
@@ -268,10 +441,6 @@ def create_poetry_card(text):
         outline=BORDER_COLOR,
         width=2
     )
-
-    # ==================================
-    # Header
-    # ==================================
 
     title_font = get_font(
         TITLE_FONT,
@@ -349,10 +518,6 @@ def create_poetry_card(text):
         fill=SUBTITLE_COLOR
     )
 
-    # ==================================
-    # Header decoration
-    # ==================================
-
     line_width = 120
 
     line_y = (
@@ -372,8 +537,6 @@ def create_poetry_card(text):
         width=2
     )
 
-    # Small decorative points
-
     center_x = CARD_WIDTH // 2
 
     draw.ellipse(
@@ -385,10 +548,6 @@ def create_poetry_card(text):
         ),
         fill=ACCENT_COLOR
     )
-
-    # ==================================
-    # Poem area
-    # ==================================
 
     text_left = 90
     text_right = 990
@@ -403,9 +562,11 @@ def create_poetry_card(text):
     )
 
     font_size = 58
+
     min_font_size = 28
 
     line_spacing = 20
+
     blank_line_spacing = 48
 
     lines = []
@@ -417,10 +578,22 @@ def create_poetry_card(text):
             font_size
         )
 
+        fallback_font = get_font(
+            FALLBACK_FONT,
+            font_size
+        )
+
+        emoji_font = get_font(
+            EMOJI_FONT,
+            font_size
+        )
+
         lines = prepare_poem_lines(
             draw,
             text,
             poem_font,
+            fallback_font,
+            emoji_font,
             max_width
         )
 
@@ -433,7 +606,6 @@ def create_poetry_card(text):
         )
 
         if total_height <= available_height:
-
             break
 
         font_size -= 2
@@ -445,7 +617,19 @@ def create_poetry_card(text):
             48
         )
 
-        lines = ["متن خالی است"]
+        fallback_font = get_font(
+            FALLBACK_FONT,
+            48
+        )
+
+        emoji_font = get_font(
+            EMOJI_FONT,
+            48
+        )
+
+        lines = [
+            "متن خالی است"
+        ]
 
     total_height = calculate_text_height(
         draw,
@@ -454,10 +638,6 @@ def create_poetry_card(text):
         line_spacing,
         blank_line_spacing
     )
-
-    # ==================================
-    # Subtle poem panel
-    # ==================================
 
     panel_top = max(
         text_top - 35,
@@ -495,15 +675,11 @@ def create_poetry_card(text):
     )
 
     image = Image.alpha_composite(
-        image.convert("RGBA"),
+        image,
         panel
     )
 
     draw = ImageDraw.Draw(image)
-
-    # ==================================
-    # Decorative side marks
-    # ==================================
 
     deco_y = (
         text_top
@@ -532,10 +708,6 @@ def create_poetry_card(text):
         width=1
     )
 
-    # ==================================
-    # Poem
-    # ==================================
-
     y = (
         text_top
         + (available_height - total_height) // 2
@@ -546,7 +718,16 @@ def create_poetry_card(text):
         if line is None:
 
             y += blank_line_spacing
+
             continue
+
+        width = get_text_width(
+            draw,
+            line,
+            poem_font,
+            fallback_font,
+            emoji_font
+        )
 
         bbox = draw.textbbox(
             (0, 0),
@@ -554,25 +735,23 @@ def create_poetry_card(text):
             font=poem_font
         )
 
-        width = bbox[2] - bbox[0]
         height = bbox[3] - bbox[1]
 
         x = (
             CARD_WIDTH - width
         ) // 2
 
-        draw.text(
+        draw_text_with_fallback(
+            draw,
             (x, y),
             line,
-            font=poem_font,
-            fill=TEXT_COLOR
+            poem_font,
+            fallback_font,
+            emoji_font,
+            TEXT_COLOR
         )
 
         y += height + line_spacing
-
-    # ==================================
-    # Footer
-    # ==================================
 
     footer_font = get_font(
         FOOTER_FONT,
@@ -616,10 +795,6 @@ def create_poetry_card(text):
     return filename
 
 
-# ==================================
-# Send Message
-# ==================================
-
 def send_message(chat_id, text):
 
     try:
@@ -651,10 +826,6 @@ def send_message(chat_id, text):
 
         return None
 
-
-# ==================================
-# Send Photo
-# ==================================
 
 def send_photo(chat_id, filename):
 
@@ -695,10 +866,6 @@ def send_photo(chat_id, filename):
         return None
 
 
-# ==================================
-# Start Message
-# ==================================
-
 def send_start_message(chat_id):
 
     text = (
@@ -715,10 +882,6 @@ def send_start_message(chat_id):
         text
     )
 
-
-# ==================================
-# After Card Message
-# ==================================
 
 def send_after_card_message(chat_id):
 
@@ -737,10 +900,6 @@ def send_after_card_message(chat_id):
     )
 
 
-# ==================================
-# Home
-# ==================================
-
 @app.route("/")
 def home():
 
@@ -749,10 +908,6 @@ def home():
         200
     )
 
-
-# ==================================
-# Webhook
-# ==================================
 
 @app.route(
     "/webhook",
@@ -789,10 +944,6 @@ def webhook():
     if not text:
         return "OK", 200
 
-    # --------------------------------
-    # /start
-    # --------------------------------
-
     if text == "/start":
 
         send_start_message(
@@ -800,10 +951,6 @@ def webhook():
         )
 
         return "OK", 200
-
-    # --------------------------------
-    # Create Card
-    # --------------------------------
 
     try:
 
@@ -819,10 +966,6 @@ def webhook():
             user_id,
             filename
         )
-
-        # --------------------------------
-        # Photo sent successfully
-        # --------------------------------
 
         if (
             photo_response is not None
@@ -863,10 +1006,6 @@ def webhook():
 
     return "OK", 200
 
-
-# ==================================
-# Run
-# ==================================
 
 if __name__ == "__main__":
 
