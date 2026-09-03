@@ -55,9 +55,7 @@ def create_poetry_card(text):
     # عنوان
     title_font = get_font(42)
 
-    title = prepare_persian_text(
-        "\u0634\u0639\u0631\u06a9\u062f\u0647"
-    )
+    title = prepare_persian_text("شعرکده")
 
     bbox = draw.textbbox(
         (0, 0),
@@ -118,9 +116,7 @@ def create_poetry_card(text):
     if not prepared_lines:
 
         prepared_lines = [
-            prepare_persian_text(
-                "\u0645\u062a\u0646 \u062e\u0627\u0644\u06cc \u0627\u0633\u062a"
-            )
+            prepare_persian_text("متن خالی است")
         ]
 
     line_spacing = 28
@@ -169,9 +165,7 @@ def create_poetry_card(text):
     # پایین کارت
     footer_font = get_font(28)
 
-    footer = prepare_persian_text(
-        "\u06a9\u0627\u0631\u062a \u0634\u0639\u0631"
-    )
+    footer = prepare_persian_text("کارت شعر")
 
     bbox = draw.textbbox(
         (0, 0),
@@ -225,85 +219,3 @@ def send_message(chat_id, text):
     except Exception as error:
 
         print(
-            "sendMessage error:",
-            error
-        )
-
-        return None
-
-
-def send_photo(chat_id, filename):
-
-    try:
-
-        with open(filename, "rb") as photo:
-
-            response = requests.post(
-                f"{API}/sendPhoto",
-                data={
-                    "chat_id": chat_id
-                },
-                files={
-                    "photo": (
-                        "poetry_card.png",
-                        photo,
-                        "image/png"
-                    )
-                },
-                timeout=60
-            )
-
-        print(
-            "sendPhoto:",
-            response.status_code,
-            response.text
-        )
-
-        return response
-
-    except Exception as error:
-
-        print(
-            "sendPhoto error:",
-            error
-        )
-
-        return None
-
-
-@app.route("/")
-def home():
-
-    return "Poetry Card Bot is running", 200
-
-
-@app.route("/webhook", methods=["POST"])
-def webhook():
-
-    update = request.get_json(
-        silent=True
-    ) or {}
-
-    print("UPDATE:", update)
-
-    message = update.get("message") or {}
-
-    text = message.get("text")
-
-    chat = message.get("chat") or {}
-
-    user_id = chat.get("id")
-
-    if not user_id:
-        return "OK", 200
-
-    if not text:
-        return "OK", 200
-
-    if text == "/start":
-
-        send_message(
-            user_id,
-            "\u0633\u0644\u0627\u0645 \ud83d\udc4b\n\n"
-            "\ud83d\uddbc\ufe0f \u0628\u0647 \u0628\u0627\u062a \u06a9\u0627\u0631\u062a \u0634\u0639\u0631 \u062e\u0648\u0634 \u0622\u0645\u062f\u06cc.\n\n"
-            "\u0634\u0639\u0631\u062a \u0631\u0627 \u0647\u0645
