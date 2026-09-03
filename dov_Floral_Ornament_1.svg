@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://web.resource.org/cc/" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:svg="http://www.w3.org/2000/svg" id="svg5830" viewBox="0 0 95.484 95.008" version="1.0">
+  <defs id="defs5832">
+    <radialGradient id="radialGradient6483" xlink:href="#linearGradient4361" gradientUnits="userSpaceOnUse" cy="439.1" cx="597.13" gradientTransform="matrix(1.7141 .032226 -.017541 .933 -418.69 12.954)" r="57.523"/>
+    <radialGradient id="radialGradient6481" gradientUnits="userSpaceOnUse" cy="490.69" cx="356.12" gradientTransform="matrix(.932 .84324 -.67091 .74153 353.43 -173.46)" r="23.158">
+      <stop id="stop4345" stop-color="#d70000" offset="0"/>
+      <stop id="stop4351" stop-color="#750000" stop-opacity=".98431" offset=".7619"/>
+      <stop id="stop4347" stop-color="#130000" stop-opacity=".97196" offset="1"/>
+    </radialGradient>
+    <radialGradient id="radialGradient6479" xlink:href="#linearGradient4361" gradientUnits="userSpaceOnUse" cy="439.1" cx="597.13" gradientTransform="matrix(.032226 -1.7141 .933 .017541 100.45 1527.5)" r="57.523"/>
+    <radialGradient id="radialGradient6477" xlink:href="#linearGradient4361" gradientUnits="userSpaceOnUse" cy="439.1" cx="597.13" gradientTransform="matrix(-1.7141 -.032226 .017541 -.933 1615 1007.3)" r="57.523"/>
+    <linearGradient id="linearGradient4361">
+      <stop id="stop4363" stop-color="#d73c00" offset="0"/>
+      <stop id="stop4365" stop-color="#750000" stop-opacity=".98431" offset=".7619"/>
+      <stop id="stop4367" stop-color="#130000" stop-opacity=".97196" offset="1"/>
+    </linearGradient>
+    <radialGradient id="radialGradient6475" xlink:href="#linearGradient4361" gradientUnits="userSpaceOnUse" cy="439.1" cx="597.13" gradientTransform="matrix(-.032226 1.7141 -.933 -.017541 1095.8 -506.7)" r="57.523"/>
+  </defs>
+  <g id="layer1" transform="translate(-217.97 -239.14)">
+    <g id="g6457" stroke="#000" stroke-linecap="round" transform="matrix(-.46352 0 0 -.46352 542.96 523.1)">
+      <path id="path6459" stroke-linejoin="round" style="color:#000000" d="m668.04 510.99a68.346 65.005 0 1 1 -136.69 0 68.346 65.005 0 1 1 136.69 0z" stroke-width="2.5" fill="#f55"/>
+      <path id="path6461" stroke-linejoin="round" style="color:#000000" d="m391.18 498.08a28.324 28.324 0 1 1 -56.65 0 28.324 28.324 0 1 1 56.65 0z" fill-rule="evenodd" fill-opacity=".63182" transform="translate(235.36 11.305)" stroke-width="2" fill="#ffd5d5"/>
+      <path id="path6463" d="m536.25 430c-0.34 0-0.68 0-1.03 0.03-5.66 0.52-9.15 6.69-14.35 2.38 5.08 5.97-1.08 9.47-1.59 15.12-0.51 5.66 3.87 9.75 3.87 9.75l2.04 106.88s-4.36 4.1-3.85 9.75c0.52 5.65 6.69 9.14 2.13 14.59 5.71-4.82 9.19 1.36 14.84 1.88 5.65 0.51 9.75-3.88 9.75-3.88h101.22s4.13 4.39 9.78 3.88c5.65-0.52 8.91-6.75 14.56-2.13-4.62-5.65 1.36-9.19 1.88-14.84 0.51-5.65-3.88-9.75-3.88-9.75l3.6-105.88s4.39-4.09 3.87-9.75c-0.51-5.65-6.69-9.13-2.12-14.59-5.72 4.82-9.19-1.33-14.85-1.84-5.65-0.52-9.75 3.84-9.75 3.84l-107.4-1.53s-3.61-3.85-8.72-3.91zm62.94 9.82c38.57 0 69.87 31.32 69.87 69.9s-31.3 69.88-69.87 69.88c-38.58 0-69.91-31.3-69.91-69.88s31.33-69.9 69.91-69.9z" stroke-width="2.5" fill="#f60"/>
+      <path id="path6465" d="m650.45 510.12c-5.4-0.13-18.7 1.73-30.98-21.08 21.48-21.25 22.26-21.9 34.07-33.7 4.08-4.08 24.09-1.55 25.18 13.66 0.89 12.55 7.69 29.21 11.69 33.91 3.74 4.42 9.73 7.23 9.72 7.21 0-0.02-5.98 2.79-9.73 7.21-4 4.7-10.8 21.36-11.69 33.91-1.09 15.21-21.1 17.74-25.18 13.66-11.81-11.8-12.59-12.45-34.07-33.7 12.28-22.81 25.59-20.95 30.99-21.08z" stroke-width="2" fill="url(#radialGradient6475)" fill-rule="evenodd"/>
+      <path id="path6467" d="m598.13 561.92c0.13-5.4-1.72-18.7 21.08-30.98 21.26 21.48 21.91 22.26 33.71 34.07 4.08 4.08 1.55 24.09-13.66 25.18-12.56 0.89-29.21 7.69-33.92 11.69-4.42 3.75-7.23 9.73-7.21 9.73 0.03-0.01-2.78-5.99-7.2-9.74-4.71-3.99-21.36-10.79-33.92-11.69-15.21-1.09-17.74-21.1-13.66-25.18 11.8-11.81 12.45-12.59 33.7-34.07 22.81 12.29 20.96 25.59 21.08 30.99z" stroke-width="2" fill="url(#radialGradient6477)" fill-rule="evenodd"/>
+      <path id="path6469" d="m545.82 510.63c5.4 0.13 18.7-1.72 30.98 21.08-21.48 21.25-22.26 21.91-34.07 33.71-4.08 4.08-24.09 1.55-25.18-13.66-0.89-12.56-7.69-29.21-11.69-33.92-3.74-4.42-9.73-7.23-9.73-7.21 0.01 0.03 5.99-2.79 9.74-7.2 3.99-4.71 10.79-21.36 11.69-33.92 1.09-15.21 21.1-17.74 25.18-13.66 11.81 11.8 12.59 12.45 34.07 33.7-12.29 22.81-25.59 20.96-30.99 21.08z" stroke-width="2" fill="url(#radialGradient6479)" fill-rule="evenodd"/>
+      <path id="path6471" stroke-linejoin="round" style="color:#000000" d="m385.01 498.08a22.158 22.158 0 1 1 -44.31 0 22.158 22.158 0 1 1 44.31 0z" fill-rule="evenodd" transform="translate(235.36 11.305)" stroke-width="2" fill="url(#radialGradient6481)"/>
+      <path id="path6473" d="m598.13 458.32c-0.12 5.4 1.73 18.7-21.08 30.98-21.25-21.48-21.9-22.26-33.7-34.07-4.08-4.08-1.55-24.09 13.66-25.18 12.56-0.89 29.21-7.69 33.92-11.69 4.42-3.75 7.23-9.73 7.2-9.73-0.02 0.01 2.79 5.99 7.21 9.74 4.71 3.99 21.36 10.79 33.92 11.69 15.21 1.09 17.74 21.1 13.66 25.18-11.8 11.81-12.45 12.59-33.71 34.07-22.8-12.29-20.95-25.59-21.08-30.99z" stroke-width="2" fill="url(#radialGradient6483)" fill-rule="evenodd"/>
+    </g>
+  </g>
+  <metadata>
+    <rdf:RDF>
+      <cc:Work>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+        <cc:license rdf:resource="http://creativecommons.org/licenses/publicdomain/"/>
+        <dc:publisher>
+          <cc:Agent rdf:about="http://openclipart.org/">
+            <dc:title>Openclipart</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:title>Floral Ornament 1</dc:title>
+        <dc:date>2007-05-04T02:05:53</dc:date>
+        <dc:description>A simple floral ornament pattern. Feel free to recolor.</dc:description>
+        <dc:source>http://openclipart.org/detail/4352/floral-ornament-1-by-dov</dc:source>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>dov</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>clip art</rdf:li>
+            <rdf:li>clipart</rdf:li>
+            <rdf:li>colour</rdf:li>
+            <rdf:li>contour</rdf:li>
+            <rdf:li>decorative</rdf:li>
+            <rdf:li>flower</rdf:li>
+            <rdf:li>geometric</rdf:li>
+            <rdf:li>image</rdf:li>
+            <rdf:li>line art</rdf:li>
+            <rdf:li>media</rdf:li>
+            <rdf:li>nature</rdf:li>
+            <rdf:li>ornament</rdf:li>
+            <rdf:li>plant</rdf:li>
+            <rdf:li>png</rdf:li>
+            <rdf:li>public domain</rdf:li>
+            <rdf:li>svg</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+      </cc:Work>
+      <cc:License rdf:about="http://creativecommons.org/licenses/publicdomain/">
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Reproduction"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Distribution"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#DerivativeWorks"/>
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+</svg>
