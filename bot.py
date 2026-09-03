@@ -36,7 +36,10 @@ FOOTER_FONT = "Vazirmatn-Regular.ttf"
 # =========================
 
 def get_font(font_name, size):
-    return ImageFont.truetype(font_name, size)
+    return ImageFont.truetype(
+        font_name,
+        size
+    )
 
 
 # =========================
@@ -118,6 +121,9 @@ def wrap_text(draw, text, font, max_width):
 
 # =========================
 # آماده سازی خطوط شعر
+#
+# نکته:
+# خطوط خالی کاربر حفظ می‌شوند.
 # =========================
 
 def prepare_poem_lines(draw, text, font, max_width):
@@ -128,14 +134,17 @@ def prepare_poem_lines(draw, text, font, max_width):
 
     for line in raw_lines:
 
-        line = line.strip()
+        # اگر خط کاملاً خالی است،
+        # همان خط خالی را نگه می‌داریم.
+        if not line.strip():
 
-        if not line:
+            final_lines.append(None)
+
             continue
 
         wrapped = wrap_text(
             draw,
-            line,
+            line.strip(),
             font,
             max_width
         )
@@ -153,7 +162,8 @@ def calculate_text_height(
     draw,
     lines,
     font,
-    line_spacing
+    line_spacing,
+    blank_line_spacing
 ):
 
     if not lines:
@@ -163,6 +173,13 @@ def calculate_text_height(
 
     for line in lines:
 
+        # خط خالی
+        if line is None:
+
+            total += blank_line_spacing
+
+            continue
+
         bbox = draw.textbbox(
             (0, 0),
             line,
@@ -171,43 +188,17 @@ def calculate_text_height(
 
         height = bbox[3] - bbox[1]
 
-        total += height
+        total += height + line_spacing
 
-    total += line_spacing * (len(lines) - 1)
+    # فاصله آخرین خط حذف شود
+    if lines:
+
+        last_line = lines[-1]
+
+        if last_line is not None:
+            total -= line_spacing
 
     return total
-
-
-# =========================
-# رسم متن وسط چین
-# =========================
-
-def draw_centered_text(
-    draw,
-    text,
-    y,
-    font,
-    fill
-):
-
-    bbox = draw.textbbox(
-        (0, 0),
-        text,
-        font=font
-    )
-
-    width = bbox[2] - bbox[0]
-
-    x = (CARD_WIDTH - width) // 2
-
-    draw.text(
-        (x, y),
-        text,
-        font=font,
-        fill=fill
-    )
-
-    return bbox[3] - bbox[1]
 
 
 # =========================
@@ -239,7 +230,7 @@ def create_poetry_card(text):
     )
 
     # =========================
-    # عنوان اصلی
+    # عنوان
     # =========================
 
     title_font = get_font(
@@ -264,7 +255,7 @@ def create_poetry_card(text):
     )
 
     # =========================
-    # متن سروش پلاس
+    # سروش پلاس
     # =========================
 
     subtitle_font = get_font(
@@ -288,7 +279,6 @@ def create_poetry_card(text):
         subtitle_bbox[3] - subtitle_bbox[1]
     )
 
-    # فاصله بین عنوان و زیرعنوان
     gap = 22
 
     total_header_width = (
@@ -378,13 +368,21 @@ def create_poetry_card(text):
     )
 
     # =========================
-    # اندازه خودکار فونت
+    # تنظیمات فاصله
     # =========================
 
     font_size = 58
     min_font_size = 28
 
+    # فاصله معمول بین خطوط
     line_spacing = 24
+
+    # فاصله‌ای که یک خط خالی ایجاد می‌کند
+    blank_line_spacing = 55
+
+    # =========================
+    # اندازه خودکار فونت
+    # =========================
 
     while font_size >= min_font_size:
 
@@ -400,341 +398,4 @@ def create_poetry_card(text):
             max_width
         )
 
-        total_height = calculate_text_height(
-            draw,
-            lines,
-            poem_font,
-            line_spacing
-        )
-
-        if total_height <= available_height:
-            break
-
-        font_size -= 2
-
-    # =========================
-    # متن خالی
-    # =========================
-
-    if not lines:
-
-        poem_font = get_font(
-            POEM_FONT,
-            48
-        )
-
-        lines = [
-            "متن خالی است"
-        ]
-
-    # =========================
-    # ارتفاع نهایی
-    # =========================
-
-    total_height = calculate_text_height(
-        draw,
-        lines,
-        poem_font,
-        line_spacing
-    )
-
-    # مرکز عمودی
-    y = text_top + (
-        available_height - total_height
-    ) // 2
-
-    # =========================
-    # رسم شعر
-    # =========================
-
-    for line in lines:
-
-        bbox = draw.textbbox(
-            (0, 0),
-            line,
-            font=poem_font
-        )
-
-        width = bbox[2] - bbox[0]
-        height = bbox[3] - bbox[1]
-
-        x = (
-            CARD_WIDTH - width
-        ) // 2
-
-        draw.text(
-            (
-                x,
-                y
-            ),
-            line,
-            font=poem_font,
-            fill=TEXT_COLOR
-        )
-
-        y += height + line_spacing
-
-    # =========================
-    # پایین کارت
-    # =========================
-
-    footer_font = get_font(
-        FOOTER_FONT,
-        26
-    )
-
-    footer = "کارت شعر"
-
-    footer_bbox = draw.textbbox(
-        (0, 0),
-        footer,
-        font=footer_font
-    )
-
-    footer_width = (
-        footer_bbox[2] - footer_bbox[0]
-    )
-
-    footer_x = (
-        CARD_WIDTH - footer_width
-    ) // 2
-
-    draw.text(
-        (
-            footer_x,
-            CARD_HEIGHT - 125
-        ),
-        footer,
-        font=footer_font,
-        fill=ACCENT_COLOR
-    )
-
-    # =========================
-    # ذخیره
-    # =========================
-
-    filename = "/tmp/poetry_card.png"
-
-    image.save(
-        filename,
-        "PNG"
-    )
-
-    return filename
-
-
-# =========================
-# ارسال پیام
-# =========================
-
-def send_message(chat_id, text):
-
-    try:
-
-        response = requests.post(
-            f"{API}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": text
-            },
-            timeout=20
-        )
-
-        print(
-            "sendMessage:",
-            response.status_code,
-            response.text
-        )
-
-        return response
-
-    except Exception as error:
-
-        print(
-            "sendMessage error:",
-            error
-        )
-
-        return None
-
-
-# =========================
-# ارسال عکس
-# =========================
-
-def send_photo(chat_id, filename):
-
-    try:
-
-        with open(
-            filename,
-            "rb"
-        ) as photo:
-
-            response = requests.post(
-                f"{API}/sendPhoto",
-                data={
-                    "chat_id": chat_id
-                },
-                files={
-                    "photo": (
-                        "poetry_card.png",
-                        photo,
-                        "image/png"
-                    )
-                },
-                timeout=60
-            )
-
-        print(
-            "sendPhoto:",
-            response.status_code,
-            response.text
-        )
-
-        return response
-
-    except Exception as error:
-
-        print(
-            "sendPhoto error:",
-            error
-        )
-
-        return None
-
-
-# =========================
-# صفحه اصلی
-# =========================
-
-@app.route("/")
-def home():
-
-    return (
-        "Poetry Card Bot is running",
-        200
-    )
-
-
-# =========================
-# Webhook
-# =========================
-
-@app.route(
-    "/webhook",
-    methods=["POST"]
-)
-def webhook():
-
-    update = request.get_json(
-        silent=True
-    ) or {}
-
-    print(
-        "UPDATE:",
-        update
-    )
-
-    message = update.get(
-        "message"
-    ) or {}
-
-    text = message.get(
-        "text"
-    )
-
-    chat = message.get(
-        "chat"
-    ) or {}
-
-    user_id = chat.get(
-        "id"
-    )
-
-    if not user_id:
-        return "OK", 200
-
-    if not text:
-        return "OK", 200
-
-    if text == "/start":
-
-        send_message(
-            user_id,
-            "سلام 👋\n\n"
-            "🖼️ به بات کارت شعر خوش آمدی.\n\n"
-            "شعرت را همین‌جا بفرست "
-            "تا برایت کارت شعر بسازم. ✨"
-        )
-
-        return "OK", 200
-
-    try:
-
-        filename = create_poetry_card(
-            text
-        )
-
-        print(
-            f"Poetry card created: {filename}"
-        )
-
-        photo_response = send_photo(
-            user_id,
-            filename
-        )
-
-        if (
-            photo_response is not None
-            and photo_response.ok
-        ):
-
-            print(
-                "Poetry card sent successfully."
-            )
-
-        else:
-
-            print(
-                "Photo sending failed."
-            )
-
-            send_message(
-                user_id,
-                "✅ کارت ساخته شد، "
-                "اما ارسال تصویر موفق نشد."
-            )
-
-    except Exception as error:
-
-        print(
-            "Card creation error:",
-            error
-        )
-
-        send_message(
-            user_id,
-            "❌ هنگام ساخت کارت مشکلی پیش آمد."
-        )
-
-    return "OK", 200
-
-
-# =========================
-# اجرای برنامه
-# =========================
-
-if __name__ == "__main__":
-
-    port = int(
-        os.environ.get(
-            "PORT",
-            10000
-        )
-    )
-
-    app.run(
-        host="0.0.0.0",
-        port=port
-    )
+        total
