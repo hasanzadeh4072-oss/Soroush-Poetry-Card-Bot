@@ -2,3 +2,5 @@ flask
 requests
 pillow
 gunicorn
+arabic-reshaper
+python-bidi
