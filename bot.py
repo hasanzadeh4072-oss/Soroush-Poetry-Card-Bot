@@ -1,5 +1,4 @@
 import os
-import base64
 import requests
 from flask import Flask, request
 
@@ -8,7 +7,10 @@ app = Flask(__name__)
 TOKEN = os.environ.get("SOROUSH_TOKEN")
 API = f"https://api.splus.ir/bot{TOKEN}"
 
-QUOTE_API = "https://quote.yuri.ly/quote/generate.png"
+QUOTE_API = os.environ.get(
+    "QUOTE_API",
+    "https://quote-api-0szx.onrender.com/generate.png"
+)
 
 
 def send_message(chat_id, text):
@@ -105,6 +107,11 @@ def create_poetry_card(text, user_id):
 
     try:
 
+        print(
+            "Sending request to QUOTE_API:",
+            QUOTE_API
+        )
+
         response = requests.post(
             QUOTE_API,
             json=payload,
@@ -121,6 +128,20 @@ def create_poetry_card(text, user_id):
 
             print(
                 "QUOTE API ERROR:",
+                response.text
+            )
+
+            return None
+
+        content_type = response.headers.get(
+            "content-type",
+            ""
+        )
+
+        if "image" not in content_type:
+
+            print(
+                "QUOTE API returned non-image response:",
                 response.text
             )
 
@@ -186,9 +207,9 @@ def webhook():
 
         send_message(
             user_id,
-            "\u0633\u0644\u0627\u0645 \ud83d\udc4b\n\n"
-            "\ud83d\uddbc\ufe0f \u0628\u0647 \u0628\u0627\u062a \u06a9\u0627\u0631\u062a \u0634\u0639\u0631 \u062e\u0648\u0634 \u0622\u0645\u062f\u06cc.\n\n"
-            "\u0634\u0639\u0631\u062a \u0631\u0627 \u0647\u0645\u06cc\u0646\u200c\u062c\u0627 \u0628\u0641\u0631\u0633\u062a \u062a\u0627 \u0628\u0631\u0627\u06cc\u062a \u06a9\u0627\u0631\u062a \u0634\u0639\u0631 \u0628\u0633\u0627\u0632\u0645. \u2728"
+            "سلام 👋\n\n"
+            "🖼️ به بات کارت شعر خوش آمدی.\n\n"
+            "شعرت را همین‌جا بفرست تا برایت کارت شعر بسازم. ✨"
         )
 
         return "OK", 200
@@ -204,7 +225,7 @@ def webhook():
 
             send_message(
                 user_id,
-                "\u274c \u0645\u062a\u0623\u0633\u0641\u0627\u0646\u0647 \u062f\u0631 \u0633\u0627\u062e\u062a \u06a9\u0627\u0631\u062a \u0645\u0634\u06a9\u0644\u06cc \u067e\u06cc\u0634 \u0622\u0645\u062f."
+                "❌ متأسفانه در ساخت کارت مشکلی پیش آمد."
             )
 
             return "OK", 200
@@ -228,7 +249,7 @@ def webhook():
 
             send_message(
                 user_id,
-                "\u2705 \u06a9\u0627\u0631\u062a \u0633\u0627\u062e\u062a\u0647 \u0634\u062f\u060c \u0627\u0645\u0627 \u0627\u0631\u0633\u0627\u0644 \u062a\u0635\u0648\u06cc\u0631 \u0645\u0648\u0641\u0642 \u0646\u0634\u062f."
+                "✅ کارت ساخته شد، اما ارسال تصویر موفق نشد."
             )
 
     except Exception as error:
@@ -240,7 +261,7 @@ def webhook():
 
         send_message(
             user_id,
-            "\u274c \u0645\u0634\u06a9\u0644\u06cc \u067e\u06cc\u0634 \u0622\u0645\u062f."
+            "❌ مشکلی پیش آمد."
         )
 
     return "OK", 200
@@ -259,5 +280,3 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port
     )
-
-
