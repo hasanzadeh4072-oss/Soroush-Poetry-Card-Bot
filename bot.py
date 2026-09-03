@@ -53,6 +53,7 @@ def create_poetry_card(text):
         width=3
     )
 
+    # عنوان
     title_font = get_font(42)
 
     title = prepare_persian_text(
@@ -77,6 +78,7 @@ def create_poetry_card(text):
         fill=ACCENT_COLOR
     )
 
+    # متن شعر
     poem_font = get_font(48)
 
     lines = text.splitlines()
@@ -165,6 +167,7 @@ def create_poetry_card(text):
 
         y += heights[index] + line_spacing
 
+    # پایین کارت
     footer_font = get_font(28)
 
     footer = prepare_persian_text(
@@ -230,6 +233,45 @@ def send_message(chat_id, text):
         return None
 
 
+def send_photo(chat_id, filename):
+
+    try:
+
+        with open(filename, "rb") as photo:
+
+            response = requests.post(
+                f"{API}/sendPhoto",
+                data={
+                    "chat_id": chat_id
+                },
+                files={
+                    "photo": (
+                        "poetry_card.png",
+                        photo,
+                        "image/png"
+                    )
+                },
+                timeout=60
+            )
+
+        print(
+            "sendPhoto:",
+            response.status_code,
+            response.text
+        )
+
+        return response
+
+    except Exception as error:
+
+        print(
+            "sendPhoto error:",
+            error
+        )
+
+        return None
+
+
 @app.route("/")
 def home():
 
@@ -278,10 +320,25 @@ def webhook():
             f"Poetry card created: {filename}"
         )
 
-        send_message(
+        # ارسال تصویر
+        photo_response = send_photo(
             user_id,
-            "\u2705 \u06a9\u0627\u0631\u062a \u0634\u0639\u0631 \u0633\u0627\u062e\u062a\u0647 \u0634\u062f."
+            filename
         )
+
+        # اگر ارسال عکس موفق بود، پیام موفقیت نمی‌فرستیم
+        if photo_response is not None and photo_response.ok:
+
+            print("Poetry card sent successfully.")
+
+        else:
+
+            print("Photo sending failed.")
+
+            send_message(
+                user_id,
+                "\u2705 \u06a9\u0627\u0631\u062a \u0633\u0627\u062e\u062a\u0647 \u0634\u062f\u060c \u0627\u0645\u0627 \u0627\u0631\u0633\u0627\u0644 \u062a\u0635\u0648\u06cc\u0631 \u0645\u0648\u0641\u0642 \u0646\u0634\u062f."
+            )
 
     except Exception as error:
 
@@ -310,4 +367,6 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-        )
+    )
+
+
