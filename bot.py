@@ -20,16 +20,14 @@ BACKGROUND_BOTTOM = (22, 18, 38)
 
 TEXT_COLOR = (248, 244, 235)
 ACCENT_COLOR = (205, 172, 105)
+SUBTITLE_COLOR = (190, 175, 150)
 
 BORDER_COLOR = (150, 120, 70)
 
-# فونت شعر
-POEM_FONT = "Vazirmatn-Regular.ttf"
-
-# فونت عنوان
-TITLE_FONT = "Vazirmatn-Regular.ttf"
-
-# فونت پایین کارت
+# فونت‌ها
+POEM_FONT = "BNazanin.ttf"
+TITLE_FONT = "BTitrBd.ttf"
+SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
 
@@ -38,11 +36,7 @@ FOOTER_FONT = "Vazirmatn-Regular.ttf"
 # =========================
 
 def get_font(font_name, size):
-
-    return ImageFont.truetype(
-        font_name,
-        size
-    )
+    return ImageFont.truetype(font_name, size)
 
 
 # =========================
@@ -78,7 +72,6 @@ def create_gradient_background():
         )
 
         for x in range(CARD_WIDTH):
-
             pixels[x, y] = (r, g, b)
 
     return image
@@ -96,7 +89,6 @@ def wrap_text(draw, text, font, max_width):
         return []
 
     lines = []
-
     current = words[0]
 
     for word in words[1:]:
@@ -112,17 +104,13 @@ def wrap_text(draw, text, font, max_width):
         width = bbox[2] - bbox[0]
 
         if width <= max_width:
-
             current = test
 
         else:
-
             lines.append(current)
-
             current = word
 
     if current:
-
         lines.append(current)
 
     return lines
@@ -191,6 +179,38 @@ def calculate_text_height(
 
 
 # =========================
+# رسم متن وسط چین
+# =========================
+
+def draw_centered_text(
+    draw,
+    text,
+    y,
+    font,
+    fill
+):
+
+    bbox = draw.textbbox(
+        (0, 0),
+        text,
+        font=font
+    )
+
+    width = bbox[2] - bbox[0]
+
+    x = (CARD_WIDTH - width) // 2
+
+    draw.text(
+        (x, y),
+        text,
+        font=font,
+        fill=fill
+    )
+
+    return bbox[3] - bbox[1]
+
+
+# =========================
 # ساخت کارت شعر
 # =========================
 
@@ -219,34 +239,74 @@ def create_poetry_card(text):
     )
 
     # =========================
-    # عنوان شعرکده
+    # عنوان اصلی
     # =========================
 
     title_font = get_font(
         TITLE_FONT,
-        42
+        48
     )
 
     title = "شعرکده"
 
-    bbox = draw.textbbox(
+    title_bbox = draw.textbbox(
         (0, 0),
         title,
         font=title_font
     )
 
-    title_width = bbox[2] - bbox[0]
-    title_height = bbox[3] - bbox[1]
+    title_width = (
+        title_bbox[2] - title_bbox[0]
+    )
 
-    title_x = (
-        CARD_WIDTH - title_width
+    title_height = (
+        title_bbox[3] - title_bbox[1]
+    )
+
+    # =========================
+    # متن سروش پلاس
+    # =========================
+
+    subtitle_font = get_font(
+        SUBTITLE_FONT,
+        24
+    )
+
+    subtitle = "( سروش پلاس )"
+
+    subtitle_bbox = draw.textbbox(
+        (0, 0),
+        subtitle,
+        font=subtitle_font
+    )
+
+    subtitle_width = (
+        subtitle_bbox[2] - subtitle_bbox[0]
+    )
+
+    subtitle_height = (
+        subtitle_bbox[3] - subtitle_bbox[1]
+    )
+
+    # فاصله بین عنوان و زیرعنوان
+    gap = 22
+
+    total_header_width = (
+        title_width
+        + gap
+        + subtitle_width
+    )
+
+    header_x = (
+        CARD_WIDTH - total_header_width
     ) // 2
 
     title_y = 105
 
+    # عنوان
     draw.text(
         (
-            title_x,
+            header_x,
             title_y
         ),
         title,
@@ -254,11 +314,41 @@ def create_poetry_card(text):
         fill=ACCENT_COLOR
     )
 
-    # خط تزئینی زیر عنوان
+    # سروش پلاس
+    subtitle_x = (
+        header_x
+        + title_width
+        + gap
+    )
 
-    line_width = 90
+    subtitle_y = (
+        title_y
+        + title_height
+        - subtitle_height
+        - 2
+    )
 
-    line_y = title_y + title_height + 24
+    draw.text(
+        (
+            subtitle_x,
+            subtitle_y
+        ),
+        subtitle,
+        font=subtitle_font,
+        fill=SUBTITLE_COLOR
+    )
+
+    # =========================
+    # خط تزئینی
+    # =========================
+
+    line_width = 110
+
+    line_y = (
+        title_y
+        + title_height
+        + 25
+    )
 
     draw.line(
         (
@@ -291,7 +381,7 @@ def create_poetry_card(text):
     # اندازه خودکار فونت
     # =========================
 
-    font_size = 54
+    font_size = 58
     min_font_size = 28
 
     line_spacing = 24
@@ -318,7 +408,6 @@ def create_poetry_card(text):
         )
 
         if total_height <= available_height:
-
             break
 
         font_size -= 2
@@ -350,7 +439,6 @@ def create_poetry_card(text):
     )
 
     # مرکز عمودی
-
     y = text_top + (
         available_height - total_height
     ) // 2
@@ -397,13 +485,15 @@ def create_poetry_card(text):
 
     footer = "کارت شعر"
 
-    bbox = draw.textbbox(
+    footer_bbox = draw.textbbox(
         (0, 0),
         footer,
         font=footer_font
     )
 
-    footer_width = bbox[2] - bbox[0]
+    footer_width = (
+        footer_bbox[2] - footer_bbox[0]
+    )
 
     footer_x = (
         CARD_WIDTH - footer_width
@@ -563,11 +653,9 @@ def webhook():
     )
 
     if not user_id:
-
         return "OK", 200
 
     if not text:
-
         return "OK", 200
 
     if text == "/start":
