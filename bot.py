@@ -8,16 +8,10 @@ app = Flask(__name__)
 TOKEN = os.environ.get("SOROUSH_TOKEN")
 API = f"https://api.splus.ir/bot{TOKEN}"
 
-# =========================
-# اندازه کارت
-# =========================
+CHANNEL_URL = "https://splus.ir/life_m23"
 
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
-
-# =========================
-# رنگ‌ها
-# =========================
 
 BACKGROUND_TOP = (48, 30, 72)
 BACKGROUND_BOTTOM = (22, 18, 38)
@@ -26,10 +20,6 @@ TEXT_COLOR = (248, 244, 235)
 ACCENT_COLOR = (205, 172, 105)
 SUBTITLE_COLOR = (190, 175, 150)
 BORDER_COLOR = (150, 120, 70)
-
-# =========================
-# فونت‌ها
-# =========================
 
 POEM_FONT = "BNazanin.ttf"
 TITLE_FONT = "BTitrBd.ttf"
@@ -40,10 +30,6 @@ FOOTER_FONT = "Vazirmatn-Regular.ttf"
 def get_font(font_name, size):
     return ImageFont.truetype(font_name, size)
 
-
-# =========================
-# پس‌زمینه
-# =========================
 
 def create_gradient_background():
     image = Image.new("RGB", (CARD_WIDTH, CARD_HEIGHT))
@@ -56,12 +42,10 @@ def create_gradient_background():
             BACKGROUND_TOP[0] * (1 - ratio)
             + BACKGROUND_BOTTOM[0] * ratio
         )
-
         g = int(
             BACKGROUND_TOP[1] * (1 - ratio)
             + BACKGROUND_BOTTOM[1] * ratio
         )
-
         b = int(
             BACKGROUND_TOP[2] * (1 - ratio)
             + BACKGROUND_BOTTOM[2] * ratio
@@ -73,21 +57,10 @@ def create_gradient_background():
     return image
 
 
-# =========================
-# اصلاح علائم مشکل‌دار
-# =========================
-
 def normalize_text(text):
-    # فونت BNazanin بعضی نسخه‌ها کاراکتر … را ندارد
-    # بنابراین آن را به سه نقطه معمولی تبدیل می‌کنیم.
     text = text.replace("…", "...")
-
     return text
 
-
-# =========================
-# شکستن خطوط بر اساس عرض واقعی
-# =========================
 
 def wrap_text(draw, text, font, max_width):
     words = text.split()
@@ -121,21 +94,14 @@ def wrap_text(draw, text, font, max_width):
     return lines
 
 
-# =========================
-# آماده‌سازی شعر
-# =========================
-
 def prepare_poem_lines(draw, text, font, max_width):
-
     text = normalize_text(text)
 
     raw_lines = text.splitlines()
-
     final_lines = []
 
     for line in raw_lines:
 
-        # خط خالی واقعی کاربر حفظ شود
         if not line.strip():
             final_lines.append(None)
             continue
@@ -152,10 +118,6 @@ def prepare_poem_lines(draw, text, font, max_width):
     return final_lines
 
 
-# =========================
-# محاسبه ارتفاع شعر
-# =========================
-
 def calculate_text_height(
     draw,
     lines,
@@ -163,7 +125,6 @@ def calculate_text_height(
     line_spacing,
     blank_line_spacing
 ):
-
     if not lines:
         return 0
 
@@ -185,28 +146,18 @@ def calculate_text_height(
 
         total += height + line_spacing
 
-    # فاصله آخر حذف شود
-    last_line = lines[-1]
-
-    if last_line is not None:
+    if lines[-1] is not None:
         total -= line_spacing
 
     return total
 
-
-# =========================
-# ساخت کارت شعر
-# =========================
 
 def create_poetry_card(text):
 
     image = create_gradient_background()
     draw = ImageDraw.Draw(image)
 
-    # =========================
-    # کادر
-    # =========================
-
+    # Border
     margin = 42
 
     draw.rounded_rectangle(
@@ -221,9 +172,9 @@ def create_poetry_card(text):
         width=2
     )
 
-    # =========================
-    # عنوان
-    # =========================
+    # -------------------------
+    # Title
+    # -------------------------
 
     title_font = get_font(
         TITLE_FONT,
@@ -241,9 +192,9 @@ def create_poetry_card(text):
     title_width = title_bbox[2] - title_bbox[0]
     title_height = title_bbox[3] - title_bbox[1]
 
-    # =========================
-    # زیرعنوان
-    # =========================
+    # -------------------------
+    # Subtitle
+    # -------------------------
 
     subtitle_font = get_font(
         SUBTITLE_FONT,
@@ -258,30 +209,28 @@ def create_poetry_card(text):
         font=subtitle_font
     )
 
-    subtitle_width = subtitle_bbox[2] - subtitle_bbox[0]
-    subtitle_height = subtitle_bbox[3] - subtitle_bbox[1]
+    subtitle_width = (
+        subtitle_bbox[2] - subtitle_bbox[0]
+    )
 
-    # =========================
-    # چیدمان هدر
-    #
-    # شعرکده سمت راست
-    # سروش پلاس سمت چپ آن
-    # =========================
+    subtitle_height = (
+        subtitle_bbox[3] - subtitle_bbox[1]
+    )
 
+    # Header positioning
     title_y = 82
-
     header_center = CARD_WIDTH // 2
 
-    # فاصله کمتر بین دو نوشته
     gap = 18
 
-    # عنوان در سمت راست مرکز
     title_x = header_center + 10
 
-    # زیرعنوان در سمت چپ عنوان
-    subtitle_x = title_x - subtitle_width - gap
+    subtitle_x = (
+        title_x
+        - subtitle_width
+        - gap
+    )
 
-    # اصلاح تراز عمودی
     subtitle_y = (
         title_y
         + (title_height - subtitle_height) // 2
@@ -302,13 +251,17 @@ def create_poetry_card(text):
         fill=SUBTITLE_COLOR
     )
 
-    # =========================
-    # خط تزئینی
-    # =========================
+    # -------------------------
+    # Header line
+    # -------------------------
 
     line_width = 120
 
-    line_y = title_y + title_height + 24
+    line_y = (
+        title_y
+        + title_height
+        + 24
+    )
 
     draw.line(
         (
@@ -321,9 +274,9 @@ def create_poetry_card(text):
         width=2
     )
 
-    # =========================
-    # محدوده شعر
-    # =========================
+    # -------------------------
+    # Poem
+    # -------------------------
 
     text_left = 90
     text_right = 990
@@ -333,11 +286,9 @@ def create_poetry_card(text):
     text_top = 220
     text_bottom = 900
 
-    available_height = text_bottom - text_top
-
-    # =========================
-    # تنظیم خودکار اندازه فونت
-    # =========================
+    available_height = (
+        text_bottom - text_top
+    )
 
     font_size = 58
     min_font_size = 28
@@ -374,10 +325,6 @@ def create_poetry_card(text):
 
         font_size -= 2
 
-    # =========================
-    # متن خالی
-    # =========================
-
     if not lines:
 
         poem_font = get_font(
@@ -387,10 +334,6 @@ def create_poetry_card(text):
 
         lines = ["متن خالی است"]
 
-    # =========================
-    # ارتفاع نهایی
-    # =========================
-
     total_height = calculate_text_height(
         draw,
         lines,
@@ -399,19 +342,13 @@ def create_poetry_card(text):
         blank_line_spacing
     )
 
-    # وسط‌چین عمودی
     y = (
         text_top
         + (available_height - total_height) // 2
     )
 
-    # =========================
-    # رسم شعر
-    # =========================
-
     for line in lines:
 
-        # خط خالی واقعی
         if line is None:
             y += blank_line_spacing
             continue
@@ -436,9 +373,9 @@ def create_poetry_card(text):
 
         y += height + line_spacing
 
-    # =========================
-    # پایین کارت
-    # =========================
+    # -------------------------
+    # Footer
+    # -------------------------
 
     footer_font = get_font(
         FOOTER_FONT,
@@ -462,18 +399,11 @@ def create_poetry_card(text):
     ) // 2
 
     draw.text(
-        (
-            footer_x,
-            CARD_HEIGHT - 90
-        ),
+        (footer_x, CARD_HEIGHT - 90),
         footer,
         font=footer_font,
         fill=ACCENT_COLOR
     )
-
-    # =========================
-    # ذخیره
-    # =========================
 
     filename = "/tmp/poetry_card.png"
 
@@ -486,9 +416,9 @@ def create_poetry_card(text):
     return filename
 
 
-# =========================
-# ارسال پیام
-# =========================
+# -------------------------
+# Messages
+# -------------------------
 
 def send_message(chat_id, text):
 
@@ -498,7 +428,8 @@ def send_message(chat_id, text):
             f"{API}/sendMessage",
             json={
                 "chat_id": chat_id,
-                "text": text
+                "text": text,
+                "parse_mode": "HTML"
             },
             timeout=20
         )
@@ -520,10 +451,6 @@ def send_message(chat_id, text):
 
         return None
 
-
-# =========================
-# ارسال عکس
-# =========================
 
 def send_photo(chat_id, filename):
 
@@ -564,9 +491,51 @@ def send_photo(chat_id, filename):
         return None
 
 
-# =========================
-# صفحه اصلی
-# =========================
+# -------------------------
+# Start message
+# -------------------------
+
+def send_start_message(chat_id):
+
+    text = (
+        "سلام 👋\n\n"
+        "🖼️ به بات کارت شعر خوش آمدی.\n\n"
+        "شعرت را همین‌جا بفرست تا برایت کارت شعر بسازم. ✨\n\n"
+        f'📖 برای دیدن شعرهای بیشتر، '
+        f'<a href="{CHANNEL_URL}">شعرکده</a> '
+        f'در سروش پلاس را دنبال کن.'
+    )
+
+    return send_message(
+        chat_id,
+        text
+    )
+
+
+# -------------------------
+# After card message
+# -------------------------
+
+def send_after_card_message(chat_id):
+
+    text = (
+        "✨ کارت شعر شما آماده شد.\n\n"
+        "اگر باز هم شعری دارید، همین‌جا ارسال کنید "
+        "تا آن را هم به کارت شعر تبدیل کنیم. 🖼️\n\n"
+        f'📖 برای دیدن شعرهای بیشتر، '
+        f'سری هم به کانال <a href="{CHANNEL_URL}">'
+        f'«شعرکده»</a> در سروش پلاس بزنید.'
+    )
+
+    return send_message(
+        chat_id,
+        text
+    )
+
+
+# -------------------------
+# Home
+# -------------------------
 
 @app.route("/")
 def home():
@@ -577,9 +546,9 @@ def home():
     )
 
 
-# =========================
+# -------------------------
 # Webhook
-# =========================
+# -------------------------
 
 @app.route(
     "/webhook",
@@ -616,26 +585,16 @@ def webhook():
     if not text:
         return "OK", 200
 
-    # =========================
-    # start
-    # =========================
-
+    # /start
     if text == "/start":
 
-        send_message(
-            user_id,
-            "سلام 👋\n\n"
-            "🖼️ به بات کارت شعر خوش آمدی.\n\n"
-            "شعرت را همین‌جا بفرست "
-            "تا برایت کارت شعر بسازم. ✨"
+        send_start_message(
+            user_id
         )
 
         return "OK", 200
 
-    # =========================
-    # ساخت کارت
-    # =========================
-
+    # Create card
     try:
 
         filename = create_poetry_card(
@@ -651,6 +610,7 @@ def webhook():
             filename
         )
 
+        # Photo successfully sent
         if (
             photo_response is not None
             and photo_response.ok
@@ -658,6 +618,11 @@ def webhook():
 
             print(
                 "Poetry card sent successfully."
+            )
+
+            # Send second message
+            send_after_card_message(
+                user_id
             )
 
         else:
@@ -687,9 +652,9 @@ def webhook():
     return "OK", 200
 
 
-# =========================
-# اجرای برنامه
-# =========================
+# -------------------------
+# Run
+# -------------------------
 
 if __name__ == "__main__":
 
@@ -704,5 +669,3 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port
     )
-
-
