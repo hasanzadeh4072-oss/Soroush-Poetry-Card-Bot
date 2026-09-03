@@ -1,6 +1,9 @@
 import os
 import requests
 from flask import Flask, request
+from PIL import Image, ImageDraw, ImageFont
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 app = Flask(__name__)
 
@@ -8,37 +11,67 @@ TOKEN = os.environ.get("SOROUSH_TOKEN")
 API = f"https://api.splus.ir/bot{TOKEN}"
 
 
-@app.route("/")
-def home():
-    return "Poetry Card Bot is running", 200
+# -----------------------------
+# تنظیمات کارت
+# -----------------------------
+
+CARD_WIDTH = 1080
+CARD_HEIGHT = 1350
+
+BACKGROUND = (30, 24, 45)
+TEXT_COLOR = (245, 240, 230)
+ACCENT_COLOR = (190, 160, 100)
 
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    update = request.get_json(silent=True) or {}
+# -----------------------------
+# فونت
+# -----------------------------
 
-    message = update.get("message") or {}
-    text = message.get("text")
-    chat = message.get("chat") or {}
-    user_id = chat.get("id")
-
-    if text == "/start":
-        requests.post(
-            f"{API}/sendMessage",
-            json={
-                "chat_id": user_id,
-                "text": (
-                    "سلام 👋\n\n"
-                    "🖼️ به بات کارت شعر خوش آمدی.\n\n"
-                    "شعرت را بفرست تا برایت یک کارت زیبا بسازم. ✨"
-                )
-            },
-            timeout=20
-        )
-
-    return "OK", 200
+FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+def prepare_persian_text(text):
+    """
+    آماده‌سازی متن فارسی برای نمایش صحیح
+    """
+    reshaped = arabic_reshaper.reshape(text)
+    return get_display(reshaped)
+
+
+def get_font(size):
+    return ImageFont.truetype(FONT_PATH, size)
+
+
+# -----------------------------
+# ساخت کارت شعر
+# -----------------------------
+
+def create_poetry_card(text):
+
+    image = Image.new(
+        "RGB",
+        (CARD_WIDTH, CARD_HEIGHT),
+        BACKGROUND
+    )
+
+    draw = ImageDraw.Draw(image)
+
+    # حاشیه
+    margin = 55
+
+    draw.rounded_rectangle(
+        (
+            margin,
+            margin,
+            CARD_WIDTH - margin,
+            CARD_HEIGHT - margin
+        ),
+        radius=35,
+        outline=ACCENT_COLOR,
+        width=3
+    )
+
+    # عنوان
+    title_font = get_font(42)
+
+    title = prepare_persian_text("شعر
