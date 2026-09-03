@@ -329,4 +329,31 @@ def webhook():
                 "✅ کارت ساخته شد، اما ارسال تصویر موفق نشد."
             )
 
-    except
+    except Exception as error:
+
+        print(
+            "Card creation error:",
+            error
+        )
+
+        send_message(
+            user_id,
+            "❌ هنگام ساخت کارت مشکلی پیش آمد."
+        )
+
+    return "OK", 200
+
+
+if __name__ == "__main__":
+
+    port = int(
+        os.environ.get(
+            "PORT",
+            10000
+        )
+    )
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+        )
