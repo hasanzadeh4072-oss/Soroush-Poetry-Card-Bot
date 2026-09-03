@@ -1,919 +1,1183 @@
 import os
-import io
 import random
 import requests
-
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
+app = Flask(__name__)
 
-# =========================
-# Configuration
-# =========================
-
-TOKEN = os.getenv("SOROUSH_TOKEN")
-
-if not TOKEN:
-    raise RuntimeError("SOROUSH_TOKEN environment variable is not set.")
-
-API_BASE = f"https://api.splus.ir/bot{TOKEN}"
-
-WIDTH = 1080
-HEIGHT = 1080
+TOKEN = os.environ.get("SOROUSH_TOKEN")
+API = f"https://api.splus.ir/bot{TOKEN}"
 
 CHANNEL_URL = "https://splus.ir/life_m23"
 
-FONT_TITLE = "BTitrBd.ttf"
-FONT_POEM = "BNazanin.ttf"
-FONT_FOOTER = "Vazirmatn-Regular.ttf"
+CARD_WIDTH = 1080
+CARD_HEIGHT = 1080
+
+POEM_FONT = "BNazanin.ttf"
+TITLE_FONT = "BTitrBd.ttf"
+SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
+FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
 
-# =========================
+# ==================================
 # Color Palettes
-# =========================
+# فقط رنگ‌ها تغییر می‌کنند
+# ==================================
 
 PALETTES = [
+
+    # 1. Royal Purple
     {
-        "name": "Royal Purple",
-        "bg1": (38, 18, 68),
-        "bg2": (73, 32, 102),
-        "bg3": (27, 12, 48),
-        "panel": (43, 24, 63, 205),
-        "panel_inner": (57, 32, 79, 110),
-        "text": (249, 244, 235),
-        "title": (244, 210, 137),
-        "accent": (224, 181, 91),
-        "subtitle": (214, 199, 174),
-        "footer": (193, 174, 148),
-        "border": (194, 148, 72, 95),
-        "glow": (213, 166, 83, 75),
+        "top": (55, 25, 82),
+        "middle": (32, 21, 53),
+        "bottom": (13, 10, 25),
+
+        "glow1": (160, 105, 200, 38),
+        "glow2": (105, 70, 160, 22),
+        "glow3": (100, 65, 145, 10),
+
+        "frame": (173, 137, 82),
+        "frame_inner": (205, 172, 105),
+
+        "text": (248, 244, 235),
+        "accent": (244, 210, 137),
+        "subtitle": (205, 191, 168),
+        "ornament": (145, 112, 68),
+
+        "panel_outline": (205, 172, 105, 24),
+        "panel_inner": (255, 255, 255, 8),
+        "side_line": (205, 172, 105, 75),
+        "side_dot": (205, 172, 105, 100),
     },
+
+    # 2. Midnight Blue
     {
-        "name": "Midnight Blue",
-        "bg1": (12, 28, 59),
-        "bg2": (25, 56, 91),
-        "bg3": (7, 15, 34),
-        "panel": (17, 34, 62, 205),
-        "panel_inner": (28, 49, 78, 110),
-        "text": (245, 246, 241),
-        "title": (239, 210, 139),
-        "accent": (218, 177, 91),
-        "subtitle": (197, 205, 207),
-        "footer": (174, 187, 195),
-        "border": (177, 146, 78, 95),
-        "glow": (130, 160, 206, 65),
+        "top": (18, 39, 76),
+        "middle": (16, 27, 53),
+        "bottom": (7, 11, 23),
+
+        "glow1": (75, 115, 185, 32),
+        "glow2": (50, 80, 150, 22),
+        "glow3": (55, 85, 140, 10),
+
+        "frame": (165, 140, 83),
+        "frame_inner": (200, 170, 103),
+
+        "text": (246, 246, 241),
+        "accent": (239, 210, 139),
+        "subtitle": (195, 204, 211),
+        "ornament": (140, 125, 82),
+
+        "panel_outline": (190, 170, 110, 24),
+        "panel_inner": (255, 255, 255, 8),
+        "side_line": (200, 175, 110, 75),
+        "side_dot": (215, 185, 115, 100),
     },
+
+    # 3. Emerald
     {
-        "name": "Emerald",
-        "bg1": (10, 48, 42),
-        "bg2": (20, 79, 67),
-        "bg3": (5, 25, 23),
-        "panel": (14, 48, 43, 205),
-        "panel_inner": (22, 66, 57, 110),
-        "text": (245, 246, 237),
-        "title": (239, 211, 137),
-        "accent": (215, 176, 89),
-        "subtitle": (194, 207, 196),
-        "footer": (171, 190, 179),
-        "border": (180, 145, 73, 95),
-        "glow": (73, 151, 124, 65),
+        "top": (12, 59, 51),
+        "middle": (13, 38, 35),
+        "bottom": (5, 18, 17),
+
+        "glow1": (65, 145, 120, 35),
+        "glow2": (45, 110, 95, 20),
+        "glow3": (40, 100, 85, 10),
+
+        "frame": (168, 139, 78),
+        "frame_inner": (200, 169, 99),
+
+        "text": (246, 246, 238),
+        "accent": (239, 211, 137),
+        "subtitle": (194, 207, 197),
+        "ornament": (140, 118, 70),
+
+        "panel_outline": (190, 165, 100, 24),
+        "panel_inner": (255, 255, 255, 8),
+        "side_line": (190, 170, 105, 75),
+        "side_dot": (210, 180, 110, 100),
     },
+
+    # 4. Burgundy
     {
-        "name": "Burgundy",
-        "bg1": (63, 15, 30),
-        "bg2": (103, 28, 47),
-        "bg3": (30, 7, 16),
-        "panel": (62, 22, 35, 205),
-        "panel_inner": (82, 30, 46, 110),
+        "top": (76, 19, 37),
+        "middle": (45, 14, 26),
+        "bottom": (20, 6, 13),
+
+        "glow1": (175, 70, 90, 35),
+        "glow2": (135, 45, 65, 20),
+        "glow3": (130, 45, 60, 10),
+
+        "frame": (174, 133, 72),
+        "frame_inner": (205, 169, 98),
+
         "text": (249, 244, 237),
-        "title": (241, 210, 139),
-        "accent": (218, 174, 88),
+        "accent": (241, 210, 139),
         "subtitle": (211, 193, 181),
-        "footer": (190, 167, 154),
-        "border": (191, 139, 69, 95),
-        "glow": (177, 77, 95, 65),
+        "ornament": (145, 105, 65),
+
+        "panel_outline": (195, 155, 95, 24),
+        "panel_inner": (255, 255, 255, 8),
+        "side_line": (200, 160, 100, 75),
+        "side_dot": (215, 175, 105, 100),
     },
+
+    # 5. Dark Mocha
     {
-        "name": "Dark Mocha",
-        "bg1": (48, 30, 20),
-        "bg2": (84, 52, 34),
-        "bg3": (25, 15, 10),
-        "panel": (53, 35, 25, 205),
-        "panel_inner": (70, 46, 33, 110),
+        "top": (59, 37, 24),
+        "middle": (39, 26, 19),
+        "bottom": (17, 10, 7),
+
+        "glow1": (170, 110, 60, 32),
+        "glow2": (125, 75, 40, 20),
+        "glow3": (110, 65, 38, 10),
+
+        "frame": (174, 133, 70),
+        "frame_inner": (202, 166, 98),
+
         "text": (249, 243, 232),
-        "title": (239, 205, 132),
-        "accent": (216, 171, 83),
+        "accent": (239, 205, 132),
         "subtitle": (211, 195, 174),
-        "footer": (190, 169, 145),
-        "border": (185, 137, 66, 95),
-        "glow": (169, 112, 62, 65),
+        "ornament": (145, 105, 62),
+
+        "panel_outline": (195, 155, 90, 24),
+        "panel_inner": (255, 255, 255, 8),
+        "side_line": (200, 160, 95, 75),
+        "side_dot": (215, 175, 105, 100),
     },
+
+    # 6. Charcoal Gold
     {
-        "name": "Charcoal Gold",
-        "bg1": (20, 20, 22),
-        "bg2": (43, 43, 46),
-        "bg3": (9, 9, 10),
-        "panel": (29, 29, 31, 210),
-        "panel_inner": (47, 47, 49, 110),
+        "top": (28, 28, 30),
+        "middle": (19, 19, 21),
+        "bottom": (7, 7, 8),
+
+        "glow1": (190, 145, 70, 25),
+        "glow2": (135, 100, 50, 15),
+        "glow3": (120, 90, 45, 8),
+
+        "frame": (170, 140, 78),
+        "frame_inner": (198, 165, 98),
+
         "text": (247, 244, 235),
-        "title": (240, 208, 133),
-        "accent": (219, 174, 83),
+        "accent": (240, 208, 133),
         "subtitle": (197, 194, 184),
-        "footer": (173, 170, 159),
-        "border": (190, 145, 69, 105),
-        "glow": (204, 159, 76, 60),
+        "ornament": (140, 115, 68),
+
+        "panel_outline": (190, 150, 85, 24),
+        "panel_inner": (255, 255, 255, 8),
+        "side_line": (195, 160, 95, 75),
+        "side_dot": (215, 175, 105, 100),
     },
 ]
 
 
-# =========================
-# Flask
-# =========================
+# ==================================
+# Font
+# ==================================
 
-app = Flask(__name__)
-
-
-# =========================
-# Font Helpers
-# =========================
-
-def load_font(path, size):
-    return ImageFont.truetype(path, size)
+def get_font(font_name, size):
+    return ImageFont.truetype(font_name, size)
 
 
-# =========================
-# Background
-# =========================
+# ==================================
+# Luxury Background
+# ==================================
 
 def create_gradient_background(palette):
-    image = Image.new("RGB", (WIDTH, HEIGHT))
-    pixels = image.load()
 
-    top = palette["bg1"]
-    middle = palette["bg2"]
-    bottom = palette["bg3"]
-
-    for y in range(HEIGHT):
-        if y < HEIGHT // 2:
-            ratio = y / (HEIGHT // 2)
-            c1 = top
-            c2 = middle
-        else:
-            ratio = (y - HEIGHT // 2) / (HEIGHT // 2)
-            c1 = middle
-            c2 = bottom
-
-        for x in range(WIDTH):
-            # Very subtle horizontal variation
-            x_ratio = (x - WIDTH / 2) / WIDTH
-
-            r = int(c1[0] * (1 - ratio) + c2[0] * ratio)
-            g = int(c1[1] * (1 - ratio) + c2[1] * ratio)
-            b = int(c1[2] * (1 - ratio) + c2[2] * ratio)
-
-            variation = int(abs(x_ratio) * 4)
-
-            pixels[x, y] = (
-                max(0, min(255, r + variation)),
-                max(0, min(255, g + variation)),
-                max(0, min(255, b + variation)),
-            )
-
-    return image
-
-
-def add_texture(image):
-    overlay = Image.new("RGBA", image.size, (255, 255, 255, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    random.seed(17)
-
-    for _ in range(5000):
-        x = random.randrange(WIDTH)
-        y = random.randrange(HEIGHT)
-        alpha = random.randint(3, 12)
-        radius = random.choice([0, 0, 1])
-
-        draw.ellipse(
-            (x - radius, y - radius, x + radius, y + radius),
-            fill=(255, 255, 255, alpha),
-        )
-
-    overlay = overlay.filter(ImageFilter.GaussianBlur(0.35))
-
-    return Image.alpha_composite(image.convert("RGBA"), overlay)
-
-
-# =========================
-# Drawing Helpers
-# =========================
-
-def rounded_rectangle(draw, xy, radius, fill, outline=None, width=1):
-    draw.rounded_rectangle(
-        xy,
-        radius=radius,
-        fill=fill,
-        outline=outline,
-        width=width,
+    image = Image.new(
+        "RGB",
+        (CARD_WIDTH, CARD_HEIGHT)
     )
 
+    pixels = image.load()
 
-def text_width(draw, text, font):
-    bbox = draw.textbbox((0, 0), text, font=font)
-    return bbox[2] - bbox[0]
+    top = palette["top"]
+    middle = palette["middle"]
+    bottom = palette["bottom"]
+
+    for y in range(CARD_HEIGHT):
+
+        ratio = y / (CARD_HEIGHT - 1)
+
+        if ratio < 0.52:
+
+            t = ratio / 0.52
+
+            r = int(top[0] * (1 - t) + middle[0] * t)
+            g = int(top[1] * (1 - t) + middle[1] * t)
+            b = int(top[2] * (1 - t) + middle[2] * t)
+
+        else:
+
+            t = (ratio - 0.52) / 0.48
+
+            r = int(middle[0] * (1 - t) + bottom[0] * t)
+            g = int(middle[1] * (1 - t) + bottom[1] * t)
+            b = int(middle[2] * (1 - t) + bottom[2] * t)
+
+        for x in range(CARD_WIDTH):
+            pixels[x, y] = (r, g, b)
+
+    # --------------------------------
+    # Large soft glow
+    # --------------------------------
+
+    glow = Image.new(
+        "RGBA",
+        (CARD_WIDTH, CARD_HEIGHT),
+        (0, 0, 0, 0)
+    )
+
+    glow_draw = ImageDraw.Draw(glow)
+
+    glow_draw.ellipse(
+        (-260, -180, 650, 560),
+        fill=palette["glow1"]
+    )
+
+    glow_draw.ellipse(
+        (690, 690, 1250, 1250),
+        fill=palette["glow2"]
+    )
+
+    glow_draw.ellipse(
+        (250, 350, 850, 950),
+        fill=palette["glow3"]
+    )
+
+    glow = glow.filter(
+        ImageFilter.GaussianBlur(110)
+    )
+
+    image = Image.alpha_composite(
+        image.convert("RGBA"),
+        glow
+    )
+
+    # --------------------------------
+    # Very subtle texture
+    # --------------------------------
+
+    texture = Image.new(
+        "RGBA",
+        (CARD_WIDTH, CARD_HEIGHT),
+        (0, 0, 0, 0)
+    )
+
+    texture_pixels = texture.load()
+
+    random.seed(8)
+
+    for _ in range(14000):
+
+        x = random.randrange(CARD_WIDTH)
+        y = random.randrange(CARD_HEIGHT)
+
+        value = random.choice(
+            [
+                (255, 255, 255, 3),
+                (0, 0, 0, 4)
+            ]
+        )
+
+        texture_pixels[x, y] = value
+
+    image = Image.alpha_composite(
+        image,
+        texture
+    )
+
+    return image.convert("RGB")
 
 
-# =========================
-# Poem Processing
-# =========================
+# ==================================
+# Text Helpers
+# ==================================
 
-def normalize_poem(text):
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
-
-    # BNazanin may display the single ellipsis character incorrectly.
-    text = text.replace("…", "...")
-
-    return text.strip()
+def normalize_text(text):
+    return text.replace("…", "...")
 
 
-def wrap_line(draw, line, font, max_width):
-    if not line:
-        return [""]
+def wrap_text(draw, text, font, max_width):
 
-    words = line.split()
+    words = text.split()
 
     if not words:
-        return [""]
+        return []
 
-    result = []
-    current = ""
+    lines = []
+    current = words[0]
 
-    for word in words:
-        test = word if not current else current + " " + word
+    for word in words[1:]:
 
-        if text_width(draw, test, font) <= max_width:
+        test = current + " " + word
+
+        bbox = draw.textbbox(
+            (0, 0),
+            test,
+            font=font
+        )
+
+        width = bbox[2] - bbox[0]
+
+        if width <= max_width:
+
             current = test
+
         else:
-            if current:
-                result.append(current)
 
-            # Handle a single very long word
-            if text_width(draw, word, font) <= max_width:
-                current = word
-            else:
-                part = ""
-
-                for char in word:
-                    test_part = part + char
-
-                    if text_width(draw, test_part, font) <= max_width:
-                        part = test_part
-                    else:
-                        if part:
-                            result.append(part)
-                        part = char
-
-                current = part
+            lines.append(current)
+            current = word
 
     if current:
-        result.append(current)
+        lines.append(current)
 
-    return result
+    return lines
 
 
-def prepare_poem_lines(draw, poem, font, max_width):
-    raw_lines = poem.split("\n")
+def prepare_poem_lines(
+    draw,
+    text,
+    font,
+    max_width
+):
+
+    text = normalize_text(text)
+
+    raw_lines = text.splitlines()
+
     final_lines = []
 
     for line in raw_lines:
-        if line.strip() == "":
-            final_lines.append("")
-        else:
-            final_lines.extend(
-                wrap_line(
-                    draw,
-                    line.strip(),
-                    font,
-                    max_width,
-                )
-            )
+
+        if not line.strip():
+
+            final_lines.append(None)
+            continue
+
+        wrapped = wrap_text(
+            draw,
+            line.strip(),
+            font,
+            max_width
+        )
+
+        final_lines.extend(wrapped)
 
     return final_lines
 
 
-def fit_poem(draw, poem, max_width, max_height):
-    blank_spacing = 44
-    line_spacing = 16
+def calculate_text_height(
+    draw,
+    lines,
+    font,
+    line_spacing,
+    blank_line_spacing
+):
 
-    for size in range(62, 27, -2):
-        font = load_font(FONT_POEM, size)
+    if not lines:
+        return 0
 
-        lines = prepare_poem_lines(
-            draw,
-            poem,
-            font,
-            max_width,
-        )
-
-        line_heights = []
-
-        for line in lines:
-            if line == "":
-                line_heights.append(blank_spacing)
-            else:
-                bbox = draw.textbbox(
-                    (0, 0),
-                    line,
-                    font=font,
-                )
-                line_heights.append(
-                    bbox[3] - bbox[1]
-                )
-
-        total_height = 0
-
-        for index, height in enumerate(line_heights):
-            total_height += height
-
-            if index < len(line_heights) - 1:
-                if lines[index] == "" or lines[index + 1] == "":
-                    total_height += blank_spacing
-                else:
-                    total_height += line_spacing
-
-        if total_height <= max_height:
-            return font, lines, line_heights, total_height
-
-    # Fallback
-    font = load_font(FONT_POEM, 28)
-
-    lines = prepare_poem_lines(
-        draw,
-        poem,
-        font,
-        max_width,
-    )
-
-    line_heights = []
+    total = 0
 
     for line in lines:
-        if line == "":
-            line_heights.append(blank_spacing)
-        else:
-            bbox = draw.textbbox(
-                (0, 0),
-                line,
-                font=font,
-            )
-            line_heights.append(
-                bbox[3] - bbox[1]
-            )
 
-    total_height = sum(line_heights)
+        if line is None:
 
-    return font, lines, line_heights, total_height
-
-
-# =========================
-# Poetry Card
-# =========================
-
-def create_poetry_card(poem):
-    palette = random.choice(PALETTES)
-
-    background = create_gradient_background(palette)
-    image = add_texture(background)
-
-    draw = ImageDraw.Draw(image)
-
-    # ---------------------------------
-    # Outer decorative frame
-    # ---------------------------------
-
-    draw.rounded_rectangle(
-        (24, 24, WIDTH - 24, HEIGHT - 24),
-        radius=34,
-        outline=palette["border"],
-        width=2,
-    )
-
-    draw.rounded_rectangle(
-        (34, 34, WIDTH - 34, HEIGHT - 34),
-        radius=28,
-        outline=(
-            palette["border"][0],
-            palette["border"][1],
-            palette["border"][2],
-            45,
-        ),
-        width=1,
-    )
-
-    # ---------------------------------
-    # Header
-    # ---------------------------------
-
-    title_font = load_font(FONT_TITLE, 50)
-    subtitle_font = load_font(FONT_FOOTER, 23)
-
-    title = "شعرکده"
-    subtitle = "( سروش پلاس )"
-
-    title_bbox = draw.textbbox(
-        (0, 0),
-        title,
-        font=title_font,
-    )
-
-    title_width = title_bbox[2] - title_bbox[0]
-    title_height = title_bbox[3] - title_bbox[1]
-
-    title_x = (WIDTH - title_width) // 2
-    title_y = 63
-
-    draw.text(
-        (title_x, title_y),
-        title,
-        font=title_font,
-        fill=palette["title"],
-    )
-
-    subtitle_bbox = draw.textbbox(
-        (0, 0),
-        subtitle,
-        font=subtitle_font,
-    )
-
-    subtitle_width = subtitle_bbox[2] - subtitle_bbox[0]
-
-    subtitle_x = (WIDTH - subtitle_width) // 2
-
-    # Original subtitle spacing/offset preserved
-    subtitle_y = (
-        title_y
-        + title_height
-        + 18
-        - 3
-    )
-
-    draw.text(
-        (subtitle_x, subtitle_y),
-        subtitle,
-        font=subtitle_font,
-        fill=palette["subtitle"],
-    )
-
-    # ---------------------------------
-    # Header ornament
-    # ---------------------------------
-
-    ornament_y = 178
-
-    line_width = 125
-    center_x = WIDTH // 2
-
-    draw.line(
-        (
-            center_x - line_width,
-            ornament_y,
-            center_x - 18,
-            ornament_y,
-        ),
-        fill=palette["accent"],
-        width=2,
-    )
-
-    draw.line(
-        (
-            center_x + 18,
-            ornament_y,
-            center_x + line_width,
-            ornament_y,
-        ),
-        fill=palette["accent"],
-        width=2,
-    )
-
-    draw.ellipse(
-        (
-            center_x - 4,
-            ornament_y - 4,
-            center_x + 4,
-            ornament_y + 4,
-        ),
-        fill=palette["accent"],
-    )
-
-    # ---------------------------------
-    # Poetry panel
-    # ---------------------------------
-
-    panel_x1 = 58
-    panel_y1 = 214
-    panel_x2 = 1022
-    panel_y2 = 900
-
-    # Soft glow behind panel
-    glow = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
-    glow_draw = ImageDraw.Draw(glow)
-
-    glow_draw.rounded_rectangle(
-        (
-            panel_x1 - 8,
-            panel_y1 - 8,
-            panel_x2 + 8,
-            panel_y2 + 8,
-        ),
-        radius=44,
-        fill=palette["glow"],
-    )
-
-    glow = glow.filter(ImageFilter.GaussianBlur(18))
-    image = Image.alpha_composite(image, glow)
-
-    draw = ImageDraw.Draw(image)
-
-    # Main panel
-    rounded_rectangle(
-        draw,
-        (
-            panel_x1,
-            panel_y1,
-            panel_x2,
-            panel_y2,
-        ),
-        radius=38,
-        fill=palette["panel"],
-        outline=palette["border"],
-        width=1,
-    )
-
-    # Inner translucent panel
-    rounded_rectangle(
-        draw,
-        (
-            panel_x1 + 8,
-            panel_y1 + 8,
-            panel_x2 - 8,
-            panel_y2 - 8,
-        ),
-        radius=32,
-        fill=palette["panel_inner"],
-    )
-
-    # ---------------------------------
-    # Small side marks
-    # ---------------------------------
-
-    mark_y = panel_y1 + 54
-
-    draw.line(
-        (
-            panel_x1 + 20,
-            mark_y,
-            panel_x1 + 43,
-            mark_y,
-        ),
-        fill=palette["accent"],
-        width=2,
-    )
-
-    draw.line(
-        (
-            panel_x2 - 43,
-            mark_y,
-            panel_x2 - 20,
-            mark_y,
-        ),
-        fill=palette["accent"],
-        width=2,
-    )
-
-    # ---------------------------------
-    # Poem
-    # ---------------------------------
-
-    text_x1 = 105
-    text_x2 = 975
-
-    max_text_width = text_x2 - text_x1
-    max_text_height = 625
-
-    poem = normalize_poem(poem)
-
-    font, lines, line_heights, total_height = fit_poem(
-        draw,
-        poem,
-        max_text_width,
-        max_text_height,
-    )
-
-    # Original vertical positioning preserved
-    poem_top = panel_y1 + 62
-
-    if total_height < max_text_height:
-        poem_top += (
-            max_text_height - total_height
-        ) // 2
-
-    current_y = poem_top
-
-    line_spacing = 16
-    blank_spacing = 44
-
-    for index, line in enumerate(lines):
-        if line == "":
-            current_y += blank_spacing
-
-            if index < len(lines) - 1:
-                current_y += blank_spacing
-
+            total += blank_line_spacing
             continue
 
         bbox = draw.textbbox(
             (0, 0),
             line,
-            font=font,
+            font=font
+        )
+
+        height = bbox[3] - bbox[1]
+
+        total += height + line_spacing
+
+    if lines[-1] is not None:
+        total -= line_spacing
+
+    return total
+
+
+# ==================================
+# Create Poetry Card
+# ==================================
+
+def create_poetry_card(text):
+
+    # --------------------------------
+    # انتخاب تصادفی یکی از ۶ رنگ
+    # --------------------------------
+
+    palette = random.choice(PALETTES)
+
+    image = create_gradient_background(
+        palette
+    )
+
+    draw = ImageDraw.Draw(image)
+
+    # ==================================
+    # Outer frame
+    # ==================================
+
+    margin = 40
+
+    draw.rounded_rectangle(
+        (
+            margin,
+            margin,
+            CARD_WIDTH - margin,
+            CARD_HEIGHT - margin
+        ),
+        radius=42,
+        outline=palette["frame"],
+        width=2
+    )
+
+    # Inner subtle frame
+
+    inner_margin = 49
+
+    draw.rounded_rectangle(
+        (
+            inner_margin,
+            inner_margin,
+            CARD_WIDTH - inner_margin,
+            CARD_HEIGHT - inner_margin
+        ),
+        radius=35,
+        outline=palette["frame_inner"],
+        width=1
+    )
+
+    # ==================================
+    # Header
+    # ==================================
+
+    title_font = get_font(
+        TITLE_FONT,
+        50
+    )
+
+    title = "شعرکده"
+
+    title_bbox = draw.textbbox(
+        (0, 0),
+        title,
+        font=title_font
+    )
+
+    title_width = (
+        title_bbox[2] - title_bbox[0]
+    )
+
+    title_height = (
+        title_bbox[3] - title_bbox[1]
+    )
+
+    subtitle_font = get_font(
+        SUBTITLE_FONT,
+        23
+    )
+
+    subtitle = "( سروش پلاس )"
+
+    subtitle_bbox = draw.textbbox(
+        (0, 0),
+        subtitle,
+        font=subtitle_font
+    )
+
+    subtitle_width = (
+        subtitle_bbox[2] - subtitle_bbox[0]
+    )
+
+    subtitle_height = (
+        subtitle_bbox[3] - subtitle_bbox[1]
+    )
+
+    title_y = 78
+
+    header_center = CARD_WIDTH // 2
+
+    gap = 20
+
+    title_x = header_center + 10
+
+    subtitle_x = (
+        title_x
+        - subtitle_width
+        - gap
+    )
+
+    subtitle_y = (
+        title_y
+        + (title_height - subtitle_height) // 2
+        - 3
+    )
+
+    # Very soft title shadow
+
+    draw.text(
+        (
+            title_x + 2,
+            title_y + 3
+        ),
+        title,
+        font=title_font,
+        fill=(0, 0, 0, 80)
+    )
+
+    draw.text(
+        (
+            title_x,
+            title_y
+        ),
+        title,
+        font=title_font,
+        fill=palette["accent"]
+    )
+
+    draw.text(
+        (
+            subtitle_x,
+            subtitle_y
+        ),
+        subtitle,
+        font=subtitle_font,
+        fill=palette["subtitle"]
+    )
+
+    # ==================================
+    # Header Ornament
+    # ==================================
+
+    line_y = (
+        title_y
+        + title_height
+        + 25
+    )
+
+    line_width = 150
+
+    center_x = CARD_WIDTH // 2
+
+    # left line
+
+    draw.line(
+        (
+            center_x - line_width,
+            line_y,
+            center_x - 12,
+            line_y
+        ),
+        fill=palette["ornament"],
+        width=1
+    )
+
+    # right line
+
+    draw.line(
+        (
+            center_x + 12,
+            line_y,
+            center_x + line_width,
+            line_y
+        ),
+        fill=palette["ornament"],
+        width=1
+    )
+
+    # center diamond
+
+    diamond_size = 5
+
+    draw.polygon(
+        [
+            (center_x, line_y - diamond_size),
+            (center_x + diamond_size, line_y),
+            (center_x, line_y + diamond_size),
+            (center_x - diamond_size, line_y)
+        ],
+        fill=palette["accent"]
+    )
+
+    # ==================================
+    # Poem Area
+    # ==================================
+
+    text_left = 75
+    text_right = 1005
+
+    max_width = text_right - text_left
+
+    text_top = 218
+    text_bottom = 895
+
+    available_height = (
+        text_bottom - text_top
+    )
+
+    font_size = 62
+    min_font_size = 28
+
+    line_spacing = 16
+    blank_line_spacing = 44
+
+    lines = []
+
+    # ==================================
+    # Smart Font Sizing
+    # ==================================
+
+    while font_size >= min_font_size:
+
+        poem_font = get_font(
+            POEM_FONT,
+            font_size
+        )
+
+        lines = prepare_poem_lines(
+            draw,
+            text,
+            poem_font,
+            max_width
+        )
+
+        total_height = calculate_text_height(
+            draw,
+            lines,
+            poem_font,
+            line_spacing,
+            blank_line_spacing
+        )
+
+        if total_height <= available_height:
+            break
+
+        font_size -= 2
+
+    if not lines:
+
+        poem_font = get_font(
+            POEM_FONT,
+            48
+        )
+
+        lines = ["متن خالی است"]
+
+    total_height = calculate_text_height(
+        draw,
+        lines,
+        poem_font,
+        line_spacing,
+        blank_line_spacing
+    )
+
+    # ==================================
+    # Luxury Glass Panel
+    # ==================================
+
+    panel_top = max(
+        text_top - 38,
+        160
+    )
+
+    panel_bottom = min(
+        text_bottom + 38,
+        940
+    )
+
+    panel = Image.new(
+        "RGBA",
+        (CARD_WIDTH, CARD_HEIGHT),
+        (0, 0, 0, 0)
+    )
+
+    panel_draw = ImageDraw.Draw(panel)
+
+    # Outer shadow
+
+    panel_draw.rounded_rectangle(
+        (
+            62,
+            panel_top + 4,
+            1018,
+            panel_bottom + 6
+        ),
+        radius=45,
+        fill=(0, 0, 0, 28)
+    )
+
+    # Main panel
+
+    panel_draw.rounded_rectangle(
+        (
+            62,
+            panel_top,
+            1018,
+            panel_bottom
+        ),
+        radius=45,
+        fill=(255, 255, 255, 8),
+        outline=palette["panel_outline"],
+        width=1
+    )
+
+    # Inner highlight
+
+    panel_draw.rounded_rectangle(
+        (
+            72,
+            panel_top + 10,
+            1008,
+            panel_bottom - 10
+        ),
+        radius=37,
+        outline=palette["panel_inner"],
+        width=1
+    )
+
+    panel = panel.filter(
+        ImageFilter.GaussianBlur(0.35)
+    )
+
+    image = Image.alpha_composite(
+        image.convert("RGBA"),
+        panel
+    )
+
+    draw = ImageDraw.Draw(image)
+
+    # ==================================
+    # Side Ornaments
+    # ==================================
+
+    deco_y = (
+        text_top
+        + available_height // 2
+    )
+
+    # left
+
+    draw.line(
+        (
+            79,
+            deco_y - 30,
+            79,
+            deco_y + 30
+        ),
+        fill=palette["side_line"],
+        width=1
+    )
+
+    draw.ellipse(
+        (
+            76,
+            deco_y - 3,
+            82,
+            deco_y + 3
+        ),
+        fill=palette["side_dot"]
+    )
+
+    # right
+
+    draw.line(
+        (
+            1001,
+            deco_y - 30,
+            1001,
+            deco_y + 30
+        ),
+        fill=palette["side_line"],
+        width=1
+    )
+
+    draw.ellipse(
+        (
+            998,
+            deco_y - 3,
+            1004,
+            deco_y + 3
+        ),
+        fill=palette["side_dot"]
+    )
+
+    # ==================================
+    # Poem
+    # ==================================
+
+    y = (
+        text_top
+        + (available_height - total_height) // 2
+    )
+
+    for line in lines:
+
+        if line is None:
+
+            y += blank_line_spacing
+            continue
+
+        bbox = draw.textbbox(
+            (0, 0),
+            line,
+            font=poem_font
         )
 
         width = bbox[2] - bbox[0]
 
-        # IMPORTANT:
-        # Center alignment — preserved from the original design.
-        x = (WIDTH - width) // 2
+        height = bbox[3] - bbox[1]
+
+        # وسط‌چین
+        x = (
+            CARD_WIDTH - width
+        ) // 2
 
         draw.text(
-            (x, current_y),
+            (
+                x,
+                y
+            ),
             line,
-            font=font,
-            fill=palette["text"],
+            font=poem_font,
+            fill=palette["text"]
         )
 
-        current_y += line_heights[index]
+        y += height + line_spacing
 
-        if index < len(lines) - 1:
-            if lines[index + 1] == "":
-                current_y += blank_spacing
-            else:
-                current_y += line_spacing
+    # ==================================
+    # Footer
+    # ==================================
 
-    # ---------------------------------
-    # Footer separator
-    # ---------------------------------
-
-    separator_y = 934
-
-    draw.line(
-        (
-            380,
-            separator_y,
-            700,
-            separator_y,
-        ),
-        fill=palette["border"],
-        width=1,
+    footer_font = get_font(
+        FOOTER_FONT,
+        23
     )
 
-    # ---------------------------------
-    # Footer
-    # ---------------------------------
-
-    footer_font = load_font(FONT_FOOTER, 21)
     footer = "کارت شعر"
 
     footer_bbox = draw.textbbox(
         (0, 0),
         footer,
-        font=footer_font,
+        font=footer_font
     )
 
     footer_width = (
         footer_bbox[2] - footer_bbox[0]
     )
 
-    footer_x = (WIDTH - footer_width) // 2
-    footer_y = 956
+    footer_x = (
+        CARD_WIDTH - footer_width
+    ) // 2
+
+    footer_y = CARD_HEIGHT - 86
+
+    # tiny separator
+
+    draw.line(
+        (
+            center_x - 35,
+            footer_y - 13,
+            center_x + 35,
+            footer_y - 13
+        ),
+        fill=palette["ornament"],
+        width=1
+    )
 
     draw.text(
-        (footer_x, footer_y),
+        (
+            footer_x,
+            footer_y
+        ),
         footer,
         font=footer_font,
-        fill=palette["footer"],
+        fill=palette["accent"]
     )
 
-    # ---------------------------------
-    # Final image
-    # ---------------------------------
+    # ==================================
+    # Save
+    # ==================================
 
-    output = io.BytesIO()
+    filename = "/tmp/poetry_card.png"
 
     image.convert("RGB").save(
-        output,
-        format="PNG",
-        optimize=True,
+        filename,
+        "PNG",
+        optimize=True
     )
 
-    output.seek(0)
-
-    return output
+    return filename
 
 
-# =========================
-# Soroush Plus API
-# =========================
+# ==================================
+# Send Message
+# ==================================
 
 def send_message(chat_id, text):
-    url = f"{API_BASE}/sendMessage"
-
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "HTML",
-    }
 
     try:
+
         response = requests.post(
-            url,
-            json=payload,
-            timeout=30,
+            f"{API}/sendMessage",
+            json={
+                "chat_id": chat_id,
+                "text": text,
+                "parse_mode": "HTML"
+            },
+            timeout=20
+        )
+
+        print(
+            "sendMessage:",
+            response.status_code,
+            response.text
         )
 
         return response
 
-    except Exception as e:
-        print("send_message error:", e)
+    except Exception as error:
+
+        print(
+            "sendMessage error:",
+            error
+        )
+
         return None
 
 
-def send_photo(chat_id, photo_bytes):
-    url = f"{API_BASE}/sendPhoto"
+# ==================================
+# Send Photo
+# ==================================
 
-    files = {
-        "photo": (
-            "poetry_card.png",
-            photo_bytes,
-            "image/png",
-        )
-    }
-
-    data = {
-        "chat_id": chat_id,
-    }
+def send_photo(chat_id, filename):
 
     try:
-        response = requests.post(
-            url,
-            data=data,
-            files=files,
-            timeout=60,
+
+        with open(filename, "rb") as photo:
+
+            response = requests.post(
+                f"{API}/sendPhoto",
+                data={
+                    "chat_id": chat_id
+                },
+                files={
+                    "photo": (
+                        "poetry_card.png",
+                        photo,
+                        "image/png"
+                    )
+                },
+                timeout=60
+            )
+
+        print(
+            "sendPhoto:",
+            response.status_code,
+            response.text
         )
 
         return response
 
-    except Exception as e:
-        print("send_photo error:", e)
+    except Exception as error:
+
+        print(
+            "sendPhoto error:",
+            error
+        )
+
         return None
 
 
-# =========================
-# Webhook
-# =========================
+# ==================================
+# Start Message
+# ==================================
 
-@app.route("/", methods=["GET"])
+def send_start_message(chat_id):
+
+    text = (
+        "سلام 👋\n\n"
+        "🖼️ به بات کارت شعر خوش آمدی.\n\n"
+        "شعرت را همین‌جا بفرست تا برایت کارت شعر بسازم. ✨\n\n"
+        "📖 برای دیدن شعرهای بیشتر، "
+        f'<a href="{CHANNEL_URL}">شعرکده</a> '
+        "در سروش پلاس را دنبال کن."
+    )
+
+    return send_message(
+        chat_id,
+        text
+    )
+
+
+# ==================================
+# After Card Message
+# ==================================
+
+def send_after_card_message(chat_id):
+
+    text = (
+        "✨ کارت شعر شما آماده شد.\n\n"
+        "اگر باز هم شعری دارید، همین‌جا ارسال کنید "
+        "تا آن را هم به کارت شعر تبدیل کنیم. 🖼️\n\n"
+        "📖 برای دیدن شعرهای بیشتر، "
+        f'<a href="{CHANNEL_URL}">«شعرکده»</a> '
+        "در سروش پلاس بزنید."
+    )
+
+    return send_message(
+        chat_id,
+        text
+    )
+
+
+# ==================================
+# Home
+# ==================================
+
+@app.route("/")
 def home():
-    return "Soroush Poetry Card Bot is running."
+
+    return (
+        "Poetry Card Bot is running",
+        200
+    )
 
 
-@app.route("/webhook", methods=["POST"])
+# ==================================
+# Webhook
+# ==================================
+
+@app.route(
+    "/webhook",
+    methods=["POST"]
+)
 def webhook():
-    try:
-        update = request.get_json(silent=True)
 
-        if not update:
-            return jsonify({"ok": True})
+    update = request.get_json(
+        silent=True
+    ) or {}
 
-        message = update.get("message")
+    print(
+        "UPDATE:",
+        update
+    )
 
-        if not message:
-            return jsonify({"ok": True})
+    message = (
+        update.get("message")
+        or {}
+    )
 
-        chat = message.get("chat", {})
-        chat_id = chat.get("id")
+    text = message.get("text")
 
-        if not chat_id:
-            return jsonify({"ok": True})
+    chat = (
+        message.get("chat")
+        or {}
+    )
 
-        text = message.get("text", "")
+    user_id = chat.get("id")
 
-        # -------------------------
-        # /start
-        # -------------------------
+    if not user_id:
+        return "OK", 200
 
-        if text.strip().lower() == "/start":
-            start_text = (
-                "سلام 👋\n\n"
-                "🖼️ به بات کارت شعر خوش آمدی.\n\n"
-                "شعرت را همین‌جا بفرست تا برایت کارت شعر بسازم. ✨\n\n"
-                f'📖 برای دیدن شعرهای بیشتر، '
-                f'<a href="{CHANNEL_URL}">شعرکده</a> '
-                "در سروش پلاس را دنبال کن."
-            )
+    if not text:
+        return "OK", 200
 
-            send_message(
-                chat_id,
-                start_text,
-            )
+    # --------------------------------
+    # /start
+    # --------------------------------
 
-            return jsonify({"ok": True})
+    if text == "/start":
 
-        # -------------------------
-        # Empty message
-        # -------------------------
-
-        if not text.strip():
-            return jsonify({"ok": True})
-
-        # -------------------------
-        # Create card
-        # -------------------------
-
-        try:
-            photo = create_poetry_card(text)
-
-        except Exception as e:
-            print("Card creation error:", e)
-
-            send_message(
-                chat_id,
-                "❌ هنگام ساخت کارت مشکلی پیش آمد.",
-            )
-
-            return jsonify({"ok": True})
-
-        # -------------------------
-        # Send photo
-        # -------------------------
-
-        response = send_photo(
-            chat_id,
-            photo,
+        send_start_message(
+            user_id
         )
 
-        if response is not None:
-            try:
-                result = response.json()
-            except Exception:
-                result = {}
+        return "OK", 200
 
-            if result.get("ok") is True:
-                success_text = (
-                    "✨ کارت شعر شما آماده شد.\n\n"
-                    "اگر باز هم شعری دارید، همین‌جا ارسال کنید "
-                    "تا آن را هم به کارت شعر تبدیل کنیم. 🖼️\n\n"
-                    f'📖 برای دیدن شعرهای بیشتر، '
-                    f'سری هم به کانال «<a href="{CHANNEL_URL}">شعرکده</a>» '
-                    "در سروش پلاس بزنید."
-                )
+    # --------------------------------
+    # Create Card
+    # --------------------------------
 
-                send_message(
-                    chat_id,
-                    success_text,
-                )
+    try:
 
-            else:
-                print(
-                    "sendPhoto failed:",
-                    response.text,
-                )
+        filename = create_poetry_card(
+            text
+        )
 
-                send_message(
-                    chat_id,
-                    "✅ کارت ساخته شد، اما ارسال تصویر موفق نشد.",
-                )
+        print(
+            f"Poetry card created: {filename}"
+        )
+
+        photo_response = send_photo(
+            user_id,
+            filename
+        )
+
+        if (
+            photo_response is not None
+            and photo_response.ok
+        ):
+
+            print(
+                "Poetry card sent successfully."
+            )
+
+            send_after_card_message(
+                user_id
+            )
 
         else:
-            send_message(
-                chat_id,
-                "✅ کارت ساخته شد، اما ارسال تصویر موفق نشد.",
+
+            print(
+                "Photo sending failed."
             )
 
-        return jsonify({"ok": True})
+            send_message(
+                user_id,
+                "✅ کارت ساخته شد، "
+                "اما ارسال تصویر موفق نشد."
+            )
 
-    except Exception as e:
-        print("Webhook error:", e)
-        return jsonify({"ok": True})
+    except Exception as error:
+
+        print(
+            "Card creation error:",
+            error
+        )
+
+        send_message(
+            user_id,
+            "❌ هنگام ساخت کارت مشکلی پیش آمد."
+        )
+
+    return "OK", 200
 
 
-# =========================
+# ==================================
 # Run
-# =========================
+# ==================================
 
 if __name__ == "__main__":
+
     port = int(
-        os.getenv("PORT", "5000")
+        os.environ.get(
+            "PORT",
+            10000
+        )
     )
 
     app.run(
         host="0.0.0.0",
-        port=port,
+        port=port
     )
