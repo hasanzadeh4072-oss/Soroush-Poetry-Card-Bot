@@ -1,217 +1,97 @@
 import os
-import random
+import io
+import re
+import math
 import requests
-from flask import Flask, request
+from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-app = Flask(__name__)
-
 TOKEN = os.environ.get("SOROUSH_TOKEN")
-API = f"https://api.splus.ir/bot{TOKEN}"
-CHANNEL_URL = "https://splus.ir/life_m23"
+API_BASE = f"https://api.splus.ir/bot{TOKEN}"
 
-# =========================
-# Card settings
-# =========================
+WIDTH = 1080
+HEIGHT = 1080
 
-CARD_WIDTH = 1080
-CARD_HEIGHT = 1080
+BG_TOP = (35, 18, 58)
+BG_BOTTOM = (18, 9, 34)
 
-TEXT_COLOR = (248, 244, 235)
-ACCENT_COLOR = (205, 172, 105)
-SUBTITLE_COLOR = (190, 175, 150)
-BORDER_COLOR = (150, 120, 70)
+POEM_COLOR = (250, 246, 235, 255)
+GOLD = (220, 190, 120, 255)
+FOOTER_COLOR = (205, 195, 215, 230)
 
 POEM_FONT = "BNazanin.ttf"
-FALLBACK_FONT = "Vazirmatn-Regular.ttf"
 TITLE_FONT = "BTitrBd.ttf"
-SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
-
 EMOJI_FONT = "NotoColorEmoji.ttf"
-EMOJI_BASE_SIZE = 109
 
-# تناسب عناصر غیر فارسی با متن اصلی
+EMOJI_BASE_SIZE = 109
 EMOJI_SCALE = 0.78
 SYMBOL_SCALE = 0.82
 
-# کش فونت‌ها
-_font_cache = {}
+MARGIN_X = 95
+MAX_TEXT_WIDTH = WIDTH - 2 * MARGIN_X
 
-# کش ایموجی‌های رندرشده
-_emoji_cache = {}
-
-
-# =========================
-# Font helpers
-# =========================
-
-def get_font(path, size):
-    key = (path, size)
-
-    if key not in _font_cache:
-        _font_cache[key] = ImageFont.truetype(path, size)
-
-    return _font_cache[key]
+FONT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
+def font_path(name):
+    return os.path.join(FONT_DIR, name)
+
+
+@lru_cache(maxsize=100)
+def get_font(name, size):
+    return ImageFont.truetype(font_path(name), size)
+
+
+@lru_cache(maxsize=1)
 def get_emoji_font():
-    """
-    NotoColorEmoji یک فونت bitmap است و فقط در اندازه‌های
-    مشخصی قابل بارگذاری است. بنابراین همیشه با 109px
-    بارگذاری می‌شود و بعد تصویر آن کوچک می‌شود.
-    """
-    key = ("emoji", EMOJI_BASE_SIZE)
-
-    if key not in _font_cache:
-        _font_cache[key] = ImageFont.truetype(
-            EMOJI_FONT,
-            EMOJI_BASE_SIZE
-        )
-
-    return _font_cache[key]
+    return ImageFont.truetype(font_path(EMOJI_FONT), EMOJI_BASE_SIZE)
 
 
-# =========================
-# Character detection
-# =========================
+def normalize_text(text):
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = text.replace("…", "...")
+    return text
 
-def is_persian_char(ch):
-    code = ord(ch)
+
+def is_emoji_char(ch):
+    cp = ord(ch)
 
     return (
-        0x0600 <= code <= 0x06FF
-        or 0x0750 <= code <= 0x077F
-        or 0x08A0 <= code <= 0x08FF
-        or 0xFB50 <= code <= 0xFDFF
-        or 0xFE70 <= code <= 0xFEFF
+        0x1F000 <= cp <= 0x1FAFF
+        or 0x2600 <= cp <= 0x27BF
+        or 0x2300 <= cp <= 0x23FF
+        or 0x2B00 <= cp <= 0x2BFF
     )
 
-
-def is_latin_or_number(ch):
-    return (
-        ch.isascii()
-        and (
-            ch.isalnum()
-            or ch in "@.-/:+"
-        )
-    )
-
-
-def is_symbol(ch):
-    return ch in "#_"
-
-
-def is_variation_selector(ch):
-    code = ord(ch)
-    return 0xFE00 <= code <= 0xFE0F
-
-
-def is_skin_tone(ch):
-    code = ord(ch)
-    return 0x1F3FB <= code <= 0x1F3FF
-
-
-def is_regional_indicator(ch):
-    code = ord(ch)
-    return 0x1F1E6 <= code <= 0x1F1FF
-
-
-def is_emoji_base(ch):
-    code = ord(ch)
-
-    return (
-        0x1F000 <= code <= 0x1FAFF
-        or 0x2600 <= code <= 0x27BF
-        or 0x2300 <= code <= 0x23FF
-        or 0x2B00 <= code <= 0x2BFF
-    )
-
-
-# =========================
-# Grapheme splitter
-# =========================
 
 def split_graphemes(text):
-    """
-    تقسیم متن به واحدهای قابل رندر.
-    حروف فارسی کنار هم باقی می‌مانند.
-    ایموجی‌های ZWJ و variation selector نیز یک واحد می‌مانند.
-    """
-
     result = []
     current = ""
 
-    i = 0
+    for ch in text:
+        cp = ord(ch)
 
-    while i < len(text):
-        ch = text[i]
-
-        # شروع یک ایموجی یا نماد ویژه
-        if is_emoji_base(ch) or is_regional_indicator(ch):
-
-            if current:
-                result.append(current)
-                current = ""
-
-            cluster = ch
-            i += 1
-
-            # variation selector / skin tone
-            while i < len(text):
-                nxt = text[i]
-
-                if (
-                    is_variation_selector(nxt)
-                    or is_skin_tone(nxt)
-                ):
-                    cluster += nxt
-                    i += 1
-                else:
-                    break
-
-            # ZWJ emoji sequence
-            while i < len(text) and text[i] == "\u200d":
-                cluster += text[i]
-                i += 1
-
-                if i < len(text):
-                    cluster += text[i]
-                    i += 1
-
-                while i < len(text):
-                    nxt = text[i]
-
-                    if (
-                        is_variation_selector(nxt)
-                        or is_skin_tone(nxt)
-                    ):
-                        cluster += nxt
-                        i += 1
-                    else:
-                        break
-
-            # پرچم‌ها
-            if (
-                len(cluster) == 1
-                and is_regional_indicator(cluster[0])
-                and i < len(text)
-                and is_regional_indicator(text[i])
-            ):
-                cluster += text[i]
-                i += 1
-
-            result.append(cluster)
+        if not current:
+            current = ch
             continue
 
-        # ZWJ
-        if ch == "\u200d":
+        if (
+            cp == 0xFE0F
+            or 0xFE0E
+            or 0x200D
+            or 0x20E3
+            or 0x1F3FB <= cp <= 0x1F3FF
+            or 0xE0020 <= cp <= 0xE007F
+            or 0xE0001 == cp
+            or 0xE007F == cp
+        ):
             current += ch
-            i += 1
-            continue
-
-        current += ch
-        i += 1
+        elif 0x1F1E6 <= cp <= 0x1F1FF and len(current) == 1:
+            current += ch
+        else:
+            result.append(current)
+            current = ch
 
     if current:
         result.append(current)
@@ -219,1330 +99,827 @@ def split_graphemes(text):
     return result
 
 
-# =========================
-# Emoji rendering
-# =========================
-
-def render_emoji(emoji, target_size):
-    display_size = max(
-        int(target_size * EMOJI_SCALE),
-        16
-    )
-
-    cache_key = (emoji, display_size)
-
-    if cache_key in _emoji_cache:
-        return _emoji_cache[cache_key]
-
-    font = get_emoji_font()
-
-    # اندازه امن برای رندر فونت NotoColorEmoji
-    temp = Image.new(
-        "RGBA",
-        (EMOJI_BASE_SIZE * 2, EMOJI_BASE_SIZE * 2),
-        (0, 0, 0, 0)
-    )
-
-    draw = ImageDraw.Draw(temp)
-
-    bbox = draw.textbbox(
-        (0, 0),
-        emoji,
-        font=font
-    )
-
-    if not bbox:
-        return None
-
-    x1, y1, x2, y2 = bbox
-
-    draw.text(
-        (-x1 + 10, -y1 + 10),
-        emoji,
-        font=font,
-        embedded_color=True
-    )
-
-    bbox2 = temp.getbbox()
-
-    if not bbox2:
-        return None
-
-    temp = temp.crop(bbox2)
-
-    # حفظ نسبت
-    ratio = display_size / max(temp.width, temp.height)
-
-    new_w = max(int(temp.width * ratio), 1)
-    new_h = max(int(temp.height * ratio), 1)
-
-    temp = temp.resize(
-        (new_w, new_h),
-        Image.Resampling.LANCZOS
-    )
-
-    _emoji_cache[cache_key] = temp
-
-    return temp
-
-
-# =========================
-# Mixed text helpers
-# =========================
-
 def contains_emoji(text):
-    return any(
-        is_emoji_base(ch) or is_regional_indicator(ch)
-        for ch in text
+    return any(is_emoji_char(c) for c in text)
+
+
+def is_persian_char(ch):
+    cp = ord(ch)
+
+    return (
+        0x0600 <= cp <= 0x06FF
+        or 0x0750 <= cp <= 0x077F
+        or 0x08A0 <= cp <= 0x08FF
+        or 0xFB50 <= cp <= 0xFDFF
+        or 0xFE70 <= cp <= 0xFEFF
     )
 
 
-def contains_special_symbol(text):
-    return any(
-        ch in "#_"
-        for ch in text
-    )
+def is_latin_or_number(ch):
+    return ch.isascii() and (ch.isalnum() or ch in ".,!?;:'\"+-=/()%&@$")
 
 
-def render_persian_with_symbols(
-    image,
-    xy,
-    text,
-    primary_font,
-    fallback_font,
-    fill
-):
-    """
-    هشتگ را به‌صورت ترکیبی رندر می‌کند:
+def is_symbol(ch):
+    return ch in "#_*-–—|~"
 
-    حروف فارسی:
-        BNazanin
 
-    # و _:
-        فونت کمکی
-
-    بنابراین مثلاً:
-        #پونه_مقیمی
-
-    حروف فارسی‌اش دقیقاً با فونت شعر باقی می‌ماند.
-    """
-
-    draw = ImageDraw.Draw(image)
-
-    x, y = xy
-
-    # اگر هشتگ/نماد ندارد، کل عبارت یکجا رندر شود
-    if not contains_special_symbol(text):
-        draw.text(
-            (x, y),
-            text,
-            font=primary_font,
-            fill=fill,
-            direction="rtl"
-        )
-        return
-
-    # واحدهای متنی را جدا می‌کنیم اما حروف فارسی را
-    # دانه‌دانه نمی‌کنیم تا شکل‌دهی فارسی خراب نشود.
-    parts = []
+def split_mixed_runs(text):
+    runs = []
     current = ""
+    current_type = None
 
     for ch in text:
-        if ch in "#_":
-            if current:
-                parts.append(("text", current))
-                current = ""
-
-            parts.append(("symbol", ch))
-
+        if ch.isspace():
+            typ = "space"
+        elif is_emoji_char(ch):
+            typ = "emoji"
+        elif is_persian_char(ch):
+            typ = "persian"
+        elif is_latin_or_number(ch):
+            typ = "latin"
+        elif is_symbol(ch):
+            typ = "symbol"
         else:
-            current += ch
+            typ = "other"
+
+        if typ == "emoji":
+            if current:
+                runs.append((current_type, current))
+                current = ""
+            runs.append(("emoji", ch))
+            current_type = None
+            continue
+
+        if typ != current_type and current:
+            runs.append((current_type, current))
+            current = ""
+
+        current_type = typ
+        current += ch
 
     if current:
-        parts.append(("text", current))
+        runs.append((current_type, current))
 
-    # برای حفظ ترتیب راست‌به‌چپ، از انتها به ابتدا می‌چینیم.
-    cursor_x = x
-
-    for kind, value in reversed(parts):
-
-        if kind == "text":
-            bbox = draw.textbbox(
-                (0, 0),
-                value,
-                font=primary_font,
-                direction="rtl"
-            )
-
-            width = bbox[2] - bbox[0]
-
-            draw.text(
-                (cursor_x - width, y),
-                value,
-                font=primary_font,
-                fill=fill,
-                direction="rtl"
-            )
-
-            cursor_x -= width
-
+    # Merge adjacent Persian runs
+    merged = []
+    for typ, value in runs:
+        if merged and typ == merged[-1][0] and typ != "emoji":
+            merged[-1] = (typ, merged[-1][1] + value)
         else:
-            symbol_size = max(
-                int(primary_font.size * SYMBOL_SCALE),
-                14
-            )
+            merged.append((typ, value))
 
-            symbol_font = get_font(
-                fallback_font,
-                symbol_size
-            )
-
-            bbox = draw.textbbox(
-                (0, 0),
-                value,
-                font=symbol_font
-            )
-
-            width = bbox[2] - bbox[0]
-
-            # کمی فاصله ظریف
-            cursor_x -= 2
-
-            # تنظیم خط مبنا نسبت به BNazanin
-            primary_bbox = draw.textbbox(
-                (0, 0),
-                "آ",
-                font=primary_font
-            )
-
-            symbol_bbox = draw.textbbox(
-                (0, 0),
-                value,
-                font=symbol_font
-            )
-
-            symbol_y = (
-                y
-                + primary_bbox[3]
-                - symbol_bbox[3]
-            )
-
-            draw.text(
-                (cursor_x - width, symbol_y),
-                value,
-                font=symbol_font,
-                fill=fill
-            )
-
-            cursor_x -= width + 2
+    return merged
 
 
-def render_token(
-    image,
-    x,
-    y,
-    token,
-    primary_font,
-    fallback_font,
-    fill
-):
-    """
-    یک کلمه/توکن را رندر می‌کند.
-    فارسی با فونت اصلی.
-    هشتگ با ترکیب فونت اصلی و کمکی.
-    ایموجی با NotoColorEmoji کوچک‌شده.
-    """
+def render_emoji(cluster, target_size):
+    font = get_emoji_font()
 
+    bbox = font.getbbox(cluster)
+
+    if bbox is None:
+        return Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+
+    left, top, right, bottom = bbox
+
+    w = max(1, right - left + 20)
+    h = max(1, bottom - top + 20)
+
+    image = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
 
-    if not token:
-        return 0
-
-    # اگر توکن کاملاً فارسی/عادی است
-    if not contains_emoji(token) and not contains_special_symbol(token):
-
-        draw.text(
-            (x, y),
-            token,
-            font=primary_font,
-            fill=fill,
-            direction="rtl"
-        )
-
-        bbox = draw.textbbox(
-            (0, 0),
-            token,
-            font=primary_font,
-            direction="rtl"
-        )
-
-        return bbox[2] - bbox[0]
-
-    # هشتگ
-    if contains_special_symbol(token) and not contains_emoji(token):
-
-        # عرض واقعی را با همان روش رندر محاسبه می‌کنیم
-        temp = Image.new(
-            "RGBA",
-            (2000, 300),
-            (0, 0, 0, 0)
-        )
-
-        render_persian_with_symbols(
-            temp,
-            (1900, 20),
-            token,
-            primary_font,
-            fallback_font,
-            fill
-        )
-
-        bbox = temp.getbbox()
-
-        if not bbox:
-            return 0
-
-        width = bbox[2] - bbox[0]
-
-        render_persian_with_symbols(
-            image,
-            (x + width, y),
-            token,
-            primary_font,
-            fallback_font,
-            fill
-        )
-
-        return width
-
-    # توکن دارای ایموجی
-    clusters = split_graphemes(token)
-
-    widths = []
-
-    for cluster in clusters:
-
-        if contains_emoji(cluster):
-
-            emoji_img = render_emoji(
-                cluster,
-                primary_font.size
-            )
-
-            if emoji_img:
-                widths.append(
-                    emoji_img.width
-                )
-            else:
-                widths.append(0)
-
-        else:
-
-            bbox = draw.textbbox(
-                (0, 0),
-                cluster,
-                font=primary_font,
-                direction="rtl"
-            )
-
-            widths.append(
-                bbox[2] - bbox[0]
-            )
-
-    total_width = sum(widths)
-
-    cursor_x = x + total_width
-
-    primary_bbox = draw.textbbox(
-        (0, 0),
-        "آ",
-        font=primary_font
+    draw.text(
+        (10 - left, 10 - top),
+        cluster,
+        font=font,
+        embedded_color=True,
     )
 
-    for cluster, width in zip(clusters, widths):
+    bbox2 = image.getbbox()
 
-        cursor_x -= width
+    if bbox2:
+        image = image.crop(bbox2)
 
-        if contains_emoji(cluster):
+    scale = target_size / max(image.height, 1)
 
-            emoji_img = render_emoji(
-                cluster,
-                primary_font.size
-            )
+    new_w = max(1, int(image.width * scale))
+    new_h = max(1, int(image.height * scale))
 
-            if emoji_img:
-
-                emoji_y = (
-                    y
-                    + primary_bbox[3]
-                    - emoji_img.height
-                )
-
-                image.alpha_composite(
-                    emoji_img,
-                    (
-                        int(cursor_x),
-                        int(emoji_y)
-                    )
-                )
-
-        else:
-
-            draw.text(
-                (cursor_x, y),
-                cluster,
-                font=primary_font,
-                fill=fill,
-                direction="rtl"
-            )
-
-    return total_width
+    return image.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
 
-# =========================
-# Line rendering
-# =========================
-
-def render_line(
-    image,
-    x,
-    y,
-    text,
-    primary_font,
-    fallback_font,
-    fill
-):
-    draw = ImageDraw.Draw(image)
-
-    if not text:
-        return
-
-    # متن عادی بدون ایموجی و هشتگ:
-    # کل جمله یکجا رندر می‌شود تا شکل‌دهی فارسی کاملاً حفظ شود.
-    if not contains_emoji(text) and not contains_special_symbol(text):
-
-        draw.text(
-            (x, y),
-            text,
-            font=primary_font,
-            fill=fill,
-            direction="rtl"
-        )
-
-        return
-
-    # برای متن ترکیبی، کلمات جدا می‌شوند.
-    tokens = text.split(" ")
-
-    # فاصله بین کلمات
-    space_bbox = draw.textbbox(
-        (0, 0),
-        " ",
-        font=primary_font
-    )
-
-    space_width = space_bbox[2] - space_bbox[0]
-
-    widths = []
-
-    for token in tokens:
-
-        if not token:
-            widths.append(0)
-            continue
-
-        if contains_emoji(token):
-
-            token_width = 0
-
-            for cluster in split_graphemes(token):
-
-                if contains_emoji(cluster):
-                    emoji_img = render_emoji(
-                        cluster,
-                        primary_font.size
-                    )
-
-                    if emoji_img:
-                        token_width += emoji_img.width
-
-                else:
-                    bbox = draw.textbbox(
-                        (0, 0),
-                        cluster,
-                        font=primary_font,
-                        direction="rtl"
-                    )
-
-                    token_width += bbox[2] - bbox[0]
-
-            widths.append(token_width)
-
-        elif contains_special_symbol(token):
-
-            temp = Image.new(
-                "RGBA",
-                (2000, 300),
-                (0, 0, 0, 0)
-            )
-
-            render_persian_with_symbols(
-                temp,
-                (1900, 20),
-                token,
-                primary_font,
-                fallback_font,
-                fill
-            )
-
-            bbox = temp.getbbox()
-
-            widths.append(
-                bbox[2] - bbox[0]
-                if bbox else 0
-            )
-
-        else:
-
-            bbox = draw.textbbox(
-                (0, 0),
-                token,
-                font=primary_font,
-                direction="rtl"
-            )
-
-            widths.append(
-                bbox[2] - bbox[0]
-            )
-
-    total_width = (
-        sum(widths)
-        + space_width * max(len(tokens) - 1, 0)
-    )
-
-    cursor_x = x + total_width
-
-    for i, token in enumerate(tokens):
-
-        if not token:
-            cursor_x -= space_width
-            continue
-
-        token_width = widths[i]
-
-        cursor_x -= token_width
-
-        render_token(
-            image,
-            cursor_x,
-            y,
-            token,
-            primary_font,
-            fallback_font,
-            fill
-        )
-
-        if i < len(tokens) - 1:
-            cursor_x -= space_width
-
-
-# =========================
-# Text measurement
-# =========================
-
-def get_text_width(
-    text,
-    primary_font,
-    fallback_font
-):
-    temp = Image.new(
-        "RGBA",
-        (3000, 500),
-        (0, 0, 0, 0)
-    )
-
+def text_bbox(text, font, direction=None):
+    temp = Image.new("RGB", (3000, 500))
     draw = ImageDraw.Draw(temp)
 
-    if not contains_emoji(text) and not contains_special_symbol(text):
+    kwargs = {}
+    if direction:
+        kwargs["direction"] = direction
 
-        bbox = draw.textbbox(
-            (0, 0),
-            text,
-            font=primary_font,
-            direction="rtl"
-        )
+    return draw.textbbox((0, 0), text, font=font, **kwargs)
 
-        return bbox[2] - bbox[0]
 
-    # همان مسیر واقعی رندر
-    render_line(
-        temp,
-        2900,
-        20,
-        text,
-        primary_font,
-        fallback_font,
-        TEXT_COLOR
-    )
-
-    bbox = temp.getbbox()
-
-    if not bbox:
+def text_width(text, font, direction=None):
+    if not text:
         return 0
 
-    return bbox[2] - bbox[0]
+    box = text_bbox(text, font, direction)
+
+    return max(0, box[2] - box[0])
 
 
-# =========================
-# Text wrapping
-# =========================
+def render_run_image(typ, text, font_size):
+    if not text:
+        return Image.new("RGBA", (1, 1), (0, 0, 0, 0))
 
-def wrap_text(
-    text,
-    font,
-    fallback_font,
-    max_width
-):
-    lines = []
+    if typ == "emoji":
+        size = max(18, int(font_size * EMOJI_SCALE))
+        return render_emoji(text, size)
 
-    paragraphs = text.split("\n")
+    if typ == "persian":
+        font = get_font(POEM_FONT, font_size)
 
-    for paragraph in paragraphs:
+        box = text_bbox(text, font, "rtl")
 
-        if paragraph.strip() == "":
-            lines.append("")
+        w = max(1, box[2] - box[0] + 8)
+        h = max(1, box[3] - box[1] + 8)
+
+        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        draw.text(
+            (4 - box[0], 4 - box[1]),
+            text,
+            font=font,
+            fill=POEM_COLOR,
+            direction="rtl",
+        )
+
+        return img
+
+    if typ == "latin":
+        size = max(18, int(font_size * 0.86))
+        font = get_font(FOOTER_FONT, size)
+
+        box = text_bbox(text, font)
+
+        w = max(1, box[2] - box[0] + 8)
+        h = max(1, box[3] - box[1] + 8)
+
+        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        draw.text(
+            (4 - box[0], 4 - box[1]),
+            text,
+            font=font,
+            fill=POEM_COLOR,
+        )
+
+        return img
+
+    if typ == "symbol":
+        size = max(18, int(font_size * SYMBOL_SCALE))
+        font = get_font(FOOTER_FONT, size)
+
+        box = text_bbox(text, font)
+
+        w = max(1, box[2] - box[0] + 8)
+        h = max(1, box[3] - box[1] + 8)
+
+        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        draw.text(
+            (4 - box[0], 4 - box[1]),
+            text,
+            font=font,
+            fill=POEM_COLOR,
+        )
+
+        return img
+
+    # سایر نویسه‌ها با فونت فارسی
+    font = get_font(POEM_FONT, font_size)
+
+    box = text_bbox(text, font, "rtl")
+
+    w = max(1, box[2] - box[0] + 8)
+    h = max(1, box[3] - box[1] + 8)
+
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    draw.text(
+        (4 - box[0], 4 - box[1]),
+        text,
+        font=font,
+        fill=POEM_COLOR,
+        direction="rtl",
+    )
+
+    return img
+
+
+def is_simple_persian_line(text):
+    return not contains_emoji(text) and not any(
+        is_latin_or_number(c) or is_symbol(c)
+        for c in text
+    )
+
+
+def render_line(text, font_size):
+    if not text:
+        return Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+
+    # حالت عادی شعر: کل جمله یکجا برای حفظ اتصال حروف
+    if is_simple_persian_line(text):
+        font = get_font(POEM_FONT, font_size)
+
+        box = text_bbox(text, font, "rtl")
+
+        w = max(1, box[2] - box[0] + 16)
+        h = max(1, box[3] - box[1] + 16)
+
+        img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+
+        draw.text(
+            (8 - box[0], 8 - box[1]),
+            text,
+            font=font,
+            fill=POEM_COLOR,
+            direction="rtl",
+        )
+
+        return img
+
+    runs = split_mixed_runs(text)
+
+    # حذف فاصله‌های ابتدا و انتها
+    while runs and runs[0][0] == "space":
+        runs.pop(0)
+
+    while runs and runs[-1][0] == "space":
+        runs.pop()
+
+    if not runs:
+        return Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+
+    rendered = []
+
+    for typ, value in runs:
+        if typ == "space":
+            font = get_font(POEM_FONT, font_size)
+            width = max(5, text_width(" ", font))
+            rendered.append(
+                Image.new(
+                    "RGBA",
+                    (width, max(10, int(font_size * 1.4))),
+                    (0, 0, 0, 0),
+                )
+            )
+        else:
+            rendered.append(render_run_image(typ, value, font_size))
+
+    # ترتیب بصری را برای خط RTL کنترل می‌کنیم.
+    # هر run به‌صورت یک واحد باقی می‌ماند تا حروف فارسی به‌هم نریزند.
+    rendered = rendered[::-1]
+
+    gap = 2
+
+    total_w = sum(img.width for img in rendered)
+    total_w += gap * max(0, len(rendered) - 1)
+
+    max_h = max(img.height for img in rendered)
+
+    canvas = Image.new(
+        "RGBA",
+        (max(1, total_w + 8), max(1, max_h + 8)),
+        (0, 0, 0, 0),
+    )
+
+    x = 4
+
+    for img in rendered:
+        y = 4 + (max_h - img.height) // 2
+        canvas.alpha_composite(img, (x, y))
+        x += img.width + gap
+
+    return canvas
+
+
+def measure_line(text, font_size):
+    return render_line(text, font_size).width
+
+
+def wrap_text(text, font_size, max_width):
+    lines = text.split("\n")
+    result = []
+
+    for original_line in lines:
+        if not original_line.strip():
+            result.append("")
             continue
 
-        words = paragraph.split()
+        words = original_line.split()
 
         current = ""
 
         for word in words:
+            candidate = word if not current else current + " " + word
 
-            candidate = (
-                word
-                if not current
-                else current + " " + word
-            )
-
-            width = get_text_width(
-                candidate,
-                font,
-                fallback_font
-            )
-
-            if width <= max_width:
+            if measure_line(candidate, font_size) <= max_width:
                 current = candidate
-
             else:
-
                 if current:
-                    lines.append(current)
+                    result.append(current)
 
-                # اگر خود کلمه از عرض مجاز بزرگ‌تر است
-                # همان را نگه می‌داریم تا ساختار متن خراب نشود.
-                current = word
+                # اگر خود کلمه هم بزرگ بود، آن را مجبور به خط‌شکنی می‌کنیم
+                if measure_line(word, font_size) <= max_width:
+                    current = word
+                else:
+                    partial = ""
+
+                    for ch in split_graphemes(word):
+                        test = partial + ch
+
+                        if measure_line(test, font_size) <= max_width:
+                            partial = test
+                        else:
+                            if partial:
+                                result.append(partial)
+                            partial = ch
+
+                    current = partial
 
         if current:
-            lines.append(current)
+            result.append(current)
 
-    return lines
+    return result
 
 
-# =========================
-# Background
-# =========================
+def calculate_text_layout(poem):
+    for size in range(58, 27, -2):
+        lines = wrap_text(poem, size, MAX_TEXT_WIDTH)
+
+        if not lines:
+            continue
+
+        line_height = int(size * 1.55)
+        spacing = 20
+        blank_height = 48
+
+        total_height = 0
+
+        for line in lines:
+            if line == "":
+                total_height += blank_height
+            else:
+                total_height += line_height
+
+        if len(lines) > 1:
+            total_height += spacing * (len(lines) - 1)
+
+        if total_height <= 690:
+            return size, lines, line_height, spacing, blank_height
+
+    size = 28
+    lines = wrap_text(poem, size, MAX_TEXT_WIDTH)
+
+    line_height = int(size * 1.55)
+    spacing = 14
+    blank_height = 40
+
+    return size, lines, line_height, spacing, blank_height
+
 
 def create_background():
-    image = Image.new(
-        "RGBA",
-        (CARD_WIDTH, CARD_HEIGHT)
-    )
+    image = Image.new("RGBA", (WIDTH, HEIGHT))
 
-    pixels = image.load()
+    px = image.load()
 
-    top = (42, 26, 66)
-    middle = (31, 22, 52)
-    bottom = (15, 14, 28)
+    for y in range(HEIGHT):
+        t = y / (HEIGHT - 1)
 
-    for y in range(CARD_HEIGHT):
+        r = int(BG_TOP[0] * (1 - t) + BG_BOTTOM[0] * t)
+        g = int(BG_TOP[1] * (1 - t) + BG_BOTTOM[1] * t)
+        b = int(BG_TOP[2] * (1 - t) + BG_BOTTOM[2] * t)
 
-        t = y / (CARD_HEIGHT - 1)
+        for x in range(WIDTH):
+            dx = abs(x - WIDTH / 2) / (WIDTH / 2)
+            glow = max(0, 1 - dx) * 4
 
-        if t < 0.55:
-
-            local_t = t / 0.55
-
-            r = int(
-                top[0]
-                + (middle[0] - top[0]) * local_t
+            px[x, y] = (
+                min(255, r + int(glow)),
+                min(255, g + int(glow)),
+                min(255, b + int(glow)),
+                255,
             )
-
-            g = int(
-                top[1]
-                + (middle[1] - top[1]) * local_t
-            )
-
-            b = int(
-                top[2]
-                + (middle[2] - top[2]) * local_t
-            )
-
-        else:
-
-            local_t = (t - 0.55) / 0.45
-
-            r = int(
-                middle[0]
-                + (bottom[0] - middle[0]) * local_t
-            )
-
-            g = int(
-                middle[1]
-                + (bottom[1] - middle[1]) * local_t
-            )
-
-            b = int(
-                middle[2]
-                + (bottom[2] - middle[2]) * local_t
-            )
-
-        for x in range(CARD_WIDTH):
-            pixels[x, y] = (r, g, b, 255)
-
-    # نور نرم
-    glow = Image.new(
-        "RGBA",
-        image.size,
-        (0, 0, 0, 0)
-    )
-
-    glow_draw = ImageDraw.Draw(glow)
-
-    glow_draw.ellipse(
-        (170, -160, 900, 570),
-        fill=(112, 71, 150, 35)
-    )
-
-    glow_draw.ellipse(
-        (350, 570, 1200, 1250),
-        fill=(80, 55, 120, 20)
-    )
-
-    glow = glow.filter(
-        ImageFilter.GaussianBlur(90)
-    )
-
-    image.alpha_composite(glow)
-
-    # بافت بسیار ظریف
-    texture = Image.new(
-        "RGBA",
-        image.size,
-        (0, 0, 0, 0)
-    )
-
-    texture_draw = ImageDraw.Draw(texture)
-
-    for _ in range(18000):
-
-        x = random.randrange(CARD_WIDTH)
-        y = random.randrange(CARD_HEIGHT)
-
-        alpha = random.randrange(3, 12)
-
-        texture_draw.point(
-            (x, y),
-            fill=(255, 255, 255, alpha)
-        )
-
-    image.alpha_composite(texture)
 
     return image
 
 
-# =========================
-# Create poetry card
-# =========================
+def add_texture(image):
+    texture = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(texture)
+
+    step = 8
+
+    for y in range(0, HEIGHT, step):
+        for x in range(0, WIDTH, step):
+            value = ((x * 17 + y * 31) % 23)
+
+            if value < 3:
+                draw.point(
+                    (x, y),
+                    fill=(255, 255, 255, 7),
+                )
+
+    texture = texture.filter(ImageFilter.GaussianBlur(0.5))
+    image.alpha_composite(texture)
+
 
 def create_card(poem):
+    poem = normalize_text(poem.strip())
+
     image = create_background()
-    draw = ImageDraw.Draw(image)
+    add_texture(image)
 
-    # -------------------------
-    # Outer border
-    # -------------------------
+    overlay = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
 
-    draw.rounded_rectangle(
-        (42, 42, 1038, 1038),
-        radius=38,
-        outline=(
-            BORDER_COLOR[0],
-            BORDER_COLOR[1],
-            BORDER_COLOR[2],
-            150
-        ),
-        width=2
-    )
-
-    # -------------------------
     # Header
-    # -------------------------
-
-    title_font = get_font(
-        TITLE_FONT,
-        48
-    )
-
-    subtitle_font = get_font(
-        SUBTITLE_FONT,
-        24
-    )
+    title_font = get_font(TITLE_FONT, 66)
+    subtitle_font = get_font(FOOTER_FONT, 25)
 
     title = "شعرکده"
     subtitle = "( سروش پلاس )"
 
-    title_bbox = draw.textbbox(
+    title_box = draw.textbbox(
         (0, 0),
         title,
         font=title_font,
-        direction="rtl"
+        direction="rtl",
     )
 
-    title_width = (
-        title_bbox[2] - title_bbox[0]
-    )
+    title_w = title_box[2] - title_box[0]
+    title_h = title_box[3] - title_box[1]
 
-    subtitle_bbox = draw.textbbox(
-        (0, 0),
-        subtitle,
-        font=subtitle_font,
-        direction="rtl"
-    )
-
-    subtitle_width = (
-        subtitle_bbox[2] - subtitle_bbox[0]
-    )
-
-    gap = 18
-
-    total_width = (
-        title_width
-        + gap
-        + subtitle_width
-    )
-
-    start_x = (
-        CARD_WIDTH - total_width
-    ) / 2
-
-    title_x = (
-        start_x
-        + subtitle_width
-        + gap
-    )
-
-    subtitle_x = start_x
-
-    title_y = 82
-    subtitle_y = 79
+    title_x = (WIDTH - title_w) // 2
+    title_y = 72
 
     draw.text(
         (title_x, title_y),
         title,
         font=title_font,
-        fill=ACCENT_COLOR,
-        direction="rtl"
+        fill=GOLD,
+        direction="rtl",
     )
+
+    subtitle_box = draw.textbbox(
+        (0, 0),
+        subtitle,
+        font=subtitle_font,
+        direction="rtl",
+    )
+
+    subtitle_w = subtitle_box[2] - subtitle_box[0]
+
+    subtitle_x = (WIDTH - subtitle_w) // 2
+    subtitle_y = title_y + title_h + 18 - 3
 
     draw.text(
         (subtitle_x, subtitle_y),
         subtitle,
         font=subtitle_font,
-        fill=SUBTITLE_COLOR,
-        direction="rtl"
+        fill=FOOTER_COLOR,
+        direction="rtl",
     )
 
-    # خط زیر عنوان
-    line_y = (
-        title_y
-        + (title_bbox[3] - title_bbox[1])
-        + 24
+    # خط ظریف زیر عنوان
+    line_y = subtitle_y + 45
+
+    draw.line(
+        (WIDTH // 2 - 120, line_y, WIDTH // 2 + 120, line_y),
+        fill=(220, 190, 120, 90),
+        width=2,
+    )
+
+    draw.ellipse(
+        (
+            WIDTH // 2 - 4,
+            line_y - 4,
+            WIDTH // 2 + 4,
+            line_y + 4,
+        ),
+        fill=(220, 190, 120, 190),
+    )
+
+    # علائم کناری بسیار ظریف
+    draw.line(
+        (70, line_y - 18, 70, line_y + 18),
+        fill=(220, 190, 120, 45),
+        width=2,
     )
 
     draw.line(
-        (
-            CARD_WIDTH // 2 - 60,
-            line_y,
-            CARD_WIDTH // 2 + 60,
-            line_y
-        ),
-        fill=ACCENT_COLOR,
-        width=2
+        (WIDTH - 70, line_y - 18, WIDTH - 70, line_y + 18),
+        fill=(220, 190, 120, 45),
+        width=2,
     )
 
-    # نقطه وسط خط
-    draw.ellipse(
-        (
-            CARD_WIDTH // 2 - 4,
-            line_y - 4,
-            CARD_WIDTH // 2 + 4,
-            line_y + 4
-        ),
-        fill=ACCENT_COLOR
+    image.alpha_composite(overlay)
+
+    # متن شعر
+    font_size, lines, line_height, spacing, blank_height = calculate_text_layout(
+        poem
     )
 
-    # -------------------------
-    # Poem
-    # -------------------------
+    rendered_lines = []
 
-    max_width = 900
+    for line in lines:
+        if line == "":
+            rendered_lines.append(None)
+        else:
+            rendered_lines.append(render_line(line, font_size))
 
-    text_top = 220
-    text_bottom = 900
+    content_height = 0
 
-    selected_font = None
-    selected_lines = None
+    for img in rendered_lines:
+        if img is None:
+            content_height += blank_height
+        else:
+            content_height += img.height
 
-    for size in range(58, 27, -1):
+    if len(rendered_lines) > 1:
+        content_height += spacing * (len(rendered_lines) - 1)
 
-        font = get_font(
-            POEM_FONT,
-            size
-        )
+    top_limit = 265
+    bottom_limit = 870
 
-        lines = wrap_text(
-            poem,
-            font,
-            FALLBACK_FONT,
-            max_width
-        )
+    available = bottom_limit - top_limit
 
-        line_height = size + 20
-        blank_spacing = 48
+    if content_height > available:
+        scale = available / content_height
 
-        total_height = 0
+        if scale < 1:
+            # در حالت نادر، کل متن را کمی کوچک می‌کنیم
+            new_lines = []
 
-        for line in lines:
+            for img in rendered_lines:
+                if img is None:
+                    new_lines.append(None)
+                else:
+                    new_lines.append(
+                        img.resize(
+                            (
+                                max(1, int(img.width * scale)),
+                                max(1, int(img.height * scale)),
+                            ),
+                            Image.Resampling.LANCZOS,
+                        )
+                    )
 
-            if line == "":
-                total_height += blank_spacing
-            else:
-                total_height += line_height
+            rendered_lines = new_lines
+            content_height = available
 
-        if total_height <= (
-            text_bottom - text_top
-        ):
-            selected_font = font
-            selected_lines = lines
-            break
-
-    if selected_font is None:
-        selected_font = get_font(
-            POEM_FONT,
-            28
-        )
-
-        selected_lines = wrap_text(
-            poem,
-            selected_font,
-            FALLBACK_FONT,
-            max_width
-        )
-
-    # -------------------------
-    # Glass poem panel
-    # -------------------------
-
-    panel_top = text_top - 35
-
-    panel_bottom = text_bottom + 35
-
-    panel = Image.new(
-        "RGBA",
-        image.size,
-        (0, 0, 0, 0)
+    # پنل نیمه‌شفاف شعر
+    panel_top = max(235, top_limit - 28)
+    panel_bottom = min(
+        HEIGHT - 115,
+        top_limit + content_height + 45,
     )
 
+    panel = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     panel_draw = ImageDraw.Draw(panel)
 
     panel_draw.rounded_rectangle(
         (
-            65,
+            48,
             panel_top,
-            1015,
-            panel_bottom
+            WIDTH - 48,
+            panel_bottom,
         ),
-        radius=42,
-        fill=(255, 255, 255, 7),
-        outline=(255, 255, 255, 18),
-        width=1
+        radius=34,
+        fill=(255, 255, 255, 13),
+        outline=(220, 190, 120, 30),
+        width=1,
     )
 
+    panel = panel.filter(ImageFilter.GaussianBlur(0.15))
     image.alpha_composite(panel)
 
-    # -------------------------
-    # Poem text
-    # -------------------------
+    # دوباره متن روی پنل
+    y = top_limit
 
-    line_height = selected_font.size + 20
-    blank_spacing = 48
-
-    current_y = text_top
-
-    for line in selected_lines:
-
-        if line == "":
-            current_y += blank_spacing
+    for img in rendered_lines:
+        if img is None:
+            y += blank_height
             continue
 
-        line_width = get_text_width(
-            line,
-            selected_font,
-            FALLBACK_FONT
+        x = (WIDTH - img.width) // 2
+
+        image.alpha_composite(
+            img,
+            (x, int(y)),
         )
 
-        x = (
-            CARD_WIDTH / 2
-            + line_width / 2
-        )
+        y += img.height + spacing
 
-        render_line(
-            image,
-            x,
-            current_y,
-            line,
-            selected_font,
-            FALLBACK_FONT,
-            TEXT_COLOR
-        )
-
-        current_y += line_height
-
-    # -------------------------
-    # Side decorative marks
-    # -------------------------
-
-    mark_y = (
-        text_top
-        + (text_bottom - text_top) / 2
-    )
-
-    draw.line(
-        (78, mark_y - 18, 78, mark_y + 18),
-        fill=(205, 172, 105, 55),
-        width=1
-    )
-
-    draw.line(
-        (1002, mark_y - 18, 1002, mark_y + 18),
-        fill=(205, 172, 105, 55),
-        width=1
-    )
-
-    # -------------------------
     # Footer
-    # -------------------------
-
-    footer_font = get_font(
-        FOOTER_FONT,
-        24
-    )
-
     footer = "کارت شعر"
 
-    footer_bbox = draw.textbbox(
+    footer_font = get_font(FOOTER_FONT, 22)
+
+    footer_box = draw.textbbox(
         (0, 0),
         footer,
         font=footer_font,
-        direction="rtl"
+        direction="rtl",
     )
 
-    footer_width = (
-        footer_bbox[2] - footer_bbox[0]
-    )
+    footer_w = footer_box[2] - footer_box[0]
 
-    footer_x = (
-        CARD_WIDTH
-        / 2
-        + footer_width / 2
-    )
+    footer_x = (WIDTH - footer_w) // 2
+    footer_y = HEIGHT - 75
 
-    draw.text(
-        (footer_x, 990),
+    footer_layer = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+    footer_draw = ImageDraw.Draw(footer_layer)
+
+    footer_draw.text(
+        (footer_x, footer_y),
         footer,
         font=footer_font,
-        fill=SUBTITLE_COLOR,
-        direction="rtl"
+        fill=FOOTER_COLOR,
+        direction="rtl",
     )
 
-    return image
+    image.alpha_composite(footer_layer)
+
+    return image.convert("RGB")
 
 
-# =========================
-# Soroush API
-# =========================
-
-def send_message(chat_id, text):
-    url = f"{API}/sendMessage"
+def send_message(chat_id, text, reply_markup=None):
+    url = f"{API_BASE}/sendMessage"
 
     data = {
         "chat_id": chat_id,
         "text": text,
-        "parse_mode": "HTML"
+        "parse_mode": "HTML",
     }
+
+    if reply_markup:
+        data["reply_markup"] = reply_markup
 
     try:
         response = requests.post(
             url,
             json=data,
-            timeout=30
+            timeout=30,
         )
 
         print(
             "sendMessage:",
             response.status_code,
-            response.text
+            response.text[:500],
         )
 
         return response
-
     except Exception as e:
-        print(
-            "sendMessage error:",
-            e
-        )
-
+        print("sendMessage error:", e)
         return None
 
 
 def send_photo(chat_id, image):
-    url = f"{API}/sendPhoto"
+    url = f"{API_BASE}/sendPhoto"
 
-    image_path = "/tmp/poetry_card.png"
-
-    image.convert("RGB").save(
-        image_path,
-        "PNG",
-        optimize=True
+    buffer = io.BytesIO()
+    image.save(
+        buffer,
+        format="JPEG",
+        quality=95,
     )
+    buffer.seek(0)
+
+    files = {
+        "photo": (
+            "poetry_card.jpg",
+            buffer,
+            "image/jpeg",
+        )
+    }
+
+    data = {
+        "chat_id": chat_id,
+    }
 
     try:
-
-        with open(image_path, "rb") as photo:
-
-            files = {
-                "photo": (
-                    "poetry_card.png",
-                    photo,
-                    "image/png"
-                )
-            }
-
-            data = {
-                "chat_id": chat_id
-            }
-
-            response = requests.post(
-                url,
-                data=data,
-                files=files,
-                timeout=60
-            )
+        response = requests.post(
+            url,
+            data=data,
+            files=files,
+            timeout=60,
+        )
 
         print(
             "sendPhoto:",
             response.status_code,
-            response.text
+            response.text[:500],
         )
 
         return response
-
     except Exception as e:
-
-        print(
-            "sendPhoto error:",
-            e
-        )
-
+        print("sendPhoto error:", e)
         return None
 
 
-# =========================
-# Messages
-# =========================
+def process_update(update):
+    message = update.get("message", {})
 
-def send_start_message(chat_id):
+    chat = message.get("chat", {})
+    chat_id = chat.get("id")
 
-    text = """سلام 👋
+    if not chat_id:
+        return
+
+    text = message.get("text", "")
+
+    if not text:
+        return
+
+    if text.strip() == "/start":
+        welcome = """سلام 👋
 
 🖼️ به بات کارت شعر خوش آمدی.
 
 شعرت را همین‌جا بفرست تا برایت کارت شعر بسازم. ✨
 
-📖 برای دیدن شعرهای بیشتر، شعرکده در سروش پلاس را دنبال کن."""
+📖 برای دیدن شعرهای بیشتر، <a href="https://splus.ir/life_m23">شعرکده</a> در سروش پلاس را دنبال کن."""
 
-    # لینک فقط روی «شعرکده»
-    text = text.replace(
-        "شعرکده در سروش پلاس",
-        f'<a href="{CHANNEL_URL}">شعرکده</a> در سروش پلاس'
-    )
+        send_message(chat_id, welcome)
+        return
 
-    return send_message(
-        chat_id,
-        text
-    )
+    try:
+        image = create_card(text)
 
+        result = send_photo(
+            chat_id,
+            image,
+        )
 
-def send_success_message(chat_id):
-
-    text = """✨ کارت شعر شما آماده شد.
+        if result is not None and result.ok:
+            success = """✨ کارت شعر شما آماده شد.
 
 اگر باز هم شعری دارید، همین‌جا ارسال کنید تا آن را هم به کارت شعر تبدیل کنیم. 🖼️
 
-📖 برای دیدن شعرهای بیشتر، سری هم به کانال «شعرکده» در سروش پلاس بزنید."""
+📖 برای دیدن شعرهای بیشتر، سری هم به کانال «<a href="https://splus.ir/life_m23">شعرکده</a>» در سروش پلاس بزنید."""
 
-    text = text.replace(
-        "«شعرکده»",
-        f'<a href="{CHANNEL_URL}">«شعرکده»</a>'
-    )
+            send_message(chat_id, success)
+        else:
+            send_message(
+                chat_id,
+                "✅ کارت ساخته شد، اما ارسال تصویر موفق نشد.",
+            )
 
-    return send_message(
-        chat_id,
-        text
-    )
+    except Exception as e:
+        print("Card creation error:", e)
+
+        send_message(
+            chat_id,
+            "❌ هنگام ساخت کارت مشکلی پیش آمد.",
+        )
 
 
-# =========================
-# Webhook
-# =========================
+from flask import Flask, request
+
+app = Flask(__name__)
+
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Poetry Card Bot is running"
+    return "Soroush Poetry Card Bot is running."
 
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-
     try:
+        update = request.get_json(silent=True)
 
-        update = request.get_json(
-            silent=True
-        ) or {}
-
-        print(
-            "UPDATE:",
-            update
-        )
-
-        message = update.get(
-            "message",
-            {}
-        )
-
-        chat = message.get(
-            "chat",
-            {}
-        )
-
-        chat_id = chat.get(
-            "id"
-        )
-
-        text = message.get(
-            "text"
-        )
-
-        if not chat_id or text is None:
-            return "OK", 200
-
-        # -------------------------
-        # /start
-        # -------------------------
-
-        if text.strip() == "/start":
-
-            send_start_message(
-                chat_id
-            )
-
-            return "OK", 200
-
-        # -------------------------
-        # Create card
-        # -------------------------
-
-        try:
-
-            card = create_card(
-                text
-            )
-
-        except Exception as e:
-
-            print(
-                "Card creation error:",
-                e
-            )
-
-            send_message(
-                chat_id,
-                "❌ هنگام ساخت کارت مشکلی پیش آمد."
-            )
-
-            return "OK", 200
-
-        # -------------------------
-        # Send card
-        # -------------------------
-
-        response = send_photo(
-            chat_id,
-            card
-        )
-
-        # پیام موفقیت فقط زمانی ارسال شود
-        # که خود تصویر با موفقیت ارسال شده باشد.
-        if response is not None and response.ok:
-
-            send_success_message(
-                chat_id
-            )
-
-        else:
-
-            send_message(
-                chat_id,
-                "✅ کارت ساخته شد، اما ارسال تصویر موفق نشد."
-            )
+        if update:
+            print("UPDATE:", update)
+            process_update(update)
 
         return "OK", 200
 
     except Exception as e:
-
-        print(
-            "Webhook error:",
-            e
-        )
-
+        print("Webhook error:", e)
         return "OK", 200
 
 
-# =========================
-# Run
-# =========================
-
 if __name__ == "__main__":
-
-    port = int(
-        os.environ.get(
-            "PORT",
-            10000
-        )
-    )
+    port = int(os.environ.get("PORT", 10000))
 
     app.run(
         host="0.0.0.0",
-        port=port
+        port=port,
     )
