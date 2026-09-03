@@ -398,4 +398,357 @@ def create_poetry_card(text):
             max_width
         )
 
-        total
+        total_height = calculate_text_height(
+            draw,
+            lines,
+            poem_font,
+            line_spacing,
+            blank_line_spacing
+        )
+
+        if total_height <= available_height:
+            break
+
+        font_size -= 2
+
+    # =========================
+    # متن خالی
+    # =========================
+
+    if not lines:
+
+        poem_font = get_font(
+            POEM_FONT,
+            48
+        )
+
+        lines = [
+            "متن خالی است"
+        ]
+
+    # =========================
+    # ارتفاع نهایی
+    # =========================
+
+    total_height = calculate_text_height(
+        draw,
+        lines,
+        poem_font,
+        line_spacing,
+        blank_line_spacing
+    )
+
+    # مرکز عمودی
+    y = text_top + (
+        available_height - total_height
+    ) // 2
+
+    # =========================
+    # رسم شعر
+    # =========================
+
+    for line in lines:
+
+        # =========================
+        # خط خالی
+        # =========================
+
+        if line is None:
+
+            y += blank_line_spacing
+
+            continue
+
+        # =========================
+        # خط معمولی
+        # =========================
+
+        bbox = draw.textbbox(
+            (0, 0),
+            line,
+            font=poem_font
+        )
+
+        width = bbox[2] - bbox[0]
+        height = bbox[3] - bbox[1]
+
+        x = (
+            CARD_WIDTH - width
+        ) // 2
+
+        draw.text(
+            (
+                x,
+                y
+            ),
+            line,
+            font=poem_font,
+            fill=TEXT_COLOR
+        )
+
+        y += height + line_spacing
+
+    # =========================
+    # پایین کارت
+    # =========================
+
+    footer_font = get_font(
+        FOOTER_FONT,
+        26
+    )
+
+    footer = "کارت شعر"
+
+    footer_bbox = draw.textbbox(
+        (0, 0),
+        footer,
+        font=footer_font
+    )
+
+    footer_width = (
+        footer_bbox[2] - footer_bbox[0]
+    )
+
+    footer_x = (
+        CARD_WIDTH - footer_width
+    ) // 2
+
+    draw.text(
+        (
+            footer_x,
+            CARD_HEIGHT - 125
+        ),
+        footer,
+        font=footer_font,
+        fill=ACCENT_COLOR
+    )
+
+    # =========================
+    # ذخیره
+    # =========================
+
+    filename = "/tmp/poetry_card.png"
+
+    image.save(
+        filename,
+        "PNG"
+    )
+
+    return filename
+
+
+# =========================
+# ارسال پیام
+# =========================
+
+def send_message(chat_id, text):
+
+    try:
+
+        response = requests.post(
+            f"{API}/sendMessage",
+            json={
+                "chat_id": chat_id,
+                "text": text
+            },
+            timeout=20
+        )
+
+        print(
+            "sendMessage:",
+            response.status_code,
+            response.text
+        )
+
+        return response
+
+    except Exception as error:
+
+        print(
+            "sendMessage error:",
+            error
+        )
+
+        return None
+
+
+# =========================
+# ارسال عکس
+# =========================
+
+def send_photo(chat_id, filename):
+
+    try:
+
+        with open(
+            filename,
+            "rb"
+        ) as photo:
+
+            response = requests.post(
+                f"{API}/sendPhoto",
+                data={
+                    "chat_id": chat_id
+                },
+                files={
+                    "photo": (
+                        "poetry_card.png",
+                        photo,
+                        "image/png"
+                    )
+                },
+                timeout=60
+            )
+
+        print(
+            "sendPhoto:",
+            response.status_code,
+            response.text
+        )
+
+        return response
+
+    except Exception as error:
+
+        print(
+            "sendPhoto error:",
+            error
+        )
+
+        return None
+
+
+# =========================
+# صفحه اصلی
+# =========================
+
+@app.route("/")
+def home():
+
+    return (
+        "Poetry Card Bot is running",
+        200
+    )
+
+
+# =========================
+# Webhook
+# =========================
+
+@app.route(
+    "/webhook",
+    methods=["POST"]
+)
+def webhook():
+
+    update = request.get_json(
+        silent=True
+    ) or {}
+
+    print(
+        "UPDATE:",
+        update
+    )
+
+    message = update.get(
+        "message"
+    ) or {}
+
+    text = message.get(
+        "text"
+    )
+
+    chat = message.get(
+        "chat"
+    ) or {}
+
+    user_id = chat.get(
+        "id"
+    )
+
+    if not user_id:
+        return "OK", 200
+
+    if not text:
+        return "OK", 200
+
+    if text == "/start":
+
+        send_message(
+            user_id,
+            "سلام 👋\n\n"
+            "🖼️ به بات کارت شعر خوش آمدی.\n\n"
+            "شعرت را همین‌جا بفرست "
+            "تا برایت کارت شعر بسازم. ✨"
+        )
+
+        return "OK", 200
+
+    try:
+
+        filename = create_poetry_card(
+            text
+        )
+
+        print(
+            f"Poetry card created: {filename}"
+        )
+
+        photo_response = send_photo(
+            user_id,
+            filename
+        )
+
+        if (
+            photo_response is not None
+            and photo_response.ok
+        ):
+
+            print(
+                "Poetry card sent successfully."
+            )
+
+        else:
+
+            print(
+                "Photo sending failed."
+            )
+
+            send_message(
+                user_id,
+                "✅ کارت ساخته شد، "
+                "اما ارسال تصویر موفق نشد."
+            )
+
+    except Exception as error:
+
+        print(
+            "Card creation error:",
+            error
+        )
+
+        send_message(
+            user_id,
+            "❌ هنگام ساخت کارت مشکلی پیش آمد."
+        )
+
+    return "OK", 200
+
+
+# =========================
+# اجرای برنامه
+# =========================
+
+if __name__ == "__main__":
+
+    port = int(
+        os.environ.get(
+            "PORT",
+            10000
+        )
+    )
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
