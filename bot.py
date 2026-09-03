@@ -235,6 +235,237 @@ def get_font(font_name, size):
 
 
 # ==================================
+# Background Tazhib
+# ==================================
+
+def draw_modern_tazhib(
+    image,
+    palette
+):
+
+    ornament = Image.new(
+        "RGBA",
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
+        (0, 0, 0, 0)
+    )
+
+    draw = ImageDraw.Draw(
+        ornament
+    )
+
+    ornament_color = (
+        palette["ornament"] + (78,)
+    )
+
+    accent_color = (
+        palette["accent"] + (52,)
+    )
+
+    soft_color = (
+        palette["ornament"] + (34,)
+    )
+
+    # ==================================
+    # Four Main Corner Motifs
+    # ==================================
+
+    corners = [
+        (76, 76, 1, 1),
+        (CARD_WIDTH - 76, 76, -1, 1),
+        (76, CARD_HEIGHT - 76, 1, -1),
+        (
+            CARD_WIDTH - 76,
+            CARD_HEIGHT - 76,
+            -1,
+            -1
+        )
+    ]
+
+    for cx, cy, sx, sy in corners:
+
+        # Main curved form
+
+        draw.arc(
+            (
+                cx - sx * 74,
+                cy - sy * 74,
+                cx + sx * 74,
+                cy + sy * 74
+            ),
+            0,
+            90,
+            fill=ornament_color,
+            width=3
+        )
+
+        # Secondary curved form
+
+        draw.arc(
+            (
+                cx - sx * 55,
+                cy - sy * 55,
+                cx + sx * 55,
+                cy + sy * 55
+            ),
+            0,
+            90,
+            fill=soft_color,
+            width=3
+        )
+
+        # Inner decorative curve
+
+        draw.arc(
+            (
+                cx - sx * 34,
+                cy - sy * 34,
+                cx + sx * 34,
+                cy + sy * 34
+            ),
+            0,
+            90,
+            fill=accent_color,
+            width=2
+        )
+
+        # Small leaves
+
+        for i in range(3):
+
+            offset_x = 18 + i * 18
+            offset_y = 14 + i * 13
+
+            px = cx + sx * offset_x
+            py = cy + sy * offset_y
+
+            leaf_size = 9 - i
+
+            draw.polygon(
+                [
+                    (
+                        px,
+                        py
+                    ),
+                    (
+                        px + sx * leaf_size,
+                        py + sy * 4
+                    ),
+                    (
+                        px + sx * 4,
+                        py + sy * leaf_size
+                    )
+                ],
+                outline=ornament_color
+            )
+
+        # Corner center point
+
+        draw.ellipse(
+            (
+                cx - 3,
+                cy - 3,
+                cx + 3,
+                cy + 3
+            ),
+            fill=accent_color
+        )
+
+    # ==================================
+    # Soft Central Side Arabesques
+    # ==================================
+
+    left_x = 165
+    right_x = CARD_WIDTH - 165
+
+    draw.arc(
+        (
+            left_x - 90,
+            355,
+            left_x + 90,
+            535
+        ),
+        220,
+        320,
+        fill=soft_color,
+        width=3
+    )
+
+    draw.arc(
+        (
+            right_x - 90,
+            355,
+            right_x + 90,
+            535
+        ),
+        40,
+        140,
+        fill=soft_color,
+        width=3
+    )
+
+    draw.arc(
+        (
+            left_x - 90,
+            545,
+            left_x + 90,
+            725
+        ),
+        40,
+        140,
+        fill=soft_color,
+        width=3
+    )
+
+    draw.arc(
+        (
+            right_x - 90,
+            545,
+            right_x + 90,
+            725
+        ),
+        220,
+        320,
+        fill=soft_color,
+        width=3
+    )
+
+    # ==================================
+    # Small Decorative Dots
+    # ==================================
+
+    for x, y in [
+        (148, 445),
+        (932, 445),
+        (148, 635),
+        (932, 635)
+    ]:
+
+        draw.ellipse(
+            (
+                x - 3,
+                y - 3,
+                x + 3,
+                y + 3
+            ),
+            fill=accent_color
+        )
+
+    # Slight blur prevents harsh digital edges
+
+    ornament = ornament.filter(
+        ImageFilter.GaussianBlur(0.25)
+    )
+
+    return Image.alpha_composite(
+        image.convert("RGBA"),
+        ornament
+    )
+
+
+# ==================================
 # Background
 # ==================================
 
@@ -346,7 +577,7 @@ def create_gradient_background(palette):
     )
 
     # ==================================
-    # Very subtle texture
+    # Very Subtle Texture
     # ==================================
 
     texture = Image.new(
@@ -384,6 +615,15 @@ def create_gradient_background(palette):
     image = Image.alpha_composite(
         image,
         texture
+    )
+
+    # ==================================
+    # Modern Persian Illumination
+    # ==================================
+
+    image = draw_modern_tazhib(
+        image,
+        palette
     )
 
     return image.convert("RGB")
@@ -727,7 +967,7 @@ def create_poetry_card(
                 line_y
             ),
             fill=palette["ornament"],
-            width=1
+            width=2
         )
 
         draw.line(
@@ -738,7 +978,7 @@ def create_poetry_card(
                 line_y
             ),
             fill=palette["ornament"],
-            width=1
+            width=2
         )
 
         diamond_size = 5
@@ -787,7 +1027,7 @@ def create_poetry_card(
                 ornament_y
             ),
             fill=palette["ornament"],
-            width=1
+            width=2
         )
 
         draw.line(
@@ -798,7 +1038,7 @@ def create_poetry_card(
                 ornament_y
             ),
             fill=palette["ornament"],
-            width=1
+            width=2
         )
 
         diamond_size = 4
@@ -983,6 +1223,92 @@ def create_poetry_card(
     )
 
     # ==================================
+    # Panel Corner Ornaments
+    # ==================================
+
+    panel_ornament = (
+        palette["ornament"] + (105,)
+    )
+
+    panel_accent = (
+        palette["accent"] + (75,)
+    )
+
+    panel_corners = [
+        (
+            82,
+            panel_top + 23,
+            1,
+            1
+        ),
+        (
+            998,
+            panel_top + 23,
+            -1,
+            1
+        ),
+        (
+            82,
+            panel_bottom - 23,
+            1,
+            -1
+        ),
+        (
+            998,
+            panel_bottom - 23,
+            -1,
+            -1
+        )
+    ]
+
+    for cx, cy, sx, sy in panel_corners:
+
+        draw.arc(
+            (
+                cx - sx * 25,
+                cy - sy * 25,
+                cx + sx * 25,
+                cy + sy * 25
+            ),
+            0,
+            90,
+            fill=panel_ornament,
+            width=2
+        )
+
+        draw.line(
+            (
+                cx,
+                cy + sy * 3,
+                cx + sx * 29,
+                cy + sy * 3
+            ),
+            fill=panel_ornament,
+            width=2
+        )
+
+        draw.line(
+            (
+                cx + sx * 3,
+                cy,
+                cx + sx * 3,
+                cy + sy * 29
+            ),
+            fill=panel_ornament,
+            width=2
+        )
+
+        draw.ellipse(
+            (
+                cx - 3,
+                cy - 3,
+                cx + 3,
+                cy + 3
+            ),
+            fill=panel_accent
+        )
+
+    # ==================================
     # Side Ornaments
     # ==================================
 
@@ -999,7 +1325,7 @@ def create_poetry_card(
             deco_y + 30
         ),
         fill=palette["side_line"],
-        width=1
+        width=2
     )
 
     draw.ellipse(
@@ -1020,7 +1346,7 @@ def create_poetry_card(
             deco_y + 30
         ),
         fill=palette["side_line"],
-        width=1
+        width=2
     )
 
     draw.ellipse(
