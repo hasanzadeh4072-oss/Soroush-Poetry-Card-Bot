@@ -53,9 +53,11 @@ def create_poetry_card(text):
         width=3
     )
 
-    # عنوان
     title_font = get_font(42)
-    title = prepare_persian_text("شعرکده")
+
+    title = prepare_persian_text(
+        "\u0634\u0639\u0631\u06a9\u062f\u0647"
+    )
 
     bbox = draw.textbbox(
         (0, 0),
@@ -75,12 +77,10 @@ def create_poetry_card(text):
         fill=ACCENT_COLOR
     )
 
-    # متن شعر
     poem_font = get_font(48)
 
     lines = text.splitlines()
 
-    # اگر شعر یک‌خطی باشد، آن را به چند خط تقسیم می‌کنیم
     if len(lines) == 1:
 
         words = text.split()
@@ -109,13 +109,17 @@ def create_poetry_card(text):
     for line in lines:
 
         if line.strip():
+
             prepared_lines.append(
                 prepare_persian_text(line)
             )
 
     if not prepared_lines:
+
         prepared_lines = [
-            prepare_persian_text("متن خالی است")
+            prepare_persian_text(
+                "\u0645\u062a\u0646 \u062e\u0627\u0644\u06cc \u0627\u0633\u062a"
+            )
         ]
 
     line_spacing = 28
@@ -161,11 +165,10 @@ def create_poetry_card(text):
 
         y += heights[index] + line_spacing
 
-    # پایین کارت
     footer_font = get_font(28)
 
     footer = prepare_persian_text(
-        "کارت شعر"
+        "\u06a9\u0627\u0631\u062a \u0634\u0639\u0631"
     )
 
     bbox = draw.textbbox(
@@ -229,6 +232,7 @@ def send_message(chat_id, text):
 
 @app.route("/")
 def home():
+
     return "Poetry Card Bot is running", 200
 
 
@@ -255,10 +259,55 @@ def webhook():
     if not text:
         return "OK", 200
 
-    # شروع بات
     if text == "/start":
 
         send_message(
             user_id,
-            "سلام 👋\n\n"
-            "🖼️
+            "\u0633\u0644\u0627\u0645 \ud83d\udc4b\n\n"
+            "\ud83d\uddbc\ufe0f \u0628\u0647 \u0628\u0627\u062a \u06a9\u0627\u0631\u062a \u0634\u0639\u0631 \u062e\u0648\u0634 \u0622\u0645\u062f\u06cc.\n\n"
+            "\u0634\u0639\u0631\u062a \u0631\u0627 \u0647\u0645\u06cc\u0646\u200c\u062c\u0627 \u0628\u0641\u0631\u0633\u062a \u062a\u0627 \u0628\u0631\u0627\u06cc\u062a \u06a9\u0627\u0631\u062a \u0634\u0639\u0631 \u0628\u0633\u0627\u0632\u0645. \u2728"
+        )
+
+        return "OK", 200
+
+    try:
+
+        filename = create_poetry_card(text)
+
+        print(
+            f"Poetry card created: {filename}"
+        )
+
+        send_message(
+            user_id,
+            "\u2705 \u06a9\u0627\u0631\u062a \u0634\u0639\u0631 \u0633\u0627\u062e\u062a\u0647 \u0634\u062f."
+        )
+
+    except Exception as error:
+
+        print(
+            "Card creation error:",
+            error
+        )
+
+        send_message(
+            user_id,
+            "\u274c \u0647\u0646\u06af\u0627\u0645 \u0633\u0627\u062e\u062a \u06a9\u0627\u0631\u062a \u0645\u0634\u06a9\u0644\u06cc \u067e\u06cc\u0634 \u0622\u0645\u062f."
+        )
+
+    return "OK", 200
+
+
+if __name__ == "__main__":
+
+    port = int(
+        os.environ.get(
+            "PORT",
+            10000
+        )
+    )
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+        )
