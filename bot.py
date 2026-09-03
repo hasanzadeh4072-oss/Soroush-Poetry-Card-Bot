@@ -45,9 +45,8 @@ FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
 EMOJI_FONT = "NotoColorEmoji.ttf"
 
-# IMPORTANT:
-# NotoColorEmoji is a bitmap/color font and does not accept
-# arbitrary pixel sizes. 109 is the supported base size.
+# NotoColorEmoji یک فونت bitmap است و اندازه دلخواه قبول نمی‌کند.
+# اندازه پایه معتبر آن 109 است.
 EMOJI_BASE_SIZE = 109
 
 
@@ -60,10 +59,6 @@ _emoji_cache = {}
 
 
 def get_font(font_name, size):
-    """
-    Load and cache normal fonts.
-    """
-
     key = (font_name, size)
 
     if key not in _font_cache:
@@ -76,14 +71,9 @@ def get_font(font_name, size):
 
 
 def get_emoji_font():
-    """
-    Load NotoColorEmoji ONLY at its supported base size.
-    """
-
     key = (EMOJI_FONT, EMOJI_BASE_SIZE)
 
     if key not in _font_cache:
-
         _font_cache[key] = ImageFont.truetype(
             EMOJI_FONT,
             EMOJI_BASE_SIZE
@@ -232,13 +222,12 @@ def create_gradient_background():
 
 def normalize_text(text):
 
-    # BNazanin may display … incorrectly.
-    # Use three normal dots instead.
+    # BNazanin ممکن است کاراکتر … را درست نمایش ندهد.
     return text.replace("…", "...")
 
 
 # =========================================================
-# Character / emoji detection
+# Unicode helpers
 # =========================================================
 
 def is_emoji_base(char):
@@ -293,20 +282,73 @@ def is_combining_mark(char):
     )
 
 
+def is_persian_char(char):
+
+    code = ord(char)
+
+    return (
+        0x0600 <= code <= 0x06FF
+        or 0x0750 <= code <= 0x077F
+        or 0x08A0 <= code <= 0x08FF
+        or 0xFB50 <= code <= 0xFDFF
+        or 0xFE70 <= code <= 0xFEFF
+    )
+
+
+def is_latin_or_number(char):
+
+    code = ord(char)
+
+    return (
+        0x0041 <= code <= 0x005A
+        or 0x0061 <= code <= 0x007A
+        or 0x0030 <= code <= 0x0039
+    )
+
+
+def is_fallback_symbol(char):
+
+    return char in (
+        "#",
+        "@",
+        "&",
+        "%",
+        "$",
+        "+",
+        "-",
+        "=",
+        "_",
+        "*",
+        "/",
+        "<",
+        ">",
+        "[",
+        "]",
+        "{",
+        "}",
+        "|",
+        "\\",
+        "^",
+        "~",
+        "`"
+    )
+
+
+# =========================================================
+# Grapheme splitter
+# =========================================================
+
 def split_graphemes(text):
 
     """
-    A lightweight Unicode grapheme/emoji cluster splitter.
+    تقسیم سبک Unicode برای حفظ ایموجی‌های چندبخشی.
 
-    This keeps sequences such as:
-        ❤️
-        👩‍💻
-        👍🏽
-        🇮🇷
-        #️⃣
-
-    together instead of treating every Unicode codepoint
-    as a separate character.
+    پشتیبانی از:
+    ❤️
+    👩‍💻
+    👍🏽
+    🇮🇷
+    #️⃣
     """
 
     clusters = []
@@ -317,10 +359,6 @@ def split_graphemes(text):
 
         char = text[i]
 
-        # -------------------------------------------------
-        # Newline
-        # -------------------------------------------------
-
         if char == "\n":
 
             clusters.append("\n")
@@ -330,7 +368,7 @@ def split_graphemes(text):
         cluster = char
 
         # -------------------------------------------------
-        # Regional indicator pair (flags)
+        # Flag
         # -------------------------------------------------
 
         if is_regional_indicator(char):
@@ -341,16 +379,18 @@ def split_graphemes(text):
             ):
 
                 cluster += text[i + 1]
-                i += 2
 
                 clusters.append(cluster)
+
+                i += 2
+
                 continue
+
+        j = i + 1
 
         # -------------------------------------------------
         # Variation selector / skin tone / combining mark
         # -------------------------------------------------
-
-        j = i + 1
 
         while j < len(text):
 
@@ -363,13 +403,15 @@ def split_graphemes(text):
             ):
 
                 cluster += next_char
-                j += 1
-                continue
 
-            break
+                j += 1
+
+            else:
+
+                break
 
         # -------------------------------------------------
-        # ZWJ emoji sequence
+        # ZWJ sequence
         # -------------------------------------------------
 
         while (
@@ -378,11 +420,13 @@ def split_graphemes(text):
         ):
 
             cluster += text[j]
+
             j += 1
 
             if j < len(text):
 
                 cluster += text[j]
+
                 j += 1
 
             while j < len(text):
@@ -396,6 +440,7 @@ def split_graphemes(text):
                 ):
 
                     cluster += next_char
+
                     j += 1
 
                 else:
@@ -404,7 +449,10 @@ def split_graphemes(text):
 
         clusters.append(cluster)
 
-        i = max(j, i + 1)
+        i = max(
+            j,
+            i + 1
+        )
 
     return clusters
 
@@ -417,10 +465,14 @@ def is_emoji_cluster(cluster):
     for char in cluster:
 
         if is_emoji_base(char):
+
             return True
 
-    # Keycap emoji:
-    # #️⃣  *️⃣  1️⃣
+    # Keycap:
+    # #️⃣
+    # *️⃣
+    # 1️⃣
+
     if (
         "\ufe0f" in cluster
         and "\u20e3" in cluster
@@ -431,45 +483,14 @@ def is_emoji_cluster(cluster):
     return False
 
 
-def is_fallback_character(char):
-
-    if is_emoji_base(char):
-        return False
-
-    code = ord(char)
-
-    # Latin
-    if (
-        0x0041 <= code <= 0x005A
-        or 0x0061 <= code <= 0x007A
-    ):
-
-        return True
-
-    # Numbers
-    if 0x0030 <= code <= 0x0039:
-        return True
-
-    # Common symbols
-    if char in "#@&%$+-=_*/<>[]{}|\\^~`":
-        return True
-
-    return False
-
-
 # =========================================================
 # Emoji rendering
 # =========================================================
 
-def render_emoji(cluster, target_size):
-
-    """
-    Render one emoji cluster using NotoColorEmoji at its
-    fixed supported size (109px), then resize it.
-
-    This completely avoids the:
-        OSError: invalid pixel size
-    """
+def render_emoji(
+    cluster,
+    target_size
+):
 
     cache_key = (
         cluster,
@@ -484,7 +505,6 @@ def render_emoji(cluster, target_size):
 
         emoji_font = get_emoji_font()
 
-        # Large transparent canvas
         canvas_size = EMOJI_BASE_SIZE * 2
 
         canvas = Image.new(
@@ -516,14 +536,17 @@ def render_emoji(cluster, target_size):
 
         cropped = canvas.crop(bbox)
 
-        # Keep emoji proportional.
-        max_height = max(
+        if cropped.height <= 0:
+
+            return None
+
+        desired_height = max(
             int(target_size * 1.05),
             1
         )
 
         scale = (
-            max_height
+            desired_height
             / cropped.height
         )
 
@@ -561,59 +584,611 @@ def render_emoji(cluster, target_size):
         return None
 
 
-def get_cluster_width(
-    cluster,
+# =========================================================
+# Text measurement
+# =========================================================
+
+def text_bbox_width(
+    draw,
+    text,
+    font,
+    direction=None
+):
+
+    if not text:
+
+        return 0
+
+    try:
+
+        bbox = draw.textbbox(
+            (0, 0),
+            text,
+            font=font,
+            direction=direction
+        )
+
+    except TypeError:
+
+        bbox = draw.textbbox(
+            (0, 0),
+            text,
+            font=font
+        )
+
+    return max(
+        bbox[2] - bbox[0],
+        0
+    )
+
+
+def text_bbox_height(
+    draw,
+    text,
+    font,
+    direction=None
+):
+
+    if not text:
+
+        return 0
+
+    try:
+
+        bbox = draw.textbbox(
+            (0, 0),
+            text,
+            font=font,
+            direction=direction
+        )
+
+    except TypeError:
+
+        bbox = draw.textbbox(
+            (0, 0),
+            text,
+            font=font
+        )
+
+    return max(
+        bbox[3] - bbox[1],
+        0
+    )
+
+
+# =========================================================
+# Token classification
+# =========================================================
+
+def contains_persian(text):
+
+    for char in text:
+
+        if is_persian_char(char):
+
+            return True
+
+    return False
+
+
+def contains_emoji(text):
+
+    for cluster in split_graphemes(text):
+
+        if is_emoji_cluster(cluster):
+
+            return True
+
+    return False
+
+
+def contains_fallback_character(text):
+
+    for char in text:
+
+        if (
+            is_latin_or_number(char)
+            or is_fallback_symbol(char)
+        ):
+
+            return True
+
+    return False
+
+
+def choose_token_font(
+    token,
+    primary_font,
+    fallback_font
+):
+
+    """
+    اگر توکن ترکیبی مثل:
+        #پونه_مقیمی
+    باشد، کل توکن با فونت fallback رندر می‌شود
+    تا شکل‌دهی فارسی خراب نشود.
+
+    برای متن فارسی خالص همچنان BNazanin استفاده می‌شود.
+    """
+
+    if contains_persian(token):
+
+        if contains_fallback_character(token):
+
+            return fallback_font
+
+        return primary_font
+
+    if contains_fallback_character(token):
+
+        return fallback_font
+
+    return primary_font
+
+
+# =========================================================
+# Mixed token rendering
+# =========================================================
+
+def render_mixed_token(
+    image,
+    x,
+    y,
+    token,
+    primary_font,
+    fallback_font,
+    target_size,
+    fill
+):
+
+    """
+    یک توکن را از راست به چپ رسم می‌کند،
+    بدون اینکه حروف فارسی را تک‌تک جدا کند.
+
+    بخش فارسی به صورت یک رشته کامل رندر می‌شود.
+    ایموجی به صورت تصویر اضافه می‌شود.
+    """
+
+    draw = ImageDraw.Draw(image)
+
+    clusters = split_graphemes(token)
+
+    if not clusters:
+
+        return 0
+
+    # -----------------------------------------------------
+    # اگر اصلاً ایموجی ندارد، کل توکن را یکجا رندر کن.
+    # این قسمت مهم‌ترین اصلاح برای فارسی است.
+    # -----------------------------------------------------
+
+    if not any(
+        is_emoji_cluster(c)
+        for c in clusters
+    ):
+
+        font = choose_token_font(
+            token,
+            primary_font,
+            fallback_font
+        )
+
+        width = text_bbox_width(
+            draw,
+            token,
+            font,
+            "rtl"
+        )
+
+        draw.text(
+            (
+                x,
+                y
+            ),
+            token,
+            font=font,
+            fill=fill,
+            direction="rtl"
+        )
+
+        return width
+
+    # -----------------------------------------------------
+    # توکن دارای ایموجی
+    # -----------------------------------------------------
+
+    segments = []
+
+    current_text = ""
+
+    for cluster in clusters:
+
+        if cluster == "\n":
+
+            continue
+
+        if is_emoji_cluster(cluster):
+
+            if current_text:
+
+                segments.append(
+                    (
+                        "text",
+                        current_text
+                    )
+                )
+
+                current_text = ""
+
+            segments.append(
+                (
+                    "emoji",
+                    cluster
+                )
+            )
+
+        else:
+
+            current_text += cluster
+
+    if current_text:
+
+        segments.append(
+            (
+                "text",
+                current_text
+            )
+        )
+
+    # -----------------------------------------------------
+    # اندازه هر بخش
+    # -----------------------------------------------------
+
+    measured = []
+
+    total_width = 0
+
+    for kind, value in segments:
+
+        if kind == "emoji":
+
+            emoji_image = render_emoji(
+                value,
+                target_size
+            )
+
+            if emoji_image is not None:
+
+                width = emoji_image.width
+
+                measured.append(
+                    (
+                        kind,
+                        value,
+                        emoji_image,
+                        width
+                    )
+                )
+
+                total_width += width
+
+            else:
+
+                measured.append(
+                    (
+                        kind,
+                        value,
+                        None,
+                        target_size // 2
+                    )
+                )
+
+                total_width += target_size // 2
+
+        else:
+
+            font = choose_token_font(
+                value,
+                primary_font,
+                fallback_font
+            )
+
+            width = text_bbox_width(
+                draw,
+                value,
+                font,
+                "rtl"
+            )
+
+            measured.append(
+                (
+                    kind,
+                    value,
+                    font,
+                    width
+                )
+            )
+
+            total_width += width
+
+    # -----------------------------------------------------
+    # رسم از راست به چپ
+    # -----------------------------------------------------
+
+    cursor_x = x + total_width
+
+    primary_bbox = primary_font.getbbox("آ")
+
+    primary_bottom = primary_bbox[3]
+
+    for kind, value, obj, width in measured:
+
+        cursor_x -= width
+
+        if kind == "emoji":
+
+            emoji_image = obj
+
+            if emoji_image is not None:
+
+                emoji_y = (
+                    y
+                    + primary_bottom
+                    - emoji_image.height
+                )
+
+                image.alpha_composite(
+                    emoji_image,
+                    (
+                        int(cursor_x),
+                        int(emoji_y)
+                    )
+                )
+
+        else:
+
+            font = obj
+
+            draw.text(
+                (
+                    cursor_x,
+                    y
+                ),
+                value,
+                font=font,
+                fill=fill,
+                direction="rtl"
+            )
+
+    return total_width
+
+
+# =========================================================
+# Line rendering
+# =========================================================
+
+def render_line(
+    image,
+    text,
+    x,
+    y,
+    primary_font,
+    fallback_font,
+    target_size,
+    fill
+):
+
+    """
+    خط را بدون شکستن شکل‌دهی فارسی رندر می‌کند.
+
+    در صورت نبود ایموجی، کل خط با یک draw.text واقعی
+    و direction='rtl' رسم می‌شود.
+
+    این دقیقاً همان چیزی است که باعث می‌شود اتصال حروف
+    فارسی سالم بماند.
+    """
+
+    draw = ImageDraw.Draw(image)
+
+    text = text.rstrip()
+
+    if not text:
+
+        return 0
+
+    # -----------------------------------------------------
+    # حالت ایده‌آل: خط کاملاً فارسی/عادی
+    # -----------------------------------------------------
+
+    if not contains_emoji(text):
+
+        # اگر خط شامل # یا انگلیسی است،
+        # از fallback استفاده می‌کنیم تا مربع نشود.
+        font = choose_token_font(
+            text,
+            primary_font,
+            fallback_font
+        )
+
+        width = text_bbox_width(
+            draw,
+            text,
+            font,
+            "rtl"
+        )
+
+        draw.text(
+            (
+                x,
+                y
+            ),
+            text,
+            font=font,
+            fill=fill,
+            direction="rtl"
+        )
+
+        return width
+
+    # -----------------------------------------------------
+    # خط دارای ایموجی
+    # -----------------------------------------------------
+
+    # ابتدا خط را به توکن‌های جداشده با فاصله تقسیم می‌کنیم.
+    #
+    # هر توکن فارسی به صورت کامل رندر می‌شود.
+    # بنابراین دیگر حروف فارسی تک‌تک رسم نمی‌شوند.
+
+    tokens = text.split()
+
+    if not tokens:
+
+        return 0
+
+    token_infos = []
+
+    space_width = text_bbox_width(
+        draw,
+        " ",
+        primary_font,
+        "rtl"
+    )
+
+    total_width = 0
+
+    for token in tokens:
+
+        width = get_token_width(
+            token,
+            draw,
+            primary_font,
+            fallback_font,
+            target_size
+        )
+
+        token_infos.append(
+            (
+                token,
+                width
+            )
+        )
+
+        total_width += width
+
+    total_width += (
+        space_width
+        * max(len(tokens) - 1, 0)
+    )
+
+    cursor = x + total_width
+
+    # -----------------------------------------------------
+    # توکن‌ها در خط فارسی از راست به چپ قرار می‌گیرند.
+    # -----------------------------------------------------
+
+    for index, (token, width) in enumerate(token_infos):
+
+        cursor -= width
+
+        render_mixed_token(
+            image,
+            cursor,
+            y,
+            token,
+            primary_font,
+            fallback_font,
+            target_size,
+            fill
+        )
+
+        if index < len(token_infos) - 1:
+
+            cursor -= space_width
+
+    return total_width
+
+
+def get_token_width(
+    token,
+    draw,
     primary_font,
     fallback_font,
     target_size
 ):
 
-    # -----------------------------------------------------
-    # Emoji
-    # -----------------------------------------------------
+    if not contains_emoji(token):
 
-    if is_emoji_cluster(cluster):
-
-        emoji_image = render_emoji(
-            cluster,
-            target_size
+        font = choose_token_font(
+            token,
+            primary_font,
+            fallback_font
         )
 
-        if emoji_image is not None:
-
-            return emoji_image.width
-
-        # Safe fallback if emoji rendering fails.
-        fallback_bbox = fallback_font.getbbox(
-            cluster
+        return text_bbox_width(
+            draw,
+            token,
+            font,
+            "rtl"
         )
 
-        return max(
-            fallback_bbox[2] - fallback_bbox[0],
-            target_size // 2
+    total = 0
+
+    current_text = ""
+
+    for cluster in split_graphemes(token):
+
+        if is_emoji_cluster(cluster):
+
+            if current_text:
+
+                font = choose_token_font(
+                    current_text,
+                    primary_font,
+                    fallback_font
+                )
+
+                total += text_bbox_width(
+                    draw,
+                    current_text,
+                    font,
+                    "rtl"
+                )
+
+                current_text = ""
+
+            emoji_image = render_emoji(
+                cluster,
+                target_size
+            )
+
+            if emoji_image is not None:
+
+                total += emoji_image.width
+
+            else:
+
+                total += target_size // 2
+
+        else:
+
+            current_text += cluster
+
+    if current_text:
+
+        font = choose_token_font(
+            current_text,
+            primary_font,
+            fallback_font
         )
 
-    # -----------------------------------------------------
-    # Fallback characters
-    # -----------------------------------------------------
-
-    if len(cluster) == 1 and is_fallback_character(cluster):
-
-        bbox = fallback_font.getbbox(
-            cluster
+        total += text_bbox_width(
+            draw,
+            current_text,
+            font,
+            "rtl"
         )
 
-        return bbox[2] - bbox[0]
-
-    # -----------------------------------------------------
-    # Normal Persian text
-    # -----------------------------------------------------
-
-    bbox = primary_font.getbbox(
-        cluster
-    )
-
-    return bbox[2] - bbox[0]
+    return total
 
 
 def get_text_width(
@@ -623,20 +1198,59 @@ def get_text_width(
     target_size
 ):
 
+    dummy = Image.new(
+        "RGBA",
+        (10, 10),
+        (0, 0, 0, 0)
+    )
+
+    draw = ImageDraw.Draw(dummy)
+
+    if not text:
+
+        return 0
+
+    if not contains_emoji(text):
+
+        font = choose_token_font(
+            text,
+            primary_font,
+            fallback_font
+        )
+
+        return text_bbox_width(
+            draw,
+            text,
+            font,
+            "rtl"
+        )
+
+    tokens = text.split()
+
     total = 0
 
-    clusters = split_graphemes(text)
+    space_width = text_bbox_width(
+        draw,
+        " ",
+        primary_font,
+        "rtl"
+    )
 
-    for cluster in clusters:
+    for token in tokens:
 
-        if cluster == "\n":
-            continue
-
-        total += get_cluster_width(
-            cluster,
+        total += get_token_width(
+            token,
+            draw,
             primary_font,
             fallback_font,
             target_size
+        )
+
+    if len(tokens) > 1:
+
+        total += (
+            space_width
+            * (len(tokens) - 1)
         )
 
     return total
@@ -657,6 +1271,7 @@ def wrap_text(
     words = text.split()
 
     if not words:
+
         return []
 
     lines = []
@@ -684,11 +1299,17 @@ def wrap_text(
 
         else:
 
-            lines.append(current)
+            lines.append(
+                current
+            )
+
             current = word
 
     if current:
-        lines.append(current)
+
+        lines.append(
+            current
+        )
 
     return lines
 
@@ -709,10 +1330,11 @@ def prepare_poem_lines(
 
     for line in raw_lines:
 
-        # Preserve user's blank lines.
+        # حفظ خط خالی
         if not line.strip():
 
             final_lines.append(None)
+
             continue
 
         wrapped = wrap_text(
@@ -723,7 +1345,9 @@ def prepare_poem_lines(
             max_width
         )
 
-        final_lines.extend(wrapped)
+        final_lines.extend(
+            wrapped
+        )
 
     return final_lines
 
@@ -740,23 +1364,32 @@ def calculate_text_height(
 ):
 
     if not lines:
+
         return 0
 
     total = 0
+
+    dummy = Image.new(
+        "RGBA",
+        (10, 10),
+        (0, 0, 0, 0)
+    )
+
+    draw = ImageDraw.Draw(dummy)
 
     for line in lines:
 
         if line is None:
 
             total += blank_line_spacing
+
             continue
 
-        bbox = font.getbbox(
-            line
-        )
-
-        height = (
-            bbox[3] - bbox[1]
+        height = text_bbox_height(
+            draw,
+            line,
+            font,
+            "rtl"
         )
 
         total += (
@@ -769,116 +1402,6 @@ def calculate_text_height(
         total -= line_spacing
 
     return total
-
-
-# =========================================================
-# Draw mixed Persian + fallback + emoji
-# =========================================================
-
-def draw_text_with_fallback(
-    image,
-    position,
-    text,
-    primary_font,
-    fallback_font,
-    target_size,
-    fill
-):
-
-    draw = ImageDraw.Draw(image)
-
-    x, y = position
-
-    clusters = split_graphemes(text)
-
-    # Primary font metrics for approximate baseline.
-    primary_bbox = primary_font.getbbox("آ")
-
-    primary_bottom = primary_bbox[3]
-
-    for cluster in clusters:
-
-        if cluster == "\n":
-            continue
-
-        # -------------------------------------------------
-        # Emoji
-        # -------------------------------------------------
-
-        if is_emoji_cluster(cluster):
-
-            emoji_image = render_emoji(
-                cluster,
-                target_size
-            )
-
-            if emoji_image is not None:
-
-                # Align emoji visually with text baseline.
-                emoji_y = (
-                    y
-                    + primary_bottom
-                    - emoji_image.height
-                )
-
-                image.alpha_composite(
-                    emoji_image,
-                    (
-                        int(x),
-                        int(emoji_y)
-                    )
-                )
-
-                x += emoji_image.width
-
-                continue
-
-            # If emoji rendering failed,
-            # safely fall through to fallback font.
-
-        # -------------------------------------------------
-        # Fallback
-        # -------------------------------------------------
-
-        if len(cluster) == 1 and is_fallback_character(cluster):
-
-            bbox = fallback_font.getbbox(
-                cluster
-            )
-
-            draw.text(
-                (x, y),
-                cluster,
-                font=fallback_font,
-                fill=fill
-            )
-
-            x += (
-                bbox[2]
-                - bbox[0]
-            )
-
-            continue
-
-        # -------------------------------------------------
-        # Normal Persian
-        # -------------------------------------------------
-
-        bbox = primary_font.getbbox(
-            cluster
-        )
-
-        draw.text(
-            (x, y),
-            cluster,
-            font=primary_font,
-            fill=fill
-        )
-
-        x += (
-            bbox[2]
-            - bbox[0]
-        )
 
 
 # =========================================================
@@ -1094,6 +1617,7 @@ def create_poetry_card(text):
         )
 
         if total_height <= available_height:
+
             break
 
         font_size -= 2
@@ -1228,6 +1752,7 @@ def create_poetry_card(text):
         if line is None:
 
             y += blank_line_spacing
+
             continue
 
         width = get_text_width(
@@ -1237,13 +1762,13 @@ def create_poetry_card(text):
             font_size
         )
 
-        bbox = poem_font.getbbox(
-            line
-        )
-
-        height = (
-            bbox[3]
-            - bbox[1]
+        # برای خطوط معمولی، ارتفاع واقعی فونت فارسی
+        # را نگه می‌داریم.
+        height = text_bbox_height(
+            draw,
+            line,
+            poem_font,
+            "rtl"
         )
 
         x = (
@@ -1251,13 +1776,11 @@ def create_poetry_card(text):
             - width
         ) // 2
 
-        draw_text_with_fallback(
+        render_line(
             image,
-            (
-                x,
-                y
-            ),
             line,
+            x,
+            y,
             poem_font,
             fallback_font,
             font_size,
@@ -1488,9 +2011,11 @@ def webhook():
     user_id = chat.get("id")
 
     if not user_id:
+
         return "OK", 200
 
     if not text:
+
         return "OK", 200
 
     # -----------------------------------------------------
@@ -1580,4 +2105,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-        )
+    )
