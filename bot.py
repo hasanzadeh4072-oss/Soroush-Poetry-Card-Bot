@@ -64,7 +64,6 @@ def create_gradient_background():
             b = int(middle[2] * (1 - t) + bottom[2] * t)
 
         for x in range(CARD_WIDTH):
-
             pixels[x, y] = (r, g, b)
 
     # --------------------------------
@@ -239,7 +238,6 @@ def calculate_text_height(
         total += height + line_spacing
 
     if lines[-1] is not None:
-
         total -= line_spacing
 
     return total
@@ -372,8 +370,6 @@ def create_poetry_card(text):
         width=2
     )
 
-    # Small decorative points
-
     center_x = CARD_WIDTH // 2
 
     draw.ellipse(
@@ -390,8 +386,9 @@ def create_poetry_card(text):
     # Poem area
     # ==================================
 
-    text_left = 90
-    text_right = 990
+    # کمی فضای بیشتر برای متن
+    text_left = 75
+    text_right = 1005
 
     max_width = text_right - text_left
 
@@ -402,13 +399,23 @@ def create_poetry_card(text):
         text_bottom - text_top
     )
 
-    font_size = 58
+    # فونت پایه کمی بزرگ‌تر شده
+    font_size = 62
+
+    # حداقل فونت همچنان حفظ شده
     min_font_size = 28
 
-    line_spacing = 20
-    blank_line_spacing = 48
+    # فاصله خطوط کمی کمتر شده تا فونت
+    # در شعرهای متوسط مجبور به کوچک شدن نشود
+    line_spacing = 16
+
+    blank_line_spacing = 44
 
     lines = []
+
+    # ==================================
+    # Adaptive font sizing
+    # ==================================
 
     while font_size >= min_font_size:
 
@@ -432,8 +439,9 @@ def create_poetry_card(text):
             blank_line_spacing
         )
 
+        # اگر متن از نظر ارتفاع جا شد،
+        # همین اندازه فونت انتخاب می‌شود.
         if total_height <= available_height:
-
             break
 
         font_size -= 2
@@ -705,9 +713,9 @@ def send_start_message(chat_id):
         "سلام 👋\n\n"
         "🖼️ به بات کارت شعر خوش آمدی.\n\n"
         "شعرت را همین‌جا بفرست تا برایت کارت شعر بسازم. ✨\n\n"
-        f'📖 برای دیدن شعرهای بیشتر، '
+        "📖 برای دیدن شعرهای بیشتر، "
         f'<a href="{CHANNEL_URL}">شعرکده</a> '
-        f'در سروش پلاس را دنبال کن.'
+        "در سروش پلاس را دنبال کن."
     )
 
     return send_message(
@@ -726,9 +734,9 @@ def send_after_card_message(chat_id):
         "✨ کارت شعر شما آماده شد.\n\n"
         "اگر باز هم شعری دارید، همین‌جا ارسال کنید "
         "تا آن را هم به کارت شعر تبدیل کنیم. 🖼️\n\n"
-        f'📖 برای دیدن شعرهای بیشتر، '
-        f'سری هم به کانال <a href="{CHANNEL_URL}">'
-        f'«شعرکده»</a> در سروش پلاس بزنید.'
+        "📖 برای دیدن شعرهای بیشتر، "
+        f'<a href="{CHANNEL_URL}">«شعرکده»</a> '
+        "در سروش پلاس بزنید."
     )
 
     return send_message(
