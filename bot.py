@@ -56,6 +56,114 @@ READY_MESSAGES = {}
 
 
 # ==================================
+# Monitoring
+# ==================================
+
+MONITOR_LOCK = threading.Lock()
+
+ACTIVE_REQUESTS = 0
+MAX_ACTIVE_REQUESTS = 0
+
+TOTAL_REQUESTS = 0
+SUCCESSFUL_REQUESTS = 0
+FAILED_REQUESTS = 0
+
+TOTAL_REQUEST_TIME = 0.0
+MAX_REQUEST_TIME = 0.0
+
+
+def monitoring_request_started():
+
+    global ACTIVE_REQUESTS
+    global MAX_ACTIVE_REQUESTS
+    global TOTAL_REQUESTS
+
+    with MONITOR_LOCK:
+
+        ACTIVE_REQUESTS += 1
+        TOTAL_REQUESTS += 1
+
+        if ACTIVE_REQUESTS > MAX_ACTIVE_REQUESTS:
+
+            MAX_ACTIVE_REQUESTS = ACTIVE_REQUESTS
+
+        current_active = ACTIVE_REQUESTS
+        current_max = MAX_ACTIVE_REQUESTS
+        current_total = TOTAL_REQUESTS
+
+    print(
+        f"[MONITOR] Request started | "
+        f"active={current_active} | "
+        f"max_active={current_max} | "
+        f"total={current_total}"
+    )
+
+
+def monitoring_request_finished(
+    elapsed,
+    successful=True
+):
+
+    global ACTIVE_REQUESTS
+    global SUCCESSFUL_REQUESTS
+    global FAILED_REQUESTS
+    global TOTAL_REQUEST_TIME
+    global MAX_REQUEST_TIME
+
+    with MONITOR_LOCK:
+
+        if ACTIVE_REQUESTS > 0:
+
+            ACTIVE_REQUESTS -= 1
+
+        TOTAL_REQUEST_TIME += elapsed
+
+        if elapsed > MAX_REQUEST_TIME:
+
+            MAX_REQUEST_TIME = elapsed
+
+        if successful:
+
+            SUCCESSFUL_REQUESTS += 1
+
+        else:
+
+            FAILED_REQUESTS += 1
+
+        current_active = ACTIVE_REQUESTS
+        successful_count = SUCCESSFUL_REQUESTS
+        failed_count = FAILED_REQUESTS
+        total_request_time = TOTAL_REQUEST_TIME
+        max_request_time = MAX_REQUEST_TIME
+
+        completed_requests = (
+            successful_count
+            + failed_count
+        )
+
+        if completed_requests > 0:
+
+            average_request_time = (
+                total_request_time
+                / completed_requests
+            )
+
+        else:
+
+            average_request_time = 0.0
+
+    print(
+        f"[MONITOR] Request finished | "
+        f"time={elapsed:.4f}s | "
+        f"active={current_active} | "
+        f"success={successful_count} | "
+        f"failed={failed_count} | "
+        f"avg={average_request_time:.4f}s | "
+        f"max_time={max_request_time:.4f}s"
+    )
+
+
+# ==================================
 # Cached Backgrounds
 # ==================================
 
@@ -2688,108 +2796,139 @@ def home():
 )
 def webhook():
 
-    update = request.get_json(
-        silent=True
-    ) or {}
+    request_start = time.perf_counter()
 
-    print(
-        "UPDATE:",
-        update
-    )
+    monitoring_request_started()
 
-    if update.get(
-        "callback_query"
-    ):
+    request_successful = True
 
-        callback_query = (
-            update.get("callback_query")
+    try:
+
+        update = request.get_json(
+            silent=True
+        ) or {}
+
+        print(
+            "UPDATE:",
+            update
+        )
+
+        if update.get(
+            "callback_query"
+        ):
+
+            callback_query = (
+                update.get("callback_query")
+                or {}
+            )
+
+            data = callback_query.get(
+                "data"
+            )
+
+            if data in (
+                "type_branded",
+                "type_public"
+            ):
+
+                return process_card_type_selection(
+                    update
+                )
+
+            if (
+                data
+                and data.startswith("color_")
+            ):
+
+                return process_color_selection(
+                    update
+                )
+
+            return "OK", 200
+
+        message = (
+            update.get("message")
             or {}
         )
 
-        data = callback_query.get(
-            "data"
+        text = message.get(
+            "text"
         )
 
-        if data in (
-            "type_branded",
-            "type_public"
-        ):
+        chat = (
+            message.get("chat")
+            or {}
+        )
 
-            return process_card_type_selection(
-                update
+        chat_id = chat.get(
+            "id"
+        )
+
+        if not chat_id:
+
+            return "OK", 200
+
+        if not text:
+
+            return "OK", 200
+
+        if text != "/start":
+
+            delete_previous_ready_message(
+                chat_id
             )
 
-        if (
-            data
-            and data.startswith("color_")
-        ):
+        if text == "/start":
 
-            return process_color_selection(
-                update
+            PENDING_POEMS.pop(
+                chat_id,
+                None
             )
 
-        return "OK", 200
+            READY_MESSAGES.pop(
+                chat_id,
+                None
+            )
 
-    message = (
-        update.get("message")
-        or {}
-    )
+            send_start_message(
+                chat_id
+            )
 
-    text = message.get(
-        "text"
-    )
+            return "OK", 200
 
-    chat = (
-        message.get("chat")
-        or {}
-    )
-
-    chat_id = chat.get(
-        "id"
-    )
-
-    if not chat_id:
-
-        return "OK", 200
-
-    if not text:
-
-        return "OK", 200
-
-    if text != "/start":
-
-        delete_previous_ready_message(
-            chat_id
-        )
-
-    if text == "/start":
-
-        PENDING_POEMS.pop(
+        store_pending_poem(
             chat_id,
-            None
+            text
         )
 
-        READY_MESSAGES.pop(
-            chat_id,
-            None
-        )
-
-        send_start_message(
+        send_card_type_selection(
             chat_id
         )
 
         return "OK", 200
 
-    store_pending_poem(
-        chat_id,
-        text
-    )
+    except Exception as error:
 
-    send_card_type_selection(
-        chat_id
-    )
+        request_successful = False
 
-    return "OK", 200
+        print(
+            "[MONITOR] Webhook unhandled error:",
+            error
+        )
+
+        raise
+
+    finally:
+
+        request_time = (
+            time.perf_counter()
+            - request_start
+        )
+
+        monitoring_request_finished(
+            request_time,
+            successful=request_successful
+        )
 
 
 # ==================================
@@ -2808,4 +2947,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+        )
