@@ -50,6 +50,128 @@ PENDING_POEMS = {}
 
 
 # ==================================
+# Cached Background
+# ==================================
+
+CACHED_BACKGROUND = None
+
+
+def load_background_image():
+
+    global CACHED_BACKGROUND
+
+    if not os.path.exists(BACKGROUND_IMAGE):
+
+        print(
+            "Background image not found:",
+            BACKGROUND_IMAGE
+        )
+
+        return None
+
+    try:
+
+        background = Image.open(
+            BACKGROUND_IMAGE
+        ).convert("RGB")
+
+        background_ratio = (
+            background.width
+            / background.height
+        )
+
+        card_ratio = (
+            CARD_WIDTH
+            / CARD_HEIGHT
+        )
+
+        if background_ratio > card_ratio:
+
+            new_height = CARD_HEIGHT
+
+            new_width = int(
+                background.width
+                * CARD_HEIGHT
+                / background.height
+            )
+
+        else:
+
+            new_width = CARD_WIDTH
+
+            new_height = int(
+                background.height
+                * CARD_WIDTH
+                / background.width
+            )
+
+        background = background.resize(
+            (
+                new_width,
+                new_height
+            ),
+            Image.Resampling.LANCZOS
+        )
+
+        left = (
+            new_width
+            - CARD_WIDTH
+        ) // 2
+
+        top_crop = (
+            new_height
+            - CARD_HEIGHT
+        ) // 2
+
+        background = background.crop(
+            (
+                left,
+                top_crop,
+                left + CARD_WIDTH,
+                top_crop + CARD_HEIGHT
+            )
+        )
+
+        # Darken
+        background = ImageEnhance.Brightness(
+            background
+        ).enhance(0.48)
+
+        # Blur
+        background = background.filter(
+            ImageFilter.GaussianBlur(4)
+        )
+
+        background = background.convert(
+            "RGBA"
+        )
+
+        # Opacity
+        background.putalpha(42)
+
+        CACHED_BACKGROUND = background
+
+        print(
+            "Background image loaded and cached."
+        )
+
+        return CACHED_BACKGROUND
+
+    except Exception as error:
+
+        print(
+            "Background image error:",
+            error
+        )
+
+        return None
+
+
+# Background is processed only once
+load_background_image()
+
+
+# ==================================
 # Color Palettes
 # ==================================
 
@@ -321,115 +443,17 @@ def create_gradient_background(palette):
             )
 
     # ==================================
-    # Soft Background Image
+    # Cached Background Image
     # ==================================
 
-    if os.path.exists(BACKGROUND_IMAGE):
+    if CACHED_BACKGROUND is not None:
 
-        try:
-
-            background = Image.open(
-                BACKGROUND_IMAGE
-            ).convert("RGB")
-
-            # Crop / resize to exactly 1080x1080
-            background_ratio = (
-                background.width
-                / background.height
-            )
-
-            card_ratio = (
-                CARD_WIDTH
-                / CARD_HEIGHT
-            )
-
-            if background_ratio > card_ratio:
-
-                new_height = CARD_HEIGHT
-
-                new_width = int(
-                    background.width
-                    * CARD_HEIGHT
-                    / background.height
-                )
-
-            else:
-
-                new_width = CARD_WIDTH
-
-                new_height = int(
-                    background.height
-                    * CARD_WIDTH
-                    / background.width
-                )
-
-            background = background.resize(
-                (
-                    new_width,
-                    new_height
-                ),
-                Image.Resampling.LANCZOS
-            )
-
-            left = (
-                new_width
-                - CARD_WIDTH
-            ) // 2
-
-            top_crop = (
-                new_height
-                - CARD_HEIGHT
-            ) // 2
-
-            background = background.crop(
-                (
-                    left,
-                    top_crop,
-                    left + CARD_WIDTH,
-                    top_crop + CARD_HEIGHT
-                )
-            )
-
-            # Darken the original image so
-            # the pattern remains subtle.
-            background = ImageEnhance.Brightness(
-                background
-            ).enhance(0.48)
-
-            # Blur the tile pattern.
-            background = background.filter(
-                ImageFilter.GaussianBlur(4)
-            )
-
-            background = background.convert(
-                "RGBA"
-            )
-
-            # Very low opacity.
-            background.putalpha(42)
-
-            image = Image.alpha_composite(
-                image.convert("RGBA"),
-                background
-            )
-
-        except Exception as error:
-
-            print(
-                "Background image error:",
-                error
-            )
-
-            image = image.convert(
-                "RGBA"
-            )
+        image = Image.alpha_composite(
+            image.convert("RGBA"),
+            CACHED_BACKGROUND
+        )
 
     else:
-
-        print(
-            "Background image not found:",
-            BACKGROUND_IMAGE
-        )
 
         image = image.convert(
             "RGBA"
@@ -1338,6 +1362,44 @@ def send_message(
 
 
 # ==================================
+# Delete Message
+# ==================================
+
+def delete_message(
+    chat_id,
+    message_id
+):
+
+    try:
+
+        response = requests.post(
+            f"{API}/deleteMessage",
+            json={
+                "chat_id": chat_id,
+                "message_id": message_id
+            },
+            timeout=20
+        )
+
+        print(
+            "deleteMessage:",
+            response.status_code,
+            response.text
+        )
+
+        return response
+
+    except Exception as error:
+
+        print(
+            "deleteMessage error:",
+            error
+        )
+
+        return None
+
+
+# ==================================
 # Send Photo
 # ==================================
 
@@ -1807,6 +1869,46 @@ def process_color_selection(
         f"{branded}"
     )
 
+    # ==================================
+    # Show Building Message
+    # ==================================
+
+    building_response = send_message(
+        chat_id,
+        "⏳ <b>کارت شعر در حال ساخت است...</b>"
+    )
+
+    building_message_id = None
+
+    if (
+        building_response is not None
+        and building_response.ok
+    ):
+
+        try:
+
+            building_result = (
+                building_response.json()
+            )
+
+            result = (
+                building_result.get(
+                    "result"
+                )
+                or {}
+            )
+
+            building_message_id = (
+                result.get("message_id")
+            )
+
+        except Exception as error:
+
+            print(
+                "Building message parse error:",
+                error
+            )
+
     try:
 
         filename = create_poetry_card(
@@ -1834,6 +1936,17 @@ def process_color_selection(
                 "Poetry card sent successfully."
             )
 
+            # ==================================
+            # Delete Building Message
+            # ==================================
+
+            if building_message_id:
+
+                delete_message(
+                    chat_id,
+                    building_message_id
+                )
+
             send_after_card_message(
                 chat_id
             )
@@ -1843,6 +1956,13 @@ def process_color_selection(
             print(
                 "Photo sending failed."
             )
+
+            if building_message_id:
+
+                delete_message(
+                    chat_id,
+                    building_message_id
+                )
 
             send_message(
                 chat_id,
@@ -1856,6 +1976,13 @@ def process_color_selection(
             "Card creation error:",
             error
         )
+
+        if building_message_id:
+
+            delete_message(
+                chat_id,
+                building_message_id
+            )
 
         send_message(
             chat_id,
@@ -2020,4 +2147,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+        )
