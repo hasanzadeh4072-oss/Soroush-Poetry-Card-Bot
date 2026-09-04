@@ -28,6 +28,19 @@ FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
 
 # ==================================
+# Line Thickness
+# ==================================
+
+OUTER_FRAME_WIDTH = 3
+INNER_FRAME_WIDTH = 2
+ORNAMENT_LINE_WIDTH = 2
+SIDE_LINE_WIDTH = 2
+PANEL_OUTLINE_WIDTH = 2
+PANEL_INNER_WIDTH = 1
+FOOTER_LINE_WIDTH = 2
+
+
+# ==================================
 # Pending Poems
 # ==================================
 
@@ -569,7 +582,7 @@ def create_poetry_card(
         ),
         radius=42,
         outline=palette["frame"],
-        width=2
+        width=OUTER_FRAME_WIDTH
     )
 
     # ==================================
@@ -587,7 +600,7 @@ def create_poetry_card(
         ),
         radius=35,
         outline=palette["frame_inner"],
-        width=1
+        width=INNER_FRAME_WIDTH
     )
 
     # ==================================
@@ -727,7 +740,7 @@ def create_poetry_card(
                 line_y
             ),
             fill=palette["ornament"],
-            width=1
+            width=ORNAMENT_LINE_WIDTH
         )
 
         draw.line(
@@ -738,7 +751,7 @@ def create_poetry_card(
                 line_y
             ),
             fill=palette["ornament"],
-            width=1
+            width=ORNAMENT_LINE_WIDTH
         )
 
         diamond_size = 5
@@ -787,7 +800,7 @@ def create_poetry_card(
                 ornament_y
             ),
             fill=palette["ornament"],
-            width=1
+            width=ORNAMENT_LINE_WIDTH
         )
 
         draw.line(
@@ -798,7 +811,7 @@ def create_poetry_card(
                 ornament_y
             ),
             fill=palette["ornament"],
-            width=1
+            width=ORNAMENT_LINE_WIDTH
         )
 
         diamond_size = 4
@@ -954,7 +967,7 @@ def create_poetry_card(
         radius=45,
         fill=(255, 255, 255, 14),
         outline=palette["panel_outline"],
-        width=1
+        width=PANEL_OUTLINE_WIDTH
     )
 
     panel_draw.rounded_rectangle(
@@ -966,7 +979,7 @@ def create_poetry_card(
         ),
         radius=37,
         outline=palette["panel_inner"],
-        width=1
+        width=PANEL_INNER_WIDTH
     )
 
     panel = panel.filter(
@@ -999,7 +1012,7 @@ def create_poetry_card(
             deco_y + 30
         ),
         fill=palette["side_line"],
-        width=1
+        width=SIDE_LINE_WIDTH
     )
 
     draw.ellipse(
@@ -1020,7 +1033,7 @@ def create_poetry_card(
             deco_y + 30
         ),
         fill=palette["side_line"],
-        width=1
+        width=SIDE_LINE_WIDTH
     )
 
     draw.ellipse(
@@ -1130,7 +1143,7 @@ def create_poetry_card(
             footer_y - 13
         ),
         fill=palette["ornament"],
-        width=1
+        width=FOOTER_LINE_WIDTH
     )
 
     draw.text(
@@ -1888,3 +1901,6 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port
     )
+
+
+
