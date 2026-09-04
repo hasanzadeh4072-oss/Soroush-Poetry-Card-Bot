@@ -52,8 +52,6 @@ FOOTER_LINE_WIDTH = 2
 
 PENDING_POEMS = {}
 
-# پیام «کارت شعر شما آماده شد»
-# برای هر کاربر، شناسه آخرین پیام ذخیره می‌شود.
 READY_MESSAGES = {}
 
 
@@ -184,6 +182,10 @@ def load_background_image():
 
 PALETTES = [
 
+    # ------------------------------
+    # DARK
+    # ------------------------------
+
     {
         "name": "بنفش سلطنتی",
         "top": (55, 25, 82),
@@ -223,6 +225,30 @@ PALETTES = [
         "side_line": (200, 175, 110, 75),
         "side_dot": (215, 185, 115, 100),
     },
+
+    {
+        "name": "شرابی",
+        "top": (76, 19, 37),
+        "middle": (45, 14, 26),
+        "bottom": (20, 6, 13),
+        "glow1": (175, 70, 90, 35),
+        "glow2": (135, 45, 65, 20),
+        "glow3": (130, 45, 60, 10),
+        "frame": (174, 133, 72),
+        "frame_inner": (205, 169, 98),
+        "text": (249, 244, 237),
+        "accent": (241, 210, 139),
+        "subtitle": (211, 193, 181),
+        "ornament": (145, 105, 65),
+        "panel_outline": (195, 155, 95, 38),
+        "panel_inner": (255, 255, 255, 12),
+        "side_line": (200, 160, 100, 75),
+        "side_dot": (215, 175, 105, 100),
+    },
+
+    # ------------------------------
+    # MEDIUM
+    # ------------------------------
 
     {
         "name": "فیروزه‌ای تیره",
@@ -265,86 +291,6 @@ PALETTES = [
     },
 
     {
-        "name": "کرم",
-        "top": (226, 215, 190),
-        "middle": (211, 196, 166),
-        "bottom": (183, 164, 128),
-        "glow1": (255, 248, 220, 42),
-        "glow2": (190, 155, 100, 22),
-        "glow3": (255, 255, 255, 16),
-        "frame": (92, 70, 43),
-        "frame_inner": (125, 96, 60),
-        "text": (55, 45, 35),
-        "accent": (92, 67, 38),
-        "subtitle": (80, 66, 50),
-        "ornament": (105, 78, 44),
-        "panel_outline": (95, 70, 40, 55),
-        "panel_inner": (255, 255, 255, 65),
-        "side_line": (95, 70, 40, 85),
-        "side_dot": (90, 65, 35, 125),
-    },
-
-    {
-        "name": "شرابی",
-        "top": (76, 19, 37),
-        "middle": (45, 14, 26),
-        "bottom": (20, 6, 13),
-        "glow1": (175, 70, 90, 35),
-        "glow2": (135, 45, 65, 20),
-        "glow3": (130, 45, 60, 10),
-        "frame": (174, 133, 72),
-        "frame_inner": (205, 169, 98),
-        "text": (249, 244, 237),
-        "accent": (241, 210, 139),
-        "subtitle": (211, 193, 181),
-        "ornament": (145, 105, 65),
-        "panel_outline": (195, 155, 95, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (200, 160, 100, 75),
-        "side_dot": (215, 175, 105, 100),
-    },
-
-    {
-        "name": "مه‌آبی",
-        "top": (191, 210, 220),
-        "middle": (169, 193, 207),
-        "bottom": (139, 165, 183),
-        "glow1": (235, 245, 250, 42),
-        "glow2": (125, 160, 185, 22),
-        "glow3": (255, 255, 255, 18),
-        "frame": (48, 67, 82),
-        "frame_inner": (76, 96, 111),
-        "text": (31, 43, 53),
-        "accent": (48, 68, 83),
-        "subtitle": (55, 72, 84),
-        "ornament": (61, 82, 96),
-        "panel_outline": (55, 78, 95, 55),
-        "panel_inner": (255, 255, 255, 65),
-        "side_line": (55, 78, 95, 85),
-        "side_dot": (45, 68, 85, 125),
-    },
-
-    {
-        "name": "مریم‌گلی",
-        "top": (198, 210, 190),
-        "middle": (177, 194, 166),
-        "bottom": (148, 166, 136),
-        "glow1": (238, 245, 225, 42),
-        "glow2": (135, 160, 110, 22),
-        "glow3": (255, 255, 255, 18),
-        "frame": (59, 73, 52),
-        "frame_inner": (88, 104, 77),
-        "text": (38, 50, 34),
-        "accent": (57, 75, 49),
-        "subtitle": (63, 77, 57),
-        "ornament": (69, 87, 57),
-        "panel_outline": (65, 82, 55, 55),
-        "panel_inner": (255, 255, 255, 65),
-        "side_line": (65, 82, 55, 85),
-        "side_dot": (55, 75, 48, 125),
-    },
-
-    {
         "name": "رزگلد",
         "top": (72, 35, 48),
         "middle": (45, 23, 32),
@@ -364,6 +310,69 @@ PALETTES = [
         "side_dot": (225, 170, 158, 100),
     },
 
+    # ------------------------------
+    # LIGHT
+    # ------------------------------
+
+    {
+        "name": "کرم",
+        "top": (250, 239, 210),
+        "middle": (242, 226, 190),
+        "bottom": (226, 205, 163),
+        "glow1": (255, 252, 230, 55),
+        "glow2": (255, 240, 185, 28),
+        "glow3": (255, 255, 255, 22),
+        "frame": (91, 67, 39),
+        "frame_inner": (126, 96, 58),
+        "text": (49, 40, 31),
+        "accent": (104, 73, 38),
+        "subtitle": (77, 61, 43),
+        "ornament": (113, 80, 42),
+        "panel_outline": (105, 78, 43, 55),
+        "panel_inner": (255, 255, 255, 75),
+        "side_line": (105, 78, 43, 85),
+        "side_dot": (94, 67, 35, 125),
+    },
+
+    {
+        "name": "آبی روشن",
+        "top": (205, 235, 248),
+        "middle": (180, 220, 238),
+        "bottom": (153, 201, 225),
+        "glow1": (235, 249, 255, 58),
+        "glow2": (145, 205, 235, 28),
+        "glow3": (255, 255, 255, 24),
+        "frame": (43, 73, 91),
+        "frame_inner": (72, 105, 124),
+        "text": (31, 51, 63),
+        "accent": (48, 82, 101),
+        "subtitle": (54, 77, 91),
+        "ornament": (59, 91, 108),
+        "panel_outline": (58, 91, 110, 55),
+        "panel_inner": (255, 255, 255, 78),
+        "side_line": (58, 91, 110, 85),
+        "side_dot": (46, 79, 99, 125),
+    },
+
+    {
+        "name": "مریم‌گلی",
+        "top": (218, 231, 205),
+        "middle": (201, 219, 184),
+        "bottom": (179, 201, 159),
+        "glow1": (242, 249, 230, 58),
+        "glow2": (175, 205, 145, 28),
+        "glow3": (255, 255, 255, 24),
+        "frame": (60, 76, 52),
+        "frame_inner": (91, 108, 78),
+        "text": (39, 54, 35),
+        "accent": (67, 88, 55),
+        "subtitle": (67, 82, 59),
+        "ornament": (75, 96, 62),
+        "panel_outline": (73, 96, 62, 55),
+        "panel_inner": (255, 255, 255, 78),
+        "side_line": (73, 96, 62, 85),
+        "side_dot": (62, 84, 52, 125),
+    },
 ]
 
 
@@ -1151,10 +1160,6 @@ def create_poetry_card(
 
     if branded:
 
-        # ------------------------------
-        # کارت شعر در بالا
-        # ------------------------------
-
         draw.text(
             (
                 footer_x + 1,
@@ -1230,10 +1235,6 @@ def create_poetry_card(
             ],
             fill=palette["accent"]
         )
-
-        # ------------------------------
-        # شعرکده در پایین
-        # ------------------------------
 
         draw.text(
             (
@@ -1322,10 +1323,6 @@ def create_poetry_card(
 
     else:
 
-        # ------------------------------
-        # کارت شعر در بالا
-        # ------------------------------
-
         draw.text(
             (
                 footer_x + 1,
@@ -1346,7 +1343,6 @@ def create_poetry_card(
             fill=palette["accent"]
         )
 
-        # المان تزئینی بالا
         ornament_y = (
             footer_y
             + footer_height
@@ -1402,11 +1398,6 @@ def create_poetry_card(
             ],
             fill=palette["accent"]
         )
-
-        # ------------------------------
-        # المان تزئینی پایین
-        # جایگزین شعرکده
-        # ------------------------------
 
         bottom_ornament_y = (
             CARD_HEIGHT
@@ -1804,10 +1795,6 @@ def create_poetry_card(
         f"| size={file_size:.1f} KB"
     )
 
-    # ------------------------------
-    # Total
-    # ------------------------------
-
     total_time = (
         time.perf_counter()
         - total_start
@@ -2060,6 +2047,7 @@ def get_color_keyboard():
     return {
         "inline_keyboard": [
 
+            # تیره
             [
                 {
                     "text": "🟣 سلطنتی",
@@ -2070,37 +2058,39 @@ def get_color_keyboard():
                     "callback_data": "color_1"
                 },
                 {
-                    "text": "🩵 فیروزه‌ای تیره",
+                    "text": "🔴 شرابی",
                     "callback_data": "color_2"
                 }
             ],
 
+            # متوسط
             [
                 {
-                    "text": "🟢 سبز زمردی",
+                    "text": "🩵 فیروزه‌ای تیره",
                     "callback_data": "color_3"
                 },
                 {
-                    "text": "🟡 کرم",
+                    "text": "🟢 سبز زمردی",
                     "callback_data": "color_4"
                 },
                 {
-                    "text": "🔴 شرابی",
+                    "text": "🩷 رزگلد",
                     "callback_data": "color_5"
                 }
             ],
 
+            # روشن
             [
                 {
-                    "text": "🩵 مه‌آبی",
+                    "text": "🟡 کرم",
                     "callback_data": "color_6"
                 },
                 {
-                    "text": "🩷 رزگلد",
+                    "text": "🔵 آبی روشن",
                     "callback_data": "color_7"
                 },
                 {
-                    "text": "🟢 مریم‌گلی",
+                    "text": "🌿 مریم‌گلی",
                     "callback_data": "color_8"
                 }
             ]
@@ -2483,10 +2473,6 @@ def process_color_selection(
 
     try:
 
-        # ------------------------------
-        # Create card
-        # ------------------------------
-
         filename = create_poetry_card(
             poem,
             palette,
@@ -2497,10 +2483,6 @@ def process_color_selection(
             f"Poetry card created: "
             f"{filename}"
         )
-
-        # ------------------------------
-        # Send photo
-        # ------------------------------
 
         stage_start = time.perf_counter()
 
@@ -2528,10 +2510,6 @@ def process_color_selection(
                 "Poetry card sent successfully."
             )
 
-            # ------------------------------
-            # Delete building message
-            # ------------------------------
-
             if building_message_id:
 
                 stage_start = (
@@ -2548,10 +2526,6 @@ def process_color_selection(
                     f"{time.perf_counter() - stage_start:.4f}s"
                 )
 
-            # ------------------------------
-            # Send after-card message
-            # ------------------------------
-
             stage_start = (
                 time.perf_counter()
             )
@@ -2566,10 +2540,6 @@ def process_color_selection(
                 f"[TIMING] Send after-card message: "
                 f"{time.perf_counter() - stage_start:.4f}s"
             )
-
-            # ------------------------------
-            # Save ready message ID
-            # ------------------------------
 
             if (
                 after_card_response is not None
@@ -2678,10 +2648,6 @@ def process_color_selection(
             "❌ هنگام ساخت کارت مشکلی پیش آمد."
         )
 
-    # ------------------------------
-    # Overall timing
-    # ------------------------------
-
     overall_time = (
         time.perf_counter()
         - overall_start
@@ -2789,10 +2755,6 @@ def webhook():
     if not text:
 
         return "OK", 200
-
-    # ----------------------------------
-    # حذف پیام قبلی «کارت شما آماده شد»
-    # ----------------------------------
 
     if text != "/start":
 
