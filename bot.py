@@ -8,6 +8,9 @@ import uuid
 from flask import Flask, request
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
+import arabic_reshaper
+from bidi.algorithm import get_display
+
 
 app = Flask(__name__)
 
@@ -85,6 +88,8 @@ def monitoring_request_started():
     global MAX_ACTIVE_REQUESTS
     global TOTAL_REQUESTS
 
+    request_id = uuid.uuid4().hex[:8]
+
     with MONITOR_LOCK:
 
         ACTIVE_REQUESTS += 1
@@ -100,15 +105,19 @@ def monitoring_request_started():
 
     print(
         f"[MONITOR] Request started | "
+        f"id={request_id} | "
         f"active={current_active} | "
         f"max_active={current_max} | "
         f"total={current_total}"
     )
 
+    return request_id
+
 
 def monitoring_request_finished(
     elapsed,
-    successful=True
+    successful=True,
+    request_id=None
 ):
 
     global ACTIVE_REQUESTS
@@ -161,6 +170,7 @@ def monitoring_request_finished(
 
     print(
         f"[MONITOR] Request finished | "
+        f"id={request_id or '-'} | "
         f"time={elapsed:.4f}s | "
         f"active={current_active} | "
         f"success={successful_count} | "
@@ -784,9 +794,85 @@ build_cached_card_backgrounds()
 
 def normalize_text(text):
 
-    return text.replace(
-        "…",
-        "..."
+    if not text:
+        return ""
+
+    return (
+        text
+        .replace(
+            "…",
+            "..."
+        )
+        .replace(
+            "\r\n",
+            "\n"
+        )
+        .replace(
+            "\r",
+            "\n"
+        )
+    )
+
+
+def prepare_rtl_text(text):
+
+    """
+    Convert logical Persian/Arabic text into the
+    visual representation required by Pillow.
+
+    Original logical text is kept during wrapping.
+    RTL shaping is applied only to the final line.
+    """
+
+    if not text:
+
+        return ""
+
+    try:
+
+        reshaped = arabic_reshaper.reshape(
+            text
+        )
+
+        visual_text = get_display(
+            reshaped
+        )
+
+        return visual_text
+
+    except Exception as error:
+
+        print(
+            "RTL preparation error:",
+            error
+        )
+
+        return text
+
+
+def text_width(
+    draw,
+    text,
+    font
+):
+
+    if not text:
+
+        return 0
+
+    visual_text = prepare_rtl_text(
+        text
+    )
+
+    bbox = draw.textbbox(
+        (0, 0),
+        visual_text,
+        font=font
+    )
+
+    return (
+        bbox[2]
+        - bbox[0]
     )
 
 
@@ -797,9 +883,18 @@ def wrap_text(
     max_width
 ):
 
+    """
+    Wrap logical Persian text.
+
+    Wrapping is performed using logical word order.
+    RTL shaping/Bidi is applied only after a complete
+    line has been determined.
+    """
+
     words = text.split()
 
     if not words:
+
         return []
 
     lines = []
@@ -814,15 +909,10 @@ def wrap_text(
             + word
         )
 
-        bbox = draw.textbbox(
-            (0, 0),
+        width = text_width(
+            draw,
             test,
-            font=font
-        )
-
-        width = (
-            bbox[2]
-            - bbox[0]
+            font
         )
 
         if width <= max_width:
@@ -832,7 +922,9 @@ def wrap_text(
         else:
 
             lines.append(
-                current
+                prepare_rtl_text(
+                    current
+                )
             )
 
             current = word
@@ -840,7 +932,9 @@ def wrap_text(
     if current:
 
         lines.append(
-            current
+            prepare_rtl_text(
+                current
+            )
         )
 
     return lines
@@ -853,7 +947,9 @@ def prepare_poem_lines(
     max_width
 ):
 
-    text = normalize_text(text)
+    text = normalize_text(
+        text
+    )
 
     raw_lines = text.splitlines()
 
@@ -863,7 +959,9 @@ def prepare_poem_lines(
 
         if not line.strip():
 
-            final_lines.append(None)
+            final_lines.append(
+                None
+            )
 
             continue
 
@@ -958,6 +1056,8 @@ def expire_pending_poem(
                 )
             )
 
+            # This timer belongs to an older
+            # pending poem.
             if current_created_at != created_at:
 
                 return
@@ -1110,7 +1210,9 @@ def refresh_pending_timeout(
 
         pending["created_at"] = created_at
 
-        PENDING_POEMS[chat_id] = pending
+        PENDING_POEMS[
+            chat_id
+        ] = pending
 
         timer = threading.Timer(
             PENDING_TIMEOUT,
@@ -1228,8 +1330,10 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    cached_background = CACHED_CARD_BACKGROUNDS.get(
-        palette["name"]
+    cached_background = (
+        CACHED_CARD_BACKGROUNDS.get(
+            palette["name"]
+        )
     )
 
     if cached_background is not None:
@@ -1784,7 +1888,9 @@ def create_poetry_card(
         )
 
         lines = [
-            "متن خالی است"
+            prepare_rtl_text(
+                "متن خالی است"
+            )
         ]
 
     total_height = calculate_text_height(
@@ -2024,7 +2130,6 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    # IMPORTANT:
     # Every card gets its own unique file.
     filename = (
         "/tmp/poetry_card_"
@@ -2529,8 +2634,6 @@ def process_card_type_selection(
 
     with STATE_LOCK:
 
-        # Only update if the same pending item
-        # still exists.
         current_pending = (
             PENDING_POEMS.get(
                 chat_id
@@ -3040,7 +3143,9 @@ def webhook():
 
     request_start = time.perf_counter()
 
-    monitoring_request_started()
+    request_id = (
+        monitoring_request_started()
+    )
 
     request_successful = True
 
@@ -3051,7 +3156,7 @@ def webhook():
         ) or {}
 
         print(
-            "UPDATE:",
+            f"UPDATE | request_id={request_id}:",
             update
         )
 
@@ -3174,7 +3279,8 @@ def webhook():
         request_successful = False
 
         print(
-            "[MONITOR] Webhook unhandled error:",
+            f"[MONITOR] Webhook unhandled error "
+            f"| id={request_id}:",
             error
         )
 
@@ -3189,7 +3295,8 @@ def webhook():
 
         monitoring_request_finished(
             request_time,
-            successful=request_successful
+            successful=request_successful,
+            request_id=request_id
         )
 
 
