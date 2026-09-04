@@ -9,9 +9,9 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 app = Flask(__name__)
 
 
-# =========================================================
+# ==================================
 # Configuration
-# =========================================================
+# ==================================
 
 TOKEN = os.environ.get("SOROUSH_TOKEN")
 API = f"https://api.splus.ir/bot{TOKEN}"
@@ -27,18 +27,19 @@ SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
 
-# =========================================================
+# ==================================
 # Pending Poems
-# =========================================================
+# ==================================
 
 PENDING_POEMS = {}
 
 
-# =========================================================
-# Palettes
-# =========================================================
+# ==================================
+# Color Palettes
+# ==================================
 
 PALETTES = [
+
     {
         "name": "بنفش سلطنتی",
         "top": (55, 25, 82),
@@ -58,6 +59,7 @@ PALETTES = [
         "side_line": (205, 172, 105, 75),
         "side_dot": (205, 172, 105, 100),
     },
+
     {
         "name": "آبی شبانه",
         "top": (18, 39, 76),
@@ -77,6 +79,7 @@ PALETTES = [
         "side_line": (200, 175, 110, 75),
         "side_dot": (215, 185, 115, 100),
     },
+
     {
         "name": "فیروزه‌ای تیره",
         "top": (10, 61, 67),
@@ -96,6 +99,7 @@ PALETTES = [
         "side_line": (185, 175, 110, 75),
         "side_dot": (210, 190, 120, 100),
     },
+
     {
         "name": "سبز زمردی",
         "top": (12, 59, 51),
@@ -115,6 +119,7 @@ PALETTES = [
         "side_line": (190, 170, 105, 75),
         "side_dot": (210, 180, 110, 100),
     },
+
     {
         "name": "زیتونی تیره",
         "top": (55, 57, 27),
@@ -134,6 +139,7 @@ PALETTES = [
         "side_line": (195, 175, 100, 75),
         "side_dot": (215, 190, 110, 100),
     },
+
     {
         "name": "شرابی",
         "top": (76, 19, 37),
@@ -153,6 +159,7 @@ PALETTES = [
         "side_line": (200, 160, 100, 75),
         "side_dot": (215, 175, 105, 100),
     },
+
     {
         "name": "قهوه‌ای شکلاتی",
         "top": (59, 37, 24),
@@ -172,6 +179,7 @@ PALETTES = [
         "side_line": (200, 160, 95, 75),
         "side_dot": (215, 175, 105, 100),
     },
+
     {
         "name": "رزگلد",
         "top": (72, 35, 48),
@@ -191,6 +199,7 @@ PALETTES = [
         "side_line": (210, 155, 145, 75),
         "side_dot": (225, 170, 158, 100),
     },
+
     {
         "name": "ذغالی طلایی",
         "top": (28, 28, 30),
@@ -213,23 +222,30 @@ PALETTES = [
 ]
 
 
-# =========================================================
+# ==================================
 # Fonts
-# =========================================================
+# ==================================
 
 def get_font(font_name, size):
-    return ImageFont.truetype(font_name, size)
+
+    return ImageFont.truetype(
+        font_name,
+        size
+    )
 
 
-# =========================================================
-# Gradient Background
-# =========================================================
+# ==================================
+# Background
+# ==================================
 
 def create_gradient_background(palette):
 
     image = Image.new(
         "RGB",
-        (CARD_WIDTH, CARD_HEIGHT)
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        )
     )
 
     pixels = image.load()
@@ -288,550 +304,100 @@ def create_gradient_background(palette):
                 b
             )
 
-    return image.convert("RGBA")
-
-
-# =========================================================
-# Modern Tazhib Background
-# =========================================================
-
-def draw_tazhib_background(image, palette):
-
-    layer = Image.new(
-        "RGBA",
-        (CARD_WIDTH, CARD_HEIGHT),
-        (0, 0, 0, 0)
-    )
-
-    draw = ImageDraw.Draw(layer)
-
-    gold = palette["accent"]
-    ornament = palette["ornament"]
-
-    # -----------------------------------------------------
-    # Soft central glow
-    # -----------------------------------------------------
+    # ==================================
+    # Soft Glow
+    # ==================================
 
     glow = Image.new(
         "RGBA",
-        (CARD_WIDTH, CARD_HEIGHT),
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
         (0, 0, 0, 0)
     )
 
-    glow_draw = ImageDraw.Draw(glow)
-
-    glow_draw.ellipse(
-        (
-            170,
-            130,
-            910,
-            950
-        ),
-        fill=(
-            gold[0],
-            gold[1],
-            gold[2],
-            10
-        )
-    )
-
-    glow = glow.filter(
-        ImageFilter.GaussianBlur(120)
-    )
-
-    layer = Image.alpha_composite(
-        layer,
+    glow_draw = ImageDraw.Draw(
         glow
     )
 
-    draw = ImageDraw.Draw(layer)
-
-    # -----------------------------------------------------
-    # Large subtle Persian-inspired radial ornaments
-    # -----------------------------------------------------
-
-    center_x = CARD_WIDTH // 2
-    center_y = 540
-
-    for radius, alpha, width in [
-        (390, 17, 2),
-        (350, 13, 2),
-        (310, 10, 2),
-    ]:
-
-        draw.arc(
-            (
-                center_x - radius,
-                center_y - radius,
-                center_x + radius,
-                center_y + radius
-            ),
-            205,
-            335,
-            fill=(
-                ornament[0],
-                ornament[1],
-                ornament[2],
-                alpha
-            ),
-            width=width
-        )
-
-        draw.arc(
-            (
-                center_x - radius,
-                center_y - radius,
-                center_x + radius,
-                center_y + radius
-            ),
-            25,
-            155,
-            fill=(
-                ornament[0],
-                ornament[1],
-                ornament[2],
-                alpha
-            ),
-            width=width
-        )
-
-    # -----------------------------------------------------
-    # Delicate foliage motifs
-    # -----------------------------------------------------
-
-    def leaf(cx, cy, angle_scale=1.0, alpha=28):
-
-        size = int(30 * angle_scale)
-
-        points = [
-            (cx, cy - size),
-            (cx + size // 2, cy - size // 3),
-            (cx, cy + size),
-            (cx - size // 2, cy - size // 3),
-        ]
-
-        draw.polygon(
-            points,
-            outline=(
-                gold[0],
-                gold[1],
-                gold[2],
-                alpha
-            )
-        )
-
-    leaf(178, 275, 1.0)
-    leaf(902, 275, 1.0)
-    leaf(178, 805, 1.0)
-    leaf(902, 805, 1.0)
-
-    # -----------------------------------------------------
-    # Very subtle arabesque curves
-    # -----------------------------------------------------
-
-    curve_color = (
-        ornament[0],
-        ornament[1],
-        ornament[2],
-        24
+    glow_draw.ellipse(
+        (-260, -180, 650, 560),
+        fill=palette["glow1"]
     )
 
-    draw.arc(
-        (105, 260, 330, 720),
-        285,
-        75,
-        fill=curve_color,
-        width=2
+    glow_draw.ellipse(
+        (690, 690, 1250, 1250),
+        fill=palette["glow2"]
     )
 
-    draw.arc(
-        (750, 260, 975, 720),
-        105,
-        255,
-        fill=curve_color,
-        width=2
+    glow_draw.ellipse(
+        (250, 350, 850, 950),
+        fill=palette["glow3"]
     )
 
-    # -----------------------------------------------------
-    # Small gold points
-    # -----------------------------------------------------
-
-    point_color = (
-        gold[0],
-        gold[1],
-        gold[2],
-        35
+    glow = glow.filter(
+        ImageFilter.GaussianBlur(110)
     )
 
-    for x, y in [
-        (150, 330),
-        (930, 330),
-        (150, 750),
-        (930, 750),
-        (205, 210),
-        (875, 210),
-        (205, 870),
-        (875, 870),
-    ]:
-
-        draw.ellipse(
-            (
-                x - 3,
-                y - 3,
-                x + 3,
-                y + 3
-            ),
-            fill=point_color
-        )
-
-    # -----------------------------------------------------
-    # Slight softening
-    # -----------------------------------------------------
-
-    layer = layer.filter(
-        ImageFilter.GaussianBlur(0.18)
+    image = Image.alpha_composite(
+        image.convert("RGBA"),
+        glow
     )
 
-    return Image.alpha_composite(
-        image,
-        layer
-    )
+    # ==================================
+    # Very subtle texture
+    # ==================================
 
-
-# =========================================================
-# Corner Tazhib
-# =========================================================
-
-def draw_corner_tazhib(
-    image,
-    palette,
-    x,
-    y,
-    flip_x=False,
-    flip_y=False
-):
-
-    size = 190
-
-    motif = Image.new(
+    texture = Image.new(
         "RGBA",
-        (size, size),
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
         (0, 0, 0, 0)
     )
 
-    draw = ImageDraw.Draw(motif)
+    texture_pixels = texture.load()
 
-    gold = palette["accent"]
-    ornament = palette["ornament"]
+    random.seed(8)
 
-    main = (
-        ornament[0],
-        ornament[1],
-        ornament[2],
-        78
-    )
+    for _ in range(14000):
 
-    soft = (
-        ornament[0],
-        ornament[1],
-        ornament[2],
-        42
-    )
-
-    bright = (
-        gold[0],
-        gold[1],
-        gold[2],
-        72
-    )
-
-    # Main curved structure
-
-    draw.arc(
-        (18, 18, 170, 170),
-        180,
-        270,
-        fill=main,
-        width=3
-    )
-
-    draw.arc(
-        (35, 35, 152, 152),
-        180,
-        270,
-        fill=soft,
-        width=2
-    )
-
-    draw.arc(
-        (52, 52, 136, 136),
-        180,
-        270,
-        fill=soft,
-        width=2
-    )
-
-    # Inner leaf
-
-    draw.polygon(
-        [
-            (84, 67),
-            (112, 45),
-            (105, 78),
-            (84, 91),
-        ],
-        outline=main,
-        width=2
-    )
-
-    draw.polygon(
-        [
-            (67, 84),
-            (45, 112),
-            (78, 105),
-            (91, 84),
-        ],
-        outline=main,
-        width=2
-    )
-
-    # Small central diamond
-
-    cx = 92
-    cy = 92
-
-    draw.polygon(
-        [
-            (cx, cy - 7),
-            (cx + 7, cy),
-            (cx, cy + 7),
-            (cx - 7, cy)
-        ],
-        fill=bright
-    )
-
-    # Fine stems
-
-    draw.line(
-        (92, 92, 145, 38),
-        fill=soft,
-        width=2
-    )
-
-    draw.line(
-        (92, 92, 38, 145),
-        fill=soft,
-        width=2
-    )
-
-    # Small dots
-
-    for px, py in [
-        (125, 42),
-        (42, 125),
-        (145, 25),
-        (25, 145),
-    ]:
-
-        draw.ellipse(
-            (
-                px - 2,
-                py - 2,
-                px + 2,
-                py + 2
-            ),
-            fill=bright
+        x = random.randrange(
+            CARD_WIDTH
         )
 
-    # Mirror horizontally / vertically
-
-    if flip_x:
-
-        motif = motif.transpose(
-            Image.Transpose.FLIP_LEFT_RIGHT
+        y = random.randrange(
+            CARD_HEIGHT
         )
 
-    if flip_y:
-
-        motif = motif.transpose(
-            Image.Transpose.FLIP_TOP_BOTTOM
-        )
-
-    image.alpha_composite(
-        motif,
-        (x, y)
-    )
-
-    return image
-
-
-# =========================================================
-# Panel Tazhib
-# =========================================================
-
-def draw_panel_tazhib(
-    image,
-    palette,
-    panel_top,
-    panel_bottom
-):
-
-    layer = Image.new(
-        "RGBA",
-        (CARD_WIDTH, CARD_HEIGHT),
-        (0, 0, 0, 0)
-    )
-
-    draw = ImageDraw.Draw(layer)
-
-    gold = palette["accent"]
-    ornament = palette["ornament"]
-
-    line_color = (
-        ornament[0],
-        ornament[1],
-        ornament[2],
-        58
-    )
-
-    gold_color = (
-        gold[0],
-        gold[1],
-        gold[2],
-        65
-    )
-
-    # -----------------------------------------------------
-    # Top center ornament
-    # -----------------------------------------------------
-
-    center_x = CARD_WIDTH // 2
-
-    y = panel_top + 15
-
-    draw.line(
-        (
-            center_x - 120,
-            y,
-            center_x - 20,
-            y
-        ),
-        fill=line_color,
-        width=2
-    )
-
-    draw.line(
-        (
-            center_x + 20,
-            y,
-            center_x + 120,
-            y
-        ),
-        fill=line_color,
-        width=2
-    )
-
-    draw.polygon(
-        [
-            (center_x, y - 6),
-            (center_x + 6, y),
-            (center_x, y + 6),
-            (center_x - 6, y),
-        ],
-        fill=gold_color
-    )
-
-    # -----------------------------------------------------
-    # Bottom center ornament
-    # -----------------------------------------------------
-
-    y = panel_bottom - 15
-
-    draw.line(
-        (
-            center_x - 120,
-            y,
-            center_x - 20,
-            y
-        ),
-        fill=line_color,
-        width=2
-    )
-
-    draw.line(
-        (
-            center_x + 20,
-            y,
-            center_x + 120,
-            y
-        ),
-        fill=line_color,
-        width=2
-    )
-
-    draw.polygon(
-        [
-            (center_x, y - 6),
-            (center_x + 6, y),
-            (center_x, y + 6),
-            (center_x - 6, y),
-        ],
-        fill=gold_color
-    )
-
-    # -----------------------------------------------------
-    # Side leaf motifs
-    # -----------------------------------------------------
-
-    side_y = (
-        panel_top
-        + (panel_bottom - panel_top) // 2
-    )
-
-    for direction in (-1, 1):
-
-        sx = 77 if direction == -1 else 1003
-
-        if direction == -1:
-
-            points = [
-                (sx, side_y),
-                (sx + 20, side_y - 18),
-                (sx + 31, side_y),
-                (sx + 20, side_y + 18),
+        value = random.choice(
+            [
+                (255, 255, 255, 3),
+                (0, 0, 0, 4)
             ]
-
-        else:
-
-            points = [
-                (sx, side_y),
-                (sx - 20, side_y - 18),
-                (sx - 31, side_y),
-                (sx - 20, side_y + 18),
-            ]
-
-        draw.polygon(
-            points,
-            outline=line_color
         )
 
-    return Image.alpha_composite(
+        texture_pixels[x, y] = value
+
+    image = Image.alpha_composite(
         image,
-        layer
+        texture
     )
 
+    return image.convert("RGB")
 
-# =========================================================
+
+# ==================================
 # Text Helpers
-# =========================================================
+# ==================================
 
 def normalize_text(text):
 
-    return (
-        text
-        .replace("…", "...")
-        .replace("\r\n", "\n")
-        .replace("\r", "\n")
+    return text.replace(
+        "…",
+        "..."
     )
 
 
@@ -854,26 +420,21 @@ def wrap_text(
 
     for word in words[1:]:
 
-        candidate = (
-            current
-            + " "
-            + word
-        )
+        test = current + " " + word
 
         bbox = draw.textbbox(
             (0, 0),
-            candidate,
+            test,
             font=font
         )
 
         width = (
-            bbox[2]
-            - bbox[0]
+            bbox[2] - bbox[0]
         )
 
         if width <= max_width:
 
-            current = candidate
+            current = test
 
         else:
 
@@ -905,13 +466,15 @@ def prepare_poem_lines(
 
     raw_lines = text.splitlines()
 
-    result = []
+    final_lines = []
 
     for line in raw_lines:
 
         if not line.strip():
 
-            result.append(None)
+            final_lines.append(
+                None
+            )
 
             continue
 
@@ -922,11 +485,11 @@ def prepare_poem_lines(
             max_width
         )
 
-        result.extend(
+        final_lines.extend(
             wrapped
         )
 
-    return result
+    return final_lines
 
 
 def calculate_text_height(
@@ -949,23 +512,22 @@ def calculate_text_height(
 
             total += blank_line_spacing
 
-        else:
+            continue
 
-            bbox = draw.textbbox(
-                (0, 0),
-                line,
-                font=font
-            )
+        bbox = draw.textbbox(
+            (0, 0),
+            line,
+            font=font
+        )
 
-            height = (
-                bbox[3]
-                - bbox[1]
-            )
+        height = (
+            bbox[3] - bbox[1]
+        )
 
-            total += (
-                height
-                + line_spacing
-            )
+        total += (
+            height
+            + line_spacing
+        )
 
     if lines[-1] is not None:
 
@@ -974,9 +536,9 @@ def calculate_text_height(
     return total
 
 
-# =========================================================
+# ==================================
 # Create Poetry Card
-# =========================================================
+# ==================================
 
 def create_poetry_card(
     text,
@@ -984,24 +546,17 @@ def create_poetry_card(
     branded=True
 ):
 
-    # -----------------------------------------------------
-    # Background
-    # -----------------------------------------------------
-
     image = create_gradient_background(
         palette
     )
 
-    image = draw_tazhib_background(
-        image,
-        palette
+    draw = ImageDraw.Draw(
+        image
     )
 
-    # -----------------------------------------------------
-    # Outer / Inner Frame
-    # -----------------------------------------------------
-
-    draw = ImageDraw.Draw(image)
+    # ==================================
+    # Outer Frame
+    # ==================================
 
     margin = 40
 
@@ -1017,6 +572,10 @@ def create_poetry_card(
         width=2
     )
 
+    # ==================================
+    # Inner Frame
+    # ==================================
+
     inner_margin = 49
 
     draw.rounded_rectangle(
@@ -1031,64 +590,16 @@ def create_poetry_card(
         width=1
     )
 
-    # -----------------------------------------------------
-    # Corner Tazhib
-    # -----------------------------------------------------
-
-    image = draw_corner_tazhib(
-        image,
-        palette,
-        55,
-        55,
-        False,
-        False
-    )
-
-    image = draw_corner_tazhib(
-        image,
-        palette,
-        CARD_WIDTH - 245,
-        55,
-        True,
-        False
-    )
-
-    image = draw_corner_tazhib(
-        image,
-        palette,
-        55,
-        CARD_HEIGHT - 245,
-        False,
-        True
-    )
-
-    image = draw_corner_tazhib(
-        image,
-        palette,
-        CARD_WIDTH - 245,
-        CARD_HEIGHT - 245,
-        True,
-        True
-    )
-
-    draw = ImageDraw.Draw(image)
-
-    # -----------------------------------------------------
+    # ==================================
     # Header
-    # -----------------------------------------------------
+    # ==================================
 
     title_font = get_font(
         TITLE_FONT,
         50
     )
 
-    subtitle_font = get_font(
-        SUBTITLE_FONT,
-        23
-    )
-
     title = "شعرکده"
-    subtitle = "( سروش پلاس )"
 
     title_bbox = draw.textbbox(
         (0, 0),
@@ -1105,6 +616,13 @@ def create_poetry_card(
         title_bbox[3]
         - title_bbox[1]
     )
+
+    subtitle_font = get_font(
+        SUBTITLE_FONT,
+        23
+    )
+
+    subtitle = "( سروش پلاس )"
 
     subtitle_bbox = draw.textbbox(
         (0, 0),
@@ -1124,13 +642,15 @@ def create_poetry_card(
 
     title_y = 78
 
-    center_x = CARD_WIDTH // 2
-
-    title_x = (
-        center_x + 10
+    header_center = (
+        CARD_WIDTH // 2
     )
 
     gap = 20
+
+    title_x = (
+        header_center + 10
+    )
 
     subtitle_x = (
         title_x
@@ -1147,9 +667,9 @@ def create_poetry_card(
         - 3
     )
 
-    # -----------------------------------------------------
+    # ==================================
     # Branded Header
-    # -----------------------------------------------------
+    # ==================================
 
     if branded:
 
@@ -1183,6 +703,10 @@ def create_poetry_card(
             fill=palette["subtitle"]
         )
 
+        # ==================================
+        # Header Ornament
+        # ==================================
+
         line_y = (
             title_y
             + title_height
@@ -1190,6 +714,10 @@ def create_poetry_card(
         )
 
         line_width = 150
+
+        center_x = (
+            CARD_WIDTH // 2
+        )
 
         draw.line(
             (
@@ -1199,7 +727,7 @@ def create_poetry_card(
                 line_y
             ),
             fill=palette["ornament"],
-            width=2
+            width=1
         )
 
         draw.line(
@@ -1210,7 +738,7 @@ def create_poetry_card(
                 line_y
             ),
             fill=palette["ornament"],
-            width=2
+            width=1
         )
 
         diamond_size = 5
@@ -1239,9 +767,17 @@ def create_poetry_card(
 
     else:
 
+        # ==================================
+        # Public Card Top Ornament
+        # ==================================
+
         ornament_y = 112
 
         ornament_width = 82
+
+        center_x = (
+            CARD_WIDTH // 2
+        )
 
         draw.line(
             (
@@ -1251,7 +787,7 @@ def create_poetry_card(
                 ornament_y
             ),
             fill=palette["ornament"],
-            width=2
+            width=1
         )
 
         draw.line(
@@ -1262,7 +798,7 @@ def create_poetry_card(
                 ornament_y
             ),
             fill=palette["ornament"],
-            width=2
+            width=1
         )
 
         diamond_size = 4
@@ -1289,24 +825,22 @@ def create_poetry_card(
             fill=palette["accent"]
         )
 
-    # -----------------------------------------------------
+    # ==================================
     # Poem Area
-    # -----------------------------------------------------
+    # ==================================
 
     text_left = 75
     text_right = 1005
 
+    max_width = (
+        text_right - text_left
+    )
+
     text_top = 218
     text_bottom = 895
 
-    max_width = (
-        text_right
-        - text_left
-    )
-
     available_height = (
-        text_bottom
-        - text_top
+        text_bottom - text_top
     )
 
     font_size = 62
@@ -1316,6 +850,10 @@ def create_poetry_card(
     blank_line_spacing = 44
 
     lines = []
+
+    # ==================================
+    # Smart Font Sizing
+    # ==================================
 
     while font_size >= min_font_size:
 
@@ -1345,6 +883,10 @@ def create_poetry_card(
 
         font_size -= 2
 
+    # ==================================
+    # Empty Text Fallback
+    # ==================================
+
     if not lines:
 
         poem_font = get_font(
@@ -1364,9 +906,9 @@ def create_poetry_card(
         blank_line_spacing
     )
 
-    # -----------------------------------------------------
+    # ==================================
     # Glass Panel
-    # -----------------------------------------------------
+    # ==================================
 
     panel_top = max(
         text_top - 38,
@@ -1380,15 +922,16 @@ def create_poetry_card(
 
     panel = Image.new(
         "RGBA",
-        (CARD_WIDTH, CARD_HEIGHT),
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
         (0, 0, 0, 0)
     )
 
     panel_draw = ImageDraw.Draw(
         panel
     )
-
-    # Shadow
 
     panel_draw.rounded_rectangle(
         (
@@ -1400,8 +943,6 @@ def create_poetry_card(
         radius=45,
         fill=(0, 0, 0, 34)
     )
-
-    # Main glass
 
     panel_draw.rounded_rectangle(
         (
@@ -1415,8 +956,6 @@ def create_poetry_card(
         outline=palette["panel_outline"],
         width=1
     )
-
-    # Inner border
 
     panel_draw.rounded_rectangle(
         (
@@ -1435,28 +974,19 @@ def create_poetry_card(
     )
 
     image = Image.alpha_composite(
-        image,
+        image.convert("RGBA"),
         panel
     )
 
-    # -----------------------------------------------------
-    # Panel Tazhib
-    # -----------------------------------------------------
-
-    image = draw_panel_tazhib(
-        image,
-        palette,
-        panel_top,
-        panel_bottom
+    draw = ImageDraw.Draw(
+        image
     )
 
-    draw = ImageDraw.Draw(image)
+    # ==================================
+    # Side Ornaments
+    # ==================================
 
-    # -----------------------------------------------------
-    # Side Details
-    # -----------------------------------------------------
-
-    side_y = (
+    deco_y = (
         text_top
         + available_height // 2
     )
@@ -1464,20 +994,20 @@ def create_poetry_card(
     draw.line(
         (
             79,
-            side_y - 30,
+            deco_y - 30,
             79,
-            side_y + 30
+            deco_y + 30
         ),
         fill=palette["side_line"],
-        width=2
+        width=1
     )
 
     draw.ellipse(
         (
             76,
-            side_y - 3,
+            deco_y - 3,
             82,
-            side_y + 3
+            deco_y + 3
         ),
         fill=palette["side_dot"]
     )
@@ -1485,27 +1015,27 @@ def create_poetry_card(
     draw.line(
         (
             1001,
-            side_y - 30,
+            deco_y - 30,
             1001,
-            side_y + 30
+            deco_y + 30
         ),
         fill=palette["side_line"],
-        width=2
+        width=1
     )
 
     draw.ellipse(
         (
             998,
-            side_y - 3,
+            deco_y - 3,
             1004,
-            side_y + 3
+            deco_y + 3
         ),
         fill=palette["side_dot"]
     )
 
-    # -----------------------------------------------------
+    # ==================================
     # Poem
-    # -----------------------------------------------------
+    # ==================================
 
     y = (
         text_top
@@ -1540,8 +1070,7 @@ def create_poetry_card(
         )
 
         x = (
-            CARD_WIDTH
-            - width
+            CARD_WIDTH - width
         ) // 2
 
         draw.text(
@@ -1559,9 +1088,9 @@ def create_poetry_card(
             + line_spacing
         )
 
-    # -----------------------------------------------------
+    # ==================================
     # Footer
-    # -----------------------------------------------------
+    # ==================================
 
     footer_font = get_font(
         FOOTER_FONT,
@@ -1582,11 +1111,16 @@ def create_poetry_card(
     )
 
     footer_x = (
-        CARD_WIDTH
-        - footer_width
+        CARD_WIDTH - footer_width
     ) // 2
 
-    footer_y = 994
+    footer_y = (
+        CARD_HEIGHT - 86
+    )
+
+    center_x = (
+        CARD_WIDTH // 2
+    )
 
     draw.line(
         (
@@ -1596,7 +1130,7 @@ def create_poetry_card(
             footer_y - 13
         ),
         fill=palette["ornament"],
-        width=2
+        width=1
     )
 
     draw.text(
@@ -1609,9 +1143,9 @@ def create_poetry_card(
         fill=palette["accent"]
     )
 
-    # -----------------------------------------------------
+    # ==================================
     # Save
-    # -----------------------------------------------------
+    # ==================================
 
     filename = "/tmp/poetry_card.png"
 
@@ -1624,9 +1158,9 @@ def create_poetry_card(
     return filename
 
 
-# =========================================================
-# Soroush API
-# =========================================================
+# ==================================
+# Send Message
+# ==================================
 
 def send_message(
     chat_id,
@@ -1644,9 +1178,7 @@ def send_message(
 
         if reply_markup is not None:
 
-            data["reply_markup"] = (
-                reply_markup
-            )
+            data["reply_markup"] = reply_markup
 
         response = requests.post(
             f"{API}/sendMessage",
@@ -1671,6 +1203,10 @@ def send_message(
 
         return None
 
+
+# ==================================
+# Send Photo
+# ==================================
 
 def send_photo(
     chat_id,
@@ -1717,6 +1253,10 @@ def send_photo(
         return None
 
 
+# ==================================
+# Answer Callback Query
+# ==================================
+
 def answer_callback_query(
     callback_query_id
 ):
@@ -1750,9 +1290,9 @@ def answer_callback_query(
         return None
 
 
-# =========================================================
-# Keyboards
-# =========================================================
+# ==================================
+# Card Type Keyboard
+# ==================================
 
 def get_card_type_keyboard():
 
@@ -1773,6 +1313,33 @@ def get_card_type_keyboard():
         ]
     }
 
+
+# ==================================
+# Send Card Type Selection
+# ==================================
+
+def send_card_type_selection(
+    chat_id
+):
+
+    text = (
+        "🖼️ <b>نوع کارت شعر را انتخاب کن:</b>\n\n"
+        "🖋️ با امضای شعرکده\n"
+        "کارت با عنوان و امضای شعرکده ساخته می‌شود.\n\n"
+        "◻️ کارت عمومی\n"
+        "کارت بدون نام و امضای شعرکده ساخته می‌شود."
+    )
+
+    return send_message(
+        chat_id,
+        text,
+        reply_markup=get_card_type_keyboard()
+    )
+
+
+# ==================================
+# Color Keyboard
+# ==================================
 
 def get_color_keyboard():
 
@@ -1824,28 +1391,9 @@ def get_color_keyboard():
     }
 
 
-# =========================================================
-# Messages
-# =========================================================
-
-def send_card_type_selection(
-    chat_id
-):
-
-    text = (
-        "🖼️ <b>نوع کارت شعر را انتخاب کن:</b>\n\n"
-        "🖋️ با امضای شعرکده\n"
-        "کارت با عنوان و امضای شعرکده ساخته می‌شود.\n\n"
-        "◻️ کارت عمومی\n"
-        "کارت بدون نام و امضای شعرکده ساخته می‌شود."
-    )
-
-    return send_message(
-        chat_id,
-        text,
-        reply_markup=get_card_type_keyboard()
-    )
-
+# ==================================
+# Send Color Selection
+# ==================================
 
 def send_color_selection(
     chat_id
@@ -1861,6 +1409,10 @@ def send_color_selection(
         reply_markup=get_color_keyboard()
     )
 
+
+# ==================================
+# Start Message
+# ==================================
 
 def send_start_message(
     chat_id
@@ -1882,6 +1434,10 @@ def send_start_message(
     )
 
 
+# ==================================
+# After Card Message
+# ==================================
+
 def send_after_card_message(
     chat_id
 ):
@@ -1901,9 +1457,9 @@ def send_after_card_message(
     )
 
 
-# =========================================================
-# Callback: Card Type
-# =========================================================
+# ==================================
+# Process Card Type Selection
+# ==================================
 
 def process_card_type_selection(
     update
@@ -1914,14 +1470,14 @@ def process_card_type_selection(
         or {}
     )
 
-    callback_id = (
+    callback_query_id = (
         callback_query.get("id")
     )
 
-    if callback_id:
+    if callback_query_id:
 
         answer_callback_query(
-            callback_id
+            callback_query_id
         )
 
     data = callback_query.get(
@@ -1945,9 +1501,7 @@ def process_card_type_selection(
         or {}
     )
 
-    chat_id = chat.get(
-        "id"
-    )
+    chat_id = chat.get("id")
 
     if not chat_id:
 
@@ -1967,15 +1521,19 @@ def process_card_type_selection(
 
         return "OK", 200
 
-    pending["branded"] = (
-        data == "type_branded"
-    )
+    if data == "type_branded":
+
+        pending["branded"] = True
+
+    else:
+
+        pending["branded"] = False
 
     PENDING_POEMS[chat_id] = pending
 
     print(
-        "Card type selected:",
-        pending["branded"]
+        f"Card type selected: "
+        f"{'branded' if pending['branded'] else 'public'}"
     )
 
     send_color_selection(
@@ -1985,9 +1543,9 @@ def process_card_type_selection(
     return "OK", 200
 
 
-# =========================================================
-# Callback: Color
-# =========================================================
+# ==================================
+# Process Color Selection
+# ==================================
 
 def process_color_selection(
     update
@@ -1998,23 +1556,26 @@ def process_color_selection(
         or {}
     )
 
-    callback_id = (
+    callback_query_id = (
         callback_query.get("id")
     )
 
-    if callback_id:
+    if callback_query_id:
 
         answer_callback_query(
-            callback_id
+            callback_query_id
         )
 
     data = callback_query.get(
         "data"
     )
 
-    if (
-        not data
-        or not data.startswith("color_")
+    if not data:
+
+        return "OK", 200
+
+    if not data.startswith(
+        "color_"
     ):
 
         return "OK", 200
@@ -2029,9 +1590,7 @@ def process_color_selection(
         or {}
     )
 
-    chat_id = chat.get(
-        "id"
-    )
+    chat_id = chat.get("id")
 
     if not chat_id:
 
@@ -2055,8 +1614,9 @@ def process_color_selection(
 
         return "OK", 200
 
-    if not (
-        0 <= palette_index < len(PALETTES)
+    if (
+        palette_index < 0
+        or palette_index >= len(PALETTES)
     ):
 
         send_message(
@@ -2105,13 +1665,13 @@ def process_color_selection(
     ]
 
     print(
-        "Selected palette:",
-        palette["name"]
+        f"Selected palette: "
+        f"{palette['name']}"
     )
 
     print(
-        "Branded card:",
-        branded
+        f"Branded card: "
+        f"{branded}"
     )
 
     try:
@@ -2123,18 +1683,18 @@ def process_color_selection(
         )
 
         print(
-            "Poetry card created:",
-            filename
+            f"Poetry card created: "
+            f"{filename}"
         )
 
-        response = send_photo(
+        photo_response = send_photo(
             chat_id,
             filename
         )
 
         if (
-            response is not None
-            and response.ok
+            photo_response is not None
+            and photo_response.ok
         ):
 
             print(
@@ -2153,7 +1713,8 @@ def process_color_selection(
 
             send_message(
                 chat_id,
-                "❌ ارسال کارت شعر موفق نشد."
+                "✅ کارت ساخته شد، "
+                "اما ارسال تصویر موفق نشد."
             )
 
     except Exception as error:
@@ -2171,9 +1732,9 @@ def process_color_selection(
     return "OK", 200
 
 
-# =========================================================
-# Web
-# =========================================================
+# ==================================
+# Home
+# ==================================
 
 @app.route("/")
 def home():
@@ -2183,6 +1744,10 @@ def home():
         200
     )
 
+
+# ==================================
+# Webhook
+# ==================================
 
 @app.route(
     "/webhook",
@@ -2199,9 +1764,9 @@ def webhook():
         update
     )
 
-    # -----------------------------------------------------
-    # Callback
-    # -----------------------------------------------------
+    # ==================================
+    # Callback Query
+    # ==================================
 
     if update.get(
         "callback_query"
@@ -2236,9 +1801,9 @@ def webhook():
 
         return "OK", 200
 
-    # -----------------------------------------------------
-    # Message
-    # -----------------------------------------------------
+    # ==================================
+    # Normal Message
+    # ==================================
 
     message = (
         update.get("message")
@@ -2266,9 +1831,9 @@ def webhook():
 
         return "OK", 200
 
-    # -----------------------------------------------------
-    # Start
-    # -----------------------------------------------------
+    # ==================================
+    # /start
+    # ==================================
 
     if text == "/start":
 
@@ -2283,18 +1848,20 @@ def webhook():
 
         return "OK", 200
 
-    # -----------------------------------------------------
-    # New poem
-    # -----------------------------------------------------
+    # ==================================
+    # New Poem
+    # ==================================
 
     PENDING_POEMS[chat_id] = {
+
         "poem": text,
+
         "branded": True
     }
 
     print(
-        "Pending poem stored for chat:",
-        chat_id
+        f"Pending poem stored "
+        f"for chat {chat_id}"
     )
 
     send_card_type_selection(
@@ -2304,9 +1871,9 @@ def webhook():
     return "OK", 200
 
 
-# =========================================================
+# ==================================
 # Run
-# =========================================================
+# ==================================
 
 if __name__ == "__main__":
 
