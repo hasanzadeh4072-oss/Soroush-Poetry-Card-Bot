@@ -132,12 +132,10 @@ def load_background_image():
             )
         )
 
-        # Darken
         background = ImageEnhance.Brightness(
             background
         ).enhance(0.48)
 
-        # Blur
         background = background.filter(
             ImageFilter.GaussianBlur(4)
         )
@@ -146,7 +144,6 @@ def load_background_image():
             "RGBA"
         )
 
-        # Opacity
         background.putalpha(42)
 
         CACHED_BACKGROUND = background
@@ -167,7 +164,6 @@ def load_background_image():
         return None
 
 
-# Background is processed only once
 load_background_image()
 
 
@@ -364,7 +360,10 @@ PALETTES = [
 # Fonts
 # ==================================
 
-def get_font(font_name, size):
+def get_font(
+    font_name,
+    size
+):
 
     return ImageFont.truetype(
         font_name,
@@ -376,7 +375,9 @@ def get_font(font_name, size):
 # Background
 # ==================================
 
-def create_gradient_background(palette):
+def create_gradient_background(
+    palette
+):
 
     image = Image.new(
         "RGB",
@@ -392,13 +393,21 @@ def create_gradient_background(palette):
     middle = palette["middle"]
     bottom = palette["bottom"]
 
-    for y in range(CARD_HEIGHT):
+    for y in range(
+        CARD_HEIGHT
+    ):
 
-        ratio = y / (CARD_HEIGHT - 1)
+        ratio = (
+            y
+            / (CARD_HEIGHT - 1)
+        )
 
         if ratio < 0.52:
 
-            t = ratio / 0.52
+            t = (
+                ratio
+                / 0.52
+            )
 
             r = int(
                 top[0] * (1 - t)
@@ -417,7 +426,9 @@ def create_gradient_background(palette):
 
         else:
 
-            t = (ratio - 0.52) / 0.48
+            t = (
+                ratio - 0.52
+            ) / 0.48
 
             r = int(
                 middle[0] * (1 - t)
@@ -434,7 +445,9 @@ def create_gradient_background(palette):
                 + bottom[2] * t
             )
 
-        for x in range(CARD_WIDTH):
+        for x in range(
+            CARD_WIDTH
+        ):
 
             pixels[x, y] = (
                 r,
@@ -477,17 +490,32 @@ def create_gradient_background(palette):
     )
 
     glow_draw.ellipse(
-        (-260, -180, 650, 560),
+        (
+            -260,
+            -180,
+            650,
+            560
+        ),
         fill=palette["glow1"]
     )
 
     glow_draw.ellipse(
-        (690, 690, 1250, 1250),
+        (
+            690,
+            690,
+            1250,
+            1250
+        ),
         fill=palette["glow2"]
     )
 
     glow_draw.ellipse(
-        (250, 350, 850, 950),
+        (
+            250,
+            350,
+            850,
+            950
+        ),
         fill=palette["glow3"]
     )
 
@@ -517,7 +545,9 @@ def create_gradient_background(palette):
 
     random.seed(8)
 
-    for _ in range(14000):
+    for _ in range(
+        14000
+    ):
 
         x = random.randrange(
             CARD_WIDTH
@@ -534,21 +564,28 @@ def create_gradient_background(palette):
             ]
         )
 
-        texture_pixels[x, y] = value
+        texture_pixels[
+            x,
+            y
+        ] = value
 
     image = Image.alpha_composite(
         image,
         texture
     )
 
-    return image.convert("RGB")
+    return image.convert(
+        "RGB"
+    )
 
 
 # ==================================
 # Text Helpers
 # ==================================
 
-def normalize_text(text):
+def normalize_text(
+    text
+):
 
     return text.replace(
         "…",
@@ -575,7 +612,11 @@ def wrap_text(
 
     for word in words[1:]:
 
-        test = current + " " + word
+        test = (
+            current
+            + " "
+            + word
+        )
 
         bbox = draw.textbbox(
             (0, 0),
@@ -990,14 +1031,16 @@ def create_poetry_card(
     text_right = 1005
 
     max_width = (
-        text_right - text_left
+        text_right
+        - text_left
     )
 
     text_top = 218
     text_bottom = 895
 
     available_height = (
-        text_bottom - text_top
+        text_bottom
+        - text_top
     )
 
     font_size = 62
@@ -1227,7 +1270,8 @@ def create_poetry_card(
         )
 
         x = (
-            CARD_WIDTH - width
+            CARD_WIDTH
+            - width
         ) // 2
 
         draw.text(
@@ -1268,7 +1312,8 @@ def create_poetry_card(
     )
 
     footer_x = (
-        CARD_WIDTH - footer_width
+        CARD_WIDTH
+        - footer_width
     ) // 2
 
     footer_y = (
@@ -1306,7 +1351,9 @@ def create_poetry_card(
 
     filename = "/tmp/poetry_card.png"
 
-    image.convert("RGB").save(
+    image.convert(
+        "RGB"
+    ).save(
         filename,
         "PNG",
         optimize=True
@@ -1696,7 +1743,29 @@ def process_card_type_selection(
         or {}
     )
 
-    chat_id = chat.get("id")
+    chat_id = chat.get(
+        "id"
+    )
+
+    # ==================================
+    # Delete Type Selection Message
+    # ==================================
+
+    type_message_id = (
+        callback_message.get(
+            "message_id"
+        )
+    )
+
+    if (
+        chat_id
+        and type_message_id
+    ):
+
+        delete_message(
+            chat_id,
+            type_message_id
+        )
 
     if not chat_id:
 
@@ -1785,7 +1854,29 @@ def process_color_selection(
         or {}
     )
 
-    chat_id = chat.get("id")
+    chat_id = chat.get(
+        "id"
+    )
+
+    # ==================================
+    # Delete Color Selection Message
+    # ==================================
+
+    color_message_id = (
+        callback_message.get(
+            "message_id"
+        )
+    )
+
+    if (
+        chat_id
+        and color_message_id
+    ):
+
+        delete_message(
+            chat_id,
+            color_message_id
+        )
 
     if not chat_id:
 
@@ -2147,4 +2238,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-        )
+)
