@@ -1997,7 +1997,7 @@ def get_color_keyboard():
 
             [
                 {
-                    "text": "🟣 بنفش سلطنتی",
+                    "text": "🟣 سلطنتی",
                     "callback_data": "color_0"
                 },
                 {
@@ -2027,7 +2027,7 @@ def get_color_keyboard():
 
             [
                 {
-                    "text": "🟤 قهوه‌ای شکلاتی",
+                    "text": "🟤 شکلاتی",
                     "callback_data": "color_6"
                 },
                 {
@@ -2709,4 +2709,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+            )
