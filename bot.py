@@ -52,6 +52,10 @@ FOOTER_LINE_WIDTH = 2
 
 PENDING_POEMS = {}
 
+# پیام «کارت شعر شما آماده شد»
+# برای هر کاربر، شناسه آخرین پیام ذخیره می‌شود.
+READY_MESSAGES = {}
+
 
 # ==================================
 # Cached Backgrounds
@@ -261,23 +265,23 @@ PALETTES = [
     },
 
     {
-        "name": "زیتونی تیره",
-        "top": (55, 57, 27),
-        "middle": (35, 37, 20),
-        "bottom": (14, 15, 8),
-        "glow1": (145, 145, 65, 30),
-        "glow2": (105, 110, 45, 20),
-        "glow3": (95, 100, 40, 10),
-        "frame": (174, 151, 79),
-        "frame_inner": (204, 178, 99),
-        "text": (247, 245, 232),
-        "accent": (226, 201, 128),
-        "subtitle": (204, 199, 171),
-        "ornament": (143, 127, 67),
-        "panel_outline": (190, 170, 100, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (195, 175, 100, 75),
-        "side_dot": (215, 190, 110, 100),
+        "name": "کرم",
+        "top": (226, 215, 190),
+        "middle": (211, 196, 166),
+        "bottom": (183, 164, 128),
+        "glow1": (255, 248, 220, 42),
+        "glow2": (190, 155, 100, 22),
+        "glow3": (255, 255, 255, 16),
+        "frame": (92, 70, 43),
+        "frame_inner": (125, 96, 60),
+        "text": (55, 45, 35),
+        "accent": (92, 67, 38),
+        "subtitle": (80, 66, 50),
+        "ornament": (105, 78, 44),
+        "panel_outline": (95, 70, 40, 55),
+        "panel_inner": (255, 255, 255, 65),
+        "side_line": (95, 70, 40, 85),
+        "side_dot": (90, 65, 35, 125),
     },
 
     {
@@ -301,23 +305,43 @@ PALETTES = [
     },
 
     {
-        "name": "قهوه‌ای شکلاتی",
-        "top": (59, 37, 24),
-        "middle": (39, 26, 19),
-        "bottom": (17, 10, 7),
-        "glow1": (170, 110, 60, 32),
-        "glow2": (125, 75, 40, 20),
-        "glow3": (110, 65, 38, 10),
-        "frame": (174, 133, 70),
-        "frame_inner": (202, 166, 98),
-        "text": (249, 243, 232),
-        "accent": (239, 205, 132),
-        "subtitle": (211, 195, 174),
-        "ornament": (145, 105, 62),
-        "panel_outline": (195, 155, 90, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (200, 160, 95, 75),
-        "side_dot": (215, 175, 105, 100),
+        "name": "مه‌آبی",
+        "top": (191, 210, 220),
+        "middle": (169, 193, 207),
+        "bottom": (139, 165, 183),
+        "glow1": (235, 245, 250, 42),
+        "glow2": (125, 160, 185, 22),
+        "glow3": (255, 255, 255, 18),
+        "frame": (48, 67, 82),
+        "frame_inner": (76, 96, 111),
+        "text": (31, 43, 53),
+        "accent": (48, 68, 83),
+        "subtitle": (55, 72, 84),
+        "ornament": (61, 82, 96),
+        "panel_outline": (55, 78, 95, 55),
+        "panel_inner": (255, 255, 255, 65),
+        "side_line": (55, 78, 95, 85),
+        "side_dot": (45, 68, 85, 125),
+    },
+
+    {
+        "name": "مریم‌گلی",
+        "top": (198, 210, 190),
+        "middle": (177, 194, 166),
+        "bottom": (148, 166, 136),
+        "glow1": (238, 245, 225, 42),
+        "glow2": (135, 160, 110, 22),
+        "glow3": (255, 255, 255, 18),
+        "frame": (59, 73, 52),
+        "frame_inner": (88, 104, 77),
+        "text": (38, 50, 34),
+        "accent": (57, 75, 49),
+        "subtitle": (63, 77, 57),
+        "ornament": (69, 87, 57),
+        "panel_outline": (65, 82, 55, 55),
+        "panel_inner": (255, 255, 255, 65),
+        "side_line": (65, 82, 55, 85),
+        "side_dot": (55, 75, 48, 125),
     },
 
     {
@@ -340,25 +364,6 @@ PALETTES = [
         "side_dot": (225, 170, 158, 100),
     },
 
-    {
-        "name": "ذغالی طلایی",
-        "top": (28, 28, 30),
-        "middle": (19, 19, 21),
-        "bottom": (7, 7, 8),
-        "glow1": (190, 145, 70, 25),
-        "glow2": (135, 100, 50, 15),
-        "glow3": (120, 90, 45, 8),
-        "frame": (170, 140, 78),
-        "frame_inner": (198, 165, 98),
-        "text": (247, 244, 235),
-        "accent": (240, 208, 133),
-        "subtitle": (197, 194, 184),
-        "ornament": (140, 115, 68),
-        "panel_outline": (190, 150, 85, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (195, 160, 95, 75),
-        "side_dot": (215, 175, 105, 100),
-    },
 ]
 
 
@@ -882,6 +887,66 @@ def refresh_pending_timeout(
         f"Pending timeout refreshed "
         f"for chat {chat_id}"
     )
+
+
+# ==================================
+# Delete Previous Ready Message
+# ==================================
+
+def delete_previous_ready_message(
+    chat_id
+):
+
+    try:
+
+        message_id = READY_MESSAGES.get(
+            chat_id
+        )
+
+        if not message_id:
+
+            return
+
+        print(
+            f"Deleting previous ready message "
+            f"{message_id} for chat {chat_id}"
+        )
+
+        response = delete_message(
+            chat_id,
+            message_id
+        )
+
+        if (
+            response is not None
+            and response.ok
+        ):
+
+            READY_MESSAGES.pop(
+                chat_id,
+                None
+            )
+
+            print(
+                f"Previous ready message "
+                f"{message_id} deleted."
+            )
+
+        else:
+
+            print(
+                "Previous ready message "
+                "could not be deleted. "
+                "Continuing normally."
+            )
+
+    except Exception as error:
+
+        print(
+            "Previous ready message deletion "
+            "error:",
+            error
+        )
 
 
 # ==================================
@@ -2016,7 +2081,7 @@ def get_color_keyboard():
                     "callback_data": "color_3"
                 },
                 {
-                    "text": "🫒 زیتونی تیره",
+                    "text": "🟡 کرم",
                     "callback_data": "color_4"
                 },
                 {
@@ -2027,7 +2092,7 @@ def get_color_keyboard():
 
             [
                 {
-                    "text": "🟤 شکلاتی",
+                    "text": "🩵 مه‌آبی",
                     "callback_data": "color_6"
                 },
                 {
@@ -2035,7 +2100,7 @@ def get_color_keyboard():
                     "callback_data": "color_7"
                 },
                 {
-                    "text": "⚫ ذغالی طلایی",
+                    "text": "🟢 مریم‌گلی",
                     "callback_data": "color_8"
                 }
             ]
@@ -2491,14 +2556,71 @@ def process_color_selection(
                 time.perf_counter()
             )
 
-            send_after_card_message(
-                chat_id
+            after_card_response = (
+                send_after_card_message(
+                    chat_id
+                )
             )
 
             print(
                 f"[TIMING] Send after-card message: "
                 f"{time.perf_counter() - stage_start:.4f}s"
             )
+
+            # ------------------------------
+            # Save ready message ID
+            # ------------------------------
+
+            if (
+                after_card_response is not None
+                and after_card_response.ok
+            ):
+
+                try:
+
+                    after_card_result = (
+                        after_card_response.json()
+                    )
+
+                    result = (
+                        after_card_result.get(
+                            "result"
+                        )
+                        or {}
+                    )
+
+                    ready_message_id = (
+                        result.get(
+                            "message_id"
+                        )
+                    )
+
+                    if ready_message_id:
+
+                        READY_MESSAGES[
+                            chat_id
+                        ] = ready_message_id
+
+                        print(
+                            f"Ready message saved: "
+                            f"{ready_message_id} "
+                            f"for chat {chat_id}"
+                        )
+
+                    else:
+
+                        print(
+                            "Ready message ID "
+                            "not found. "
+                            "Continuing normally."
+                        )
+
+                except Exception as error:
+
+                    print(
+                        "Ready message parse error:",
+                        error
+                    )
 
         else:
 
@@ -2668,9 +2790,24 @@ def webhook():
 
         return "OK", 200
 
+    # ----------------------------------
+    # حذف پیام قبلی «کارت شما آماده شد»
+    # ----------------------------------
+
+    if text != "/start":
+
+        delete_previous_ready_message(
+            chat_id
+        )
+
     if text == "/start":
 
         PENDING_POEMS.pop(
+            chat_id,
+            None
+        )
+
+        READY_MESSAGES.pop(
             chat_id,
             None
         )
@@ -2709,4 +2846,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-            )
+)
