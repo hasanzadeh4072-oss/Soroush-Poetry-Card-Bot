@@ -3,6 +3,7 @@ import random
 import time
 import threading
 import requests
+import uuid
 
 from flask import Flask, request
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
@@ -53,6 +54,12 @@ FOOTER_LINE_WIDTH = 2
 PENDING_POEMS = {}
 
 READY_MESSAGES = {}
+
+# Lock for shared user state
+STATE_LOCK = threading.RLock()
+
+# Timer belonging to each pending poem
+PENDING_TIMERS = {}
 
 
 # ==================================
@@ -776,7 +783,11 @@ build_cached_card_backgrounds()
 # ==================================
 
 def normalize_text(text):
-    return text.replace("…", "...")
+
+    return text.replace(
+        "…",
+        "..."
+    )
 
 
 def wrap_text(
@@ -797,7 +808,11 @@ def wrap_text(
 
     for word in words[1:]:
 
-        test = current + " " + word
+        test = (
+            current
+            + " "
+            + word
+        )
 
         bbox = draw.textbbox(
             (0, 0),
@@ -805,7 +820,10 @@ def wrap_text(
             font=font
         )
 
-        width = bbox[2] - bbox[0]
+        width = (
+            bbox[2]
+            - bbox[0]
+        )
 
         if width <= max_width:
 
@@ -813,12 +831,17 @@ def wrap_text(
 
         else:
 
-            lines.append(current)
+            lines.append(
+                current
+            )
 
             current = word
 
     if current:
-        lines.append(current)
+
+        lines.append(
+            current
+        )
 
     return lines
 
@@ -867,6 +890,7 @@ def calculate_text_height(
 ):
 
     if not lines:
+
         return 0
 
     total = 0
@@ -885,7 +909,10 @@ def calculate_text_height(
             font=font
         )
 
-        height = bbox[3] - bbox[1]
+        height = (
+            bbox[3]
+            - bbox[1]
+        )
 
         total += (
             height
@@ -910,31 +937,51 @@ def expire_pending_poem(
 
     try:
 
-        pending = PENDING_POEMS.get(
-            chat_id
-        )
+        with STATE_LOCK:
 
-        if not pending:
-            return
-
-        current_created_at = pending.get(
-            "created_at"
-        )
-
-        if current_created_at != created_at:
-            return
-
-        if time.time() - created_at >= PENDING_TIMEOUT:
-
-            PENDING_POEMS.pop(
-                chat_id,
-                None
+            pending = PENDING_POEMS.get(
+                chat_id
             )
 
-            print(
-                f"Pending poem expired "
-                f"for chat {chat_id}"
+            if not pending:
+
+                PENDING_TIMERS.pop(
+                    chat_id,
+                    None
+                )
+
+                return
+
+            current_created_at = (
+                pending.get(
+                    "created_at"
+                )
             )
+
+            if current_created_at != created_at:
+
+                return
+
+            if (
+                time.time()
+                - created_at
+                >= PENDING_TIMEOUT
+            ):
+
+                PENDING_POEMS.pop(
+                    chat_id,
+                    None
+                )
+
+                PENDING_TIMERS.pop(
+                    chat_id,
+                    None
+                )
+
+                print(
+                    f"Pending poem expired "
+                    f"for chat {chat_id}"
+                )
 
     except Exception as error:
 
@@ -944,6 +991,33 @@ def expire_pending_poem(
         )
 
 
+def cancel_pending_timer(
+    chat_id
+):
+
+    timer = None
+
+    with STATE_LOCK:
+
+        timer = PENDING_TIMERS.pop(
+            chat_id,
+            None
+        )
+
+    if timer is not None:
+
+        try:
+
+            timer.cancel()
+
+        except Exception as error:
+
+            print(
+                "Pending timer cancel error:",
+                error
+            )
+
+
 def store_pending_poem(
     chat_id,
     poem
@@ -951,21 +1025,48 @@ def store_pending_poem(
 
     created_at = time.time()
 
-    PENDING_POEMS[chat_id] = {
-        "poem": poem,
-        "branded": True,
-        "created_at": created_at
-    }
+    with STATE_LOCK:
 
-    timer = threading.Timer(
-        PENDING_TIMEOUT,
-        expire_pending_poem,
-        args=(chat_id, created_at)
-    )
+        old_timer = PENDING_TIMERS.pop(
+            chat_id,
+            None
+        )
 
-    timer.daemon = True
+        if old_timer is not None:
 
-    timer.start()
+            try:
+
+                old_timer.cancel()
+
+            except Exception as error:
+
+                print(
+                    "Old pending timer cancel error:",
+                    error
+                )
+
+        PENDING_POEMS[chat_id] = {
+            "poem": poem,
+            "branded": True,
+            "created_at": created_at
+        }
+
+        timer = threading.Timer(
+            PENDING_TIMEOUT,
+            expire_pending_poem,
+            args=(
+                chat_id,
+                created_at
+            )
+        )
+
+        timer.daemon = True
+
+        PENDING_TIMERS[
+            chat_id
+        ] = timer
+
+        timer.start()
 
     print(
         f"Pending poem stored "
@@ -977,28 +1078,56 @@ def refresh_pending_timeout(
     chat_id
 ):
 
-    pending = PENDING_POEMS.get(
-        chat_id
-    )
-
-    if not pending:
-        return
-
     created_at = time.time()
 
-    pending["created_at"] = created_at
+    with STATE_LOCK:
 
-    PENDING_POEMS[chat_id] = pending
+        pending = PENDING_POEMS.get(
+            chat_id
+        )
 
-    timer = threading.Timer(
-        PENDING_TIMEOUT,
-        expire_pending_poem,
-        args=(chat_id, created_at)
-    )
+        if not pending:
 
-    timer.daemon = True
+            return
 
-    timer.start()
+        old_timer = PENDING_TIMERS.pop(
+            chat_id,
+            None
+        )
+
+        if old_timer is not None:
+
+            try:
+
+                old_timer.cancel()
+
+            except Exception as error:
+
+                print(
+                    "Old pending timer cancel error:",
+                    error
+                )
+
+        pending["created_at"] = created_at
+
+        PENDING_POEMS[chat_id] = pending
+
+        timer = threading.Timer(
+            PENDING_TIMEOUT,
+            expire_pending_poem,
+            args=(
+                chat_id,
+                created_at
+            )
+        )
+
+        timer.daemon = True
+
+        PENDING_TIMERS[
+            chat_id
+        ] = timer
+
+        timer.start()
 
     print(
         f"Pending timeout refreshed "
@@ -1016,9 +1145,11 @@ def delete_previous_ready_message(
 
     try:
 
-        message_id = READY_MESSAGES.get(
-            chat_id
-        )
+        with STATE_LOCK:
+
+            message_id = READY_MESSAGES.get(
+                chat_id
+            )
 
         if not message_id:
 
@@ -1039,10 +1170,23 @@ def delete_previous_ready_message(
             and response.ok
         ):
 
-            READY_MESSAGES.pop(
-                chat_id,
-                None
-            )
+            with STATE_LOCK:
+
+                current_message_id = (
+                    READY_MESSAGES.get(
+                        chat_id
+                    )
+                )
+
+                if (
+                    current_message_id
+                    == message_id
+                ):
+
+                    READY_MESSAGES.pop(
+                        chat_id,
+                        None
+                    )
 
             print(
                 f"Previous ready message "
@@ -1098,9 +1242,13 @@ def create_poetry_card(
             palette
         )
 
-    image = image.convert("RGBA")
+    image = image.convert(
+        "RGBA"
+    )
 
-    draw = ImageDraw.Draw(image)
+    draw = ImageDraw.Draw(
+        image
+    )
 
     print(
         f"[TIMING] 01 - Background copy: "
@@ -1249,7 +1397,10 @@ def create_poetry_card(
 
     gap = 20
 
-    title_x = header_center + 10
+    title_x = (
+        header_center
+        + 10
+    )
 
     subtitle_x = (
         title_x
@@ -1620,6 +1771,7 @@ def create_poetry_card(
         )
 
         if total_height <= available_height:
+
             break
 
         font_size -= 2
@@ -1872,7 +2024,13 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    filename = "/tmp/poetry_card.png"
+    # IMPORTANT:
+    # Every card gets its own unique file.
+    filename = (
+        "/tmp/poetry_card_"
+        + uuid.uuid4().hex
+        + ".png"
+    )
 
     image.convert("RGB").save(
         filename,
@@ -1947,7 +2105,10 @@ def send_message(
         }
 
         if reply_markup is not None:
-            data["reply_markup"] = reply_markup
+
+            data["reply_markup"] = (
+                reply_markup
+            )
 
         response = requests.post(
             f"{API}/sendMessage",
@@ -2336,9 +2497,17 @@ def process_card_type_selection(
 
         return "OK", 200
 
-    pending = PENDING_POEMS.get(
-        chat_id
-    )
+    with STATE_LOCK:
+
+        pending = PENDING_POEMS.get(
+            chat_id
+        )
+
+        if pending:
+
+            pending = dict(
+                pending
+            )
 
     if not pending:
 
@@ -2358,7 +2527,29 @@ def process_card_type_selection(
 
         pending["branded"] = False
 
-    PENDING_POEMS[chat_id] = pending
+    with STATE_LOCK:
+
+        # Only update if the same pending item
+        # still exists.
+        current_pending = (
+            PENDING_POEMS.get(
+                chat_id
+            )
+        )
+
+        if current_pending:
+
+            current_pending["branded"] = (
+                pending["branded"]
+            )
+
+            PENDING_POEMS[
+                chat_id
+            ] = current_pending
+
+        else:
+
+            return "OK", 200
 
     refresh_pending_timeout(
         chat_id
@@ -2486,10 +2677,31 @@ def process_color_selection(
 
         return "OK", 200
 
-    pending = PENDING_POEMS.pop(
-        chat_id,
-        None
-    )
+    # Atomically take the pending poem.
+    with STATE_LOCK:
+
+        pending = PENDING_POEMS.pop(
+            chat_id,
+            None
+        )
+
+        pending_timer = PENDING_TIMERS.pop(
+            chat_id,
+            None
+        )
+
+    if pending_timer is not None:
+
+        try:
+
+            pending_timer.cancel()
+
+        except Exception as error:
+
+            print(
+                "Pending timer cancel error:",
+                error
+            )
 
     if not pending:
 
@@ -2578,6 +2790,8 @@ def process_color_selection(
                 "Building message parse error:",
                 error
             )
+
+    filename = None
 
     try:
 
@@ -2675,9 +2889,11 @@ def process_color_selection(
 
                     if ready_message_id:
 
-                        READY_MESSAGES[
-                            chat_id
-                        ] = ready_message_id
+                        with STATE_LOCK:
+
+                            READY_MESSAGES[
+                                chat_id
+                            ] = ready_message_id
 
                         print(
                             f"Ready message saved: "
@@ -2755,6 +2971,32 @@ def process_color_selection(
             chat_id,
             "❌ هنگام ساخت کارت مشکلی پیش آمد."
         )
+
+    finally:
+
+        # IMPORTANT:
+        # Remove the unique temporary file after use.
+        if filename:
+
+            try:
+
+                if os.path.exists(filename):
+
+                    os.remove(
+                        filename
+                    )
+
+                    print(
+                        f"Temporary card file removed: "
+                        f"{filename}"
+                    )
+
+            except Exception as error:
+
+                print(
+                    "Temporary card file cleanup error:",
+                    error
+                )
 
     overall_time = (
         time.perf_counter()
@@ -2880,15 +3122,35 @@ def webhook():
 
         if text == "/start":
 
-            PENDING_POEMS.pop(
-                chat_id,
-                None
-            )
+            with STATE_LOCK:
 
-            READY_MESSAGES.pop(
-                chat_id,
-                None
-            )
+                old_timer = PENDING_TIMERS.pop(
+                    chat_id,
+                    None
+                )
+
+                PENDING_POEMS.pop(
+                    chat_id,
+                    None
+                )
+
+                READY_MESSAGES.pop(
+                    chat_id,
+                    None
+                )
+
+            if old_timer is not None:
+
+                try:
+
+                    old_timer.cancel()
+
+                except Exception as error:
+
+                    print(
+                        "Start timer cancel error:",
+                        error
+                    )
 
             send_start_message(
                 chat_id
@@ -2947,4 +3209,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-        )
+)
