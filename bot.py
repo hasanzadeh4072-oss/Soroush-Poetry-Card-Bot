@@ -271,9 +271,9 @@ def create_gradient_background(palette):
 
         ratio = y / (CARD_HEIGHT - 1)
 
-        if ratio < 0.52:
+        if ratio < 0.50:
 
-            t = ratio / 0.52
+            t = ratio / 0.50
 
             r = int(
                 top[0] * (1 - t)
@@ -292,7 +292,7 @@ def create_gradient_background(palette):
 
         else:
 
-            t = (ratio - 0.52) / 0.48
+            t = (ratio - 0.50) / 0.50
 
             r = int(
                 middle[0] * (1 - t)
@@ -318,7 +318,7 @@ def create_gradient_background(palette):
             )
 
     # ==================================
-    # Soft Glow
+    # Soft Atmospheric Glow
     # ==================================
 
     glow = Image.new(
@@ -334,23 +334,26 @@ def create_gradient_background(palette):
         glow
     )
 
+    # Main upper glow
     glow_draw.ellipse(
-        (-260, -180, 650, 560),
+        (-320, -240, 680, 600),
         fill=palette["glow1"]
     )
 
+    # Lower secondary glow
     glow_draw.ellipse(
-        (690, 690, 1250, 1250),
+        (650, 650, 1280, 1280),
         fill=palette["glow2"]
     )
 
+    # Very soft central atmosphere
     glow_draw.ellipse(
-        (250, 350, 850, 950),
+        (220, 300, 860, 980),
         fill=palette["glow3"]
     )
 
     glow = glow.filter(
-        ImageFilter.GaussianBlur(110)
+        ImageFilter.GaussianBlur(125)
     )
 
     image = Image.alpha_composite(
@@ -359,7 +362,7 @@ def create_gradient_background(palette):
     )
 
     # ==================================
-    # Very subtle texture
+    # Very Subtle Texture
     # ==================================
 
     texture = Image.new(
@@ -375,7 +378,7 @@ def create_gradient_background(palette):
 
     random.seed(8)
 
-    for _ in range(14000):
+    for _ in range(16000):
 
         x = random.randrange(
             CARD_WIDTH
@@ -550,6 +553,238 @@ def calculate_text_height(
 
 
 # ==================================
+# Outer Corner Details
+# ==================================
+
+def draw_outer_corner_details(
+    draw,
+    palette
+):
+
+    """
+    Minimal decorative details for the four
+    outer corners of the main frame.
+
+    The design intentionally stays geometric
+    and restrained; it is not tazhib.
+    """
+
+    color = palette["accent"]
+    secondary = palette["ornament"]
+
+    margin = 40
+
+    # Distance from each corner
+    inset = 18
+
+    # Length of decorative arms
+    arm = 30
+
+    # Small center diamond
+    diamond = 3
+
+    # ----------------------------------
+    # Top-left
+    # ----------------------------------
+
+    x = margin + inset
+    y = margin + inset
+
+    draw.line(
+        (
+            x,
+            y + arm,
+            x,
+            y
+        ),
+        fill=secondary,
+        width=2
+    )
+
+    draw.line(
+        (
+            x,
+            y,
+            x + arm,
+            y
+        ),
+        fill=secondary,
+        width=2
+    )
+
+    draw.line(
+        (
+            x + 7,
+            y + 7,
+            x + 20,
+            y + 20
+        ),
+        fill=color,
+        width=1
+    )
+
+    draw.polygon(
+        [
+            (x + 20, y + 20 - diamond),
+            (x + 20 + diamond, y + 20),
+            (x + 20, y + 20 + diamond),
+            (x + 20 - diamond, y + 20),
+        ],
+        fill=color
+    )
+
+    # ----------------------------------
+    # Top-right
+    # ----------------------------------
+
+    x = CARD_WIDTH - margin - inset
+    y = margin + inset
+
+    draw.line(
+        (
+            x,
+            y + arm,
+            x,
+            y
+        ),
+        fill=secondary,
+        width=2
+    )
+
+    draw.line(
+        (
+            x,
+            y,
+            x - arm,
+            y
+        ),
+        fill=secondary,
+        width=2
+    )
+
+    draw.line(
+        (
+            x - 7,
+            y + 7,
+            x - 20,
+            y + 20
+        ),
+        fill=color,
+        width=1
+    )
+
+    draw.polygon(
+        [
+            (x - 20, y + 20 - diamond),
+            (x - 20 - diamond, y + 20),
+            (x - 20, y + 20 + diamond),
+            (x - 20 + diamond, y + 20),
+        ],
+        fill=color
+    )
+
+    # ----------------------------------
+    # Bottom-left
+    # ----------------------------------
+
+    x = margin + inset
+    y = CARD_HEIGHT - margin - inset
+
+    draw.line(
+        (
+            x,
+            y - arm,
+            x,
+            y
+        ),
+        fill=secondary,
+        width=2
+    )
+
+    draw.line(
+        (
+            x,
+            y,
+            x + arm,
+            y
+        ),
+        fill=secondary,
+        width=2
+    )
+
+    draw.line(
+        (
+            x + 7,
+            y - 7,
+            x + 20,
+            y - 20
+        ),
+        fill=color,
+        width=1
+    )
+
+    draw.polygon(
+        [
+            (x + 20, y - 20 - diamond),
+            (x + 20 + diamond, y - 20),
+            (x + 20, y - 20 + diamond),
+            (x + 20 - diamond, y - 20),
+        ],
+        fill=color
+    )
+
+    # ----------------------------------
+    # Bottom-right
+    # ----------------------------------
+
+    x = CARD_WIDTH - margin - inset
+    y = CARD_HEIGHT - margin - inset
+
+    draw.line(
+        (
+            x,
+            y - arm,
+            x,
+            y
+        ),
+        fill=secondary,
+        width=2
+    )
+
+    draw.line(
+        (
+            x,
+            y,
+            x - arm,
+            y
+        ),
+        fill=secondary,
+        width=2
+    )
+
+    draw.line(
+        (
+            x - 7,
+            y - 7,
+            x - 20,
+            y - 20
+        ),
+        fill=color,
+        width=1
+    )
+
+    draw.polygon(
+        [
+            (x - 20, y - 20 - diamond),
+            (x - 20 - diamond, y - 20),
+            (x - 20, y - 20 + diamond),
+            (x - 20 + diamond, y - 20),
+        ],
+        fill=color
+    )
+
+
+# ==================================
 # Create Poetry Card
 # ==================================
 
@@ -583,6 +818,15 @@ def create_poetry_card(
         radius=42,
         outline=palette["frame"],
         width=OUTER_FRAME_WIDTH
+    )
+
+    # ==================================
+    # Outer Corner Details
+    # ==================================
+
+    draw_outer_corner_details(
+        draw,
+        palette
     )
 
     # ==================================
@@ -653,13 +897,13 @@ def create_poetry_card(
         - subtitle_bbox[1]
     )
 
-    title_y = 78
+    title_y = 77
 
     header_center = (
         CARD_WIDTH // 2
     )
 
-    gap = 20
+    gap = 18
 
     title_x = (
         header_center + 10
@@ -686,6 +930,7 @@ def create_poetry_card(
 
     if branded:
 
+        # Very subtle title shadow
         draw.text(
             (
                 title_x + 2,
@@ -693,7 +938,7 @@ def create_poetry_card(
             ),
             title,
             font=title_font,
-            fill=(0, 0, 0, 80)
+            fill=(0, 0, 0)
         )
 
         draw.text(
@@ -723,10 +968,10 @@ def create_poetry_card(
         line_y = (
             title_y
             + title_height
-            + 25
+            + 23
         )
 
-        line_width = 150
+        line_width = 145
 
         center_x = (
             CARD_WIDTH // 2
@@ -736,7 +981,7 @@ def create_poetry_card(
             (
                 center_x - line_width,
                 line_y,
-                center_x - 12,
+                center_x - 13,
                 line_y
             ),
             fill=palette["ornament"],
@@ -745,7 +990,7 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 12,
+                center_x + 13,
                 line_y,
                 center_x + line_width,
                 line_y
@@ -842,15 +1087,15 @@ def create_poetry_card(
     # Poem Area
     # ==================================
 
-    text_left = 75
-    text_right = 1005
+    text_left = 78
+    text_right = 1002
 
     max_width = (
         text_right - text_left
     )
 
-    text_top = 218
-    text_bottom = 895
+    text_top = 220
+    text_bottom = 892
 
     available_height = (
         text_bottom - text_top
@@ -859,8 +1104,8 @@ def create_poetry_card(
     font_size = 62
     min_font_size = 28
 
-    line_spacing = 16
-    blank_line_spacing = 44
+    line_spacing = 15
+    blank_line_spacing = 42
 
     lines = []
 
@@ -946,17 +1191,19 @@ def create_poetry_card(
         panel
     )
 
+    # Soft panel shadow
     panel_draw.rounded_rectangle(
         (
             62,
-            panel_top + 4,
+            panel_top + 5,
             1018,
-            panel_bottom + 6
+            panel_bottom + 7
         ),
         radius=45,
-        fill=(0, 0, 0, 34)
+        fill=(0, 0, 0, 30)
     )
 
+    # Main glass surface
     panel_draw.rounded_rectangle(
         (
             62,
@@ -965,11 +1212,12 @@ def create_poetry_card(
             panel_bottom
         ),
         radius=45,
-        fill=(255, 255, 255, 14),
+        fill=(255, 255, 255, 13),
         outline=palette["panel_outline"],
         width=PANEL_OUTLINE_WIDTH
     )
 
+    # Inner glass edge
     panel_draw.rounded_rectangle(
         (
             72,
@@ -1007,9 +1255,9 @@ def create_poetry_card(
     draw.line(
         (
             79,
-            deco_y - 30,
+            deco_y - 28,
             79,
-            deco_y + 30
+            deco_y + 28
         ),
         fill=palette["side_line"],
         width=SIDE_LINE_WIDTH
@@ -1028,9 +1276,9 @@ def create_poetry_card(
     draw.line(
         (
             1001,
-            deco_y - 30,
+            deco_y - 28,
             1001,
-            deco_y + 30
+            deco_y + 28
         ),
         fill=palette["side_line"],
         width=SIDE_LINE_WIDTH
@@ -1137,9 +1385,9 @@ def create_poetry_card(
 
     draw.line(
         (
-            center_x - 35,
+            center_x - 34,
             footer_y - 13,
-            center_x + 35,
+            center_x + 34,
             footer_y - 13
         ),
         fill=palette["ornament"],
@@ -1900,7 +2148,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
-
-
-
+        )
