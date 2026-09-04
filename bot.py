@@ -24,6 +24,8 @@ CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
 POEM_FONT = "BNazanin.ttf"
+POEM_FALLBACK_FONT = "Vazirmatn-Regular.ttf"
+
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
@@ -84,7 +86,6 @@ def monitoring_request_started():
         TOTAL_REQUESTS += 1
 
         if ACTIVE_REQUESTS > MAX_ACTIVE_REQUESTS:
-
             MAX_ACTIVE_REQUESTS = ACTIVE_REQUESTS
 
         current_active = ACTIVE_REQUESTS
@@ -113,21 +114,16 @@ def monitoring_request_finished(
     with MONITOR_LOCK:
 
         if ACTIVE_REQUESTS > 0:
-
             ACTIVE_REQUESTS -= 1
 
         TOTAL_REQUEST_TIME += elapsed
 
         if elapsed > MAX_REQUEST_TIME:
-
             MAX_REQUEST_TIME = elapsed
 
         if successful:
-
             SUCCESSFUL_REQUESTS += 1
-
         else:
-
             FAILED_REQUESTS += 1
 
         current_active = ACTIVE_REQUESTS
@@ -481,6 +477,7 @@ PALETTES = [
         "side_line": (73, 96, 62, 85),
         "side_dot": (62, 84, 52, 125),
     },
+
 ]
 
 
@@ -506,6 +503,56 @@ def get_font(
         )
 
     return FONT_CACHE[key]
+
+
+# ==================================
+# Keyboard Character Fallback
+# ==================================
+
+# کاراکترهای معمول کیبورد که در صورت مشکل در
+# BNazanin بهتر است با فونت پشتیبان رندر شوند.
+KEYBOARD_SYMBOLS = set(
+    r'''!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~'''
+    + "،؛؟٪٫٬«»‹›"
+)
+
+
+def line_needs_fallback(text):
+    """
+    اگر خط شامل علائم معمول کیبورد باشد،
+    برای جلوگیری از حذف یا خراب شدن Glyph ها،
+    خط با فونت پشتیبان رندر می‌شود.
+    """
+
+    for char in text:
+
+        if char in KEYBOARD_SYMBOLS:
+
+            return True
+
+    return False
+
+
+def get_poem_font(
+    text,
+    size
+):
+
+    if line_needs_fallback(text):
+
+        print(
+            f"[FONT] Fallback font used for line: {text}"
+        )
+
+        return get_font(
+            POEM_FALLBACK_FONT,
+            size
+        )
+
+    return get_font(
+        POEM_FONT,
+        size
+    )
 
 
 # ==================================
@@ -697,8 +744,7 @@ def create_gradient_background(
         )
 
         texture_pixels[
-            x,
-            y
+            x, y
         ] = value
 
     image = Image.alpha_composite(
@@ -776,7 +822,11 @@ build_cached_card_backgrounds()
 # ==================================
 
 def normalize_text(text):
-    return text.replace("…", "...")
+
+    return text.replace(
+        "…",
+        "..."
+    )
 
 
 def wrap_text(
@@ -805,7 +855,10 @@ def wrap_text(
             font=font
         )
 
-        width = bbox[2] - bbox[0]
+        width = (
+            bbox[2]
+            - bbox[0]
+        )
 
         if width <= max_width:
 
@@ -813,12 +866,16 @@ def wrap_text(
 
         else:
 
-            lines.append(current)
+            lines.append(
+                current
+            )
 
             current = word
 
     if current:
-        lines.append(current)
+        lines.append(
+            current
+        )
 
     return lines
 
@@ -830,7 +887,9 @@ def prepare_poem_lines(
     max_width
 ):
 
-    text = normalize_text(text)
+    text = normalize_text(
+        text
+    )
 
     raw_lines = text.splitlines()
 
@@ -840,7 +899,9 @@ def prepare_poem_lines(
 
         if not line.strip():
 
-            final_lines.append(None)
+            final_lines.append(
+                None
+            )
 
             continue
 
@@ -885,7 +946,10 @@ def calculate_text_height(
             font=font
         )
 
-        height = bbox[3] - bbox[1]
+        height = (
+            bbox[3]
+            - bbox[1]
+        )
 
         total += (
             height
@@ -960,7 +1024,10 @@ def store_pending_poem(
     timer = threading.Timer(
         PENDING_TIMEOUT,
         expire_pending_poem,
-        args=(chat_id, created_at)
+        args=(
+            chat_id,
+            created_at
+        )
     )
 
     timer.daemon = True
@@ -993,7 +1060,10 @@ def refresh_pending_timeout(
     timer = threading.Timer(
         PENDING_TIMEOUT,
         expire_pending_poem,
-        args=(chat_id, created_at)
+        args=(
+            chat_id,
+            created_at
+        )
     )
 
     timer.daemon = True
@@ -1021,7 +1091,6 @@ def delete_previous_ready_message(
         )
 
         if not message_id:
-
             return
 
         print(
@@ -1098,9 +1167,13 @@ def create_poetry_card(
             palette
         )
 
-    image = image.convert("RGBA")
+    image = image.convert(
+        "RGBA"
+    )
 
-    draw = ImageDraw.Draw(image)
+    draw = ImageDraw.Draw(
+        image
+    )
 
     print(
         f"[TIMING] 01 - Background copy: "
@@ -1620,6 +1693,7 @@ def create_poetry_card(
         )
 
         if total_height <= available_height:
+
             break
 
         font_size -= 2
@@ -1814,10 +1888,18 @@ def create_poetry_card(
 
             continue
 
+        # فونت اصلی برای شعرهای عادی.
+        # اگر خط شامل علائم معمول کیبورد باشد،
+        # فونت پشتیبان استفاده می‌شود.
+        current_poem_font = get_poem_font(
+            line,
+            font_size
+        )
+
         bbox = draw.textbbox(
             (0, 0),
             line,
-            font=poem_font
+            font=current_poem_font
         )
 
         width = (
@@ -1841,7 +1923,7 @@ def create_poetry_card(
                 y
             ),
             line,
-            font=poem_font,
+            font=current_poem_font,
             fill=palette["text"]
         )
 
@@ -1910,18 +1992,22 @@ def create_poetry_card(
 
     print("")
     print("========== CARD TIMING ==========")
+
     print(
         f"[TIMING] CREATE CARD TOTAL: "
         f"{total_time:.4f}s"
     )
+
     print(
         f"[TIMING] Palette: "
         f"{palette['name']}"
     )
+
     print(
         f"[TIMING] Branded: "
         f"{branded}"
     )
+
     print("=================================")
     print("")
 
@@ -1947,6 +2033,7 @@ def send_message(
         }
 
         if reply_markup is not None:
+
             data["reply_markup"] = reply_markup
 
         response = requests.post(
@@ -2317,7 +2404,9 @@ def process_card_type_selection(
         or {}
     )
 
-    chat_id = chat.get("id")
+    chat_id = chat.get(
+        "id"
+    )
 
     type_message_id = (
         callback_message.get(
@@ -2430,7 +2519,9 @@ def process_color_selection(
         or {}
     )
 
-    chat_id = chat.get("id")
+    chat_id = chat.get(
+        "id"
+    )
 
     color_message_id = (
         callback_message.get(
@@ -2763,11 +2854,16 @@ def process_color_selection(
 
     print("")
     print("======= COLOR SELECTION TOTAL =======")
+
     print(
         f"[TIMING] Total color click -> finished: "
         f"{overall_time:.4f}s"
     )
-    print("=====================================")
+
+    print(
+        "====================================="
+    )
+
     print("")
 
     return "OK", 200
