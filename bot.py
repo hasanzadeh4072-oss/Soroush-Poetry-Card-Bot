@@ -1,5 +1,7 @@
 import os
 import random
+import time
+import threading
 import requests
 
 from flask import Flask, request
@@ -28,6 +30,9 @@ FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
 BACKGROUND_IMAGE = "background.jpg"
 
+# مدت اعتبار هر مرحله
+PENDING_TIMEOUT = 120
+
 
 # ==================================
 # Line Thickness
@@ -50,11 +55,21 @@ PENDING_POEMS = {}
 
 
 # ==================================
-# Cached Background
+# Cached Backgrounds
 # ==================================
 
 CACHED_BACKGROUND = None
 
+# پس‌زمینه کامل و آماده برای هر ۹ رنگ
+CACHED_CARD_BACKGROUNDS = {}
+
+# Cache فونت‌ها
+FONT_CACHE = {}
+
+
+# ==================================
+# Load Original Background
+# ==================================
 
 def load_background_image():
 
@@ -162,9 +177,6 @@ def load_background_image():
         )
 
         return None
-
-
-load_background_image()
 
 
 # ==================================
@@ -365,10 +377,19 @@ def get_font(
     size
 ):
 
-    return ImageFont.truetype(
+    key = (
         font_name,
         size
     )
+
+    if key not in FONT_CACHE:
+
+        FONT_CACHE[key] = ImageFont.truetype(
+            font_name,
+            size
+        )
+
+    return FONT_CACHE[key]
 
 
 # ==================================
@@ -379,15 +400,27 @@ def create_gradient_background(
     palette
 ):
 
-    image = Image.new(
+    # ==================================
+    # Fast Vertical Gradient
+    # ==================================
+    #
+    # قبلاً برای هر سطر، ۱۰۸۰ پیکسل
+    # جداگانه محاسبه می‌شد.
+    #
+    # حالا فقط یک ستون ۱۰۸۰ پیکسلی
+    # ساخته می‌شود و سپس افقی گسترش
+    # پیدا می‌کند.
+    #
+
+    gradient = Image.new(
         "RGB",
         (
-            CARD_WIDTH,
+            1,
             CARD_HEIGHT
         )
     )
 
-    pixels = image.load()
+    pixels = gradient.load()
 
     top = palette["top"]
     middle = palette["middle"]
@@ -445,15 +478,22 @@ def create_gradient_background(
                 + bottom[2] * t
             )
 
-        for x in range(
-            CARD_WIDTH
-        ):
+        pixels[
+            0,
+            y
+        ] = (
+            r,
+            g,
+            b
+        )
 
-            pixels[x, y] = (
-                r,
-                g,
-                b
-            )
+    image = gradient.resize(
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
+        Image.Resampling.NEAREST
+    )
 
     # ==================================
     # Cached Background Image
@@ -543,21 +583,21 @@ def create_gradient_background(
 
     texture_pixels = texture.load()
 
-    random.seed(8)
+    random_generator = random.Random(8)
 
     for _ in range(
         14000
     ):
 
-        x = random.randrange(
+        x = random_generator.randrange(
             CARD_WIDTH
         )
 
-        y = random.randrange(
+        y = random_generator.randrange(
             CARD_HEIGHT
         )
 
-        value = random.choice(
+        value = random_generator.choice(
             [
                 (255, 255, 255, 3),
                 (0, 0, 0, 4)
@@ -577,6 +617,58 @@ def create_gradient_background(
     return image.convert(
         "RGB"
     )
+
+
+# ==================================
+# Build All Cached Card Backgrounds
+# ==================================
+
+def build_cached_card_backgrounds():
+
+    global CACHED_CARD_BACKGROUNDS
+
+    print(
+        "Building cached card backgrounds..."
+    )
+
+    start_time = time.time()
+
+    CACHED_CARD_BACKGROUNDS = {}
+
+    for palette in PALETTES:
+
+        palette_name = palette["name"]
+
+        print(
+            f"Preparing background: "
+            f"{palette_name}"
+        )
+
+        CACHED_CARD_BACKGROUNDS[
+            palette_name
+        ] = create_gradient_background(
+            palette
+        )
+
+    elapsed = time.time() - start_time
+
+    print(
+        "All card backgrounds cached."
+    )
+
+    print(
+        f"Background cache build time: "
+        f"{elapsed:.2f} seconds"
+    )
+
+
+# ==================================
+# Initialize Caches
+# ==================================
+
+load_background_image()
+
+build_cached_card_backgrounds()
 
 
 # ==================================
@@ -735,6 +827,132 @@ def calculate_text_height(
 
 
 # ==================================
+# Pending Poem Timeout
+# ==================================
+
+def expire_pending_poem(
+    chat_id,
+    created_at
+):
+
+    try:
+
+        pending = PENDING_POEMS.get(
+            chat_id
+        )
+
+        if not pending:
+
+            return
+
+        current_created_at = pending.get(
+            "created_at"
+        )
+
+        # اگر این تایمر متعلق به درخواست
+        # قدیمی باشد، نباید درخواست جدید
+        # را حذف کند.
+        if current_created_at != created_at:
+
+            return
+
+        if (
+            time.time()
+            - created_at
+            >= PENDING_TIMEOUT
+        ):
+
+            PENDING_POEMS.pop(
+                chat_id,
+                None
+            )
+
+            print(
+                f"Pending poem expired "
+                f"for chat {chat_id}"
+            )
+
+    except Exception as error:
+
+        print(
+            "Pending poem expiration error:",
+            error
+        )
+
+
+def store_pending_poem(
+    chat_id,
+    poem
+):
+
+    created_at = time.time()
+
+    PENDING_POEMS[chat_id] = {
+
+        "poem": poem,
+
+        "branded": True,
+
+        "created_at": created_at
+    }
+
+    timer = threading.Timer(
+        PENDING_TIMEOUT,
+        expire_pending_poem,
+        args=(
+            chat_id,
+            created_at
+        )
+    )
+
+    timer.daemon = True
+
+    timer.start()
+
+    print(
+        f"Pending poem stored "
+        f"for chat {chat_id}"
+    )
+
+
+def refresh_pending_timeout(
+    chat_id
+):
+
+    pending = PENDING_POEMS.get(
+        chat_id
+    )
+
+    if not pending:
+
+        return
+
+    created_at = time.time()
+
+    pending["created_at"] = created_at
+
+    PENDING_POEMS[chat_id] = pending
+
+    timer = threading.Timer(
+        PENDING_TIMEOUT,
+        expire_pending_poem,
+        args=(
+            chat_id,
+            created_at
+        )
+    )
+
+    timer.daemon = True
+
+    timer.start()
+
+    print(
+        f"Pending timeout refreshed "
+        f"for chat {chat_id}"
+    )
+
+
+# ==================================
 # Create Poetry Card
 # ==================================
 
@@ -744,8 +962,29 @@ def create_poetry_card(
     branded=True
 ):
 
-    image = create_gradient_background(
-        palette
+    # ==================================
+    # Use Cached Background
+    # ==================================
+
+    cached_background = (
+        CACHED_CARD_BACKGROUNDS.get(
+            palette["name"]
+        )
+    )
+
+    if cached_background is not None:
+
+        image = cached_background.copy()
+
+    else:
+
+        # فقط در صورت بروز مشکل در Cache
+        image = create_gradient_background(
+            palette
+        )
+
+    image = image.convert(
+        "RGBA"
     )
 
     draw = ImageDraw.Draw(
@@ -1356,7 +1595,7 @@ def create_poetry_card(
     ).save(
         filename,
         "PNG",
-        optimize=True
+        compress_level=1
     )
 
     return filename
@@ -1795,6 +2034,14 @@ def process_card_type_selection(
 
     PENDING_POEMS[chat_id] = pending
 
+    # ==================================
+    # شروع ۲ دقیقه جدید برای انتخاب رنگ
+    # ==================================
+
+    refresh_pending_timeout(
+        chat_id
+    )
+
     print(
         f"Card type selected: "
         f"{'branded' if pending['branded'] else 'public'}"
@@ -1911,6 +2158,10 @@ def process_color_selection(
         )
 
         return "OK", 200
+
+    # ==================================
+    # حذف شعر از حافظه
+    # ==================================
 
     pending = PENDING_POEMS.pop(
         chat_id,
@@ -2203,16 +2454,9 @@ def webhook():
     # New Poem
     # ==================================
 
-    PENDING_POEMS[chat_id] = {
-
-        "poem": text,
-
-        "branded": True
-    }
-
-    print(
-        f"Pending poem stored "
-        f"for chat {chat_id}"
+    store_pending_poem(
+        chat_id,
+        text
     )
 
     send_card_type_selection(
@@ -2238,4 +2482,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+    )
