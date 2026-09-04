@@ -509,49 +509,298 @@ def get_font(
 # Keyboard Character Fallback
 # ==================================
 
-# کاراکترهای معمول کیبورد که در صورت مشکل در
-# BNazanin بهتر است با فونت پشتیبان رندر شوند.
 KEYBOARD_SYMBOLS = set(
     r'''!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~'''
     + "،؛؟٪٫٬«»‹›"
 )
 
 
-def line_needs_fallback(text):
+def is_keyboard_symbol(char):
+
+    return char in KEYBOARD_SYMBOLS
+
+
+def split_text_for_fallback(text):
+
     """
-    اگر خط شامل علائم معمول کیبورد باشد،
-    برای جلوگیری از حذف یا خراب شدن Glyph ها،
-    خط با فونت پشتیبان رندر می‌شود.
+    متن را به بخش‌های متوالی تقسیم می‌کند.
+
+    مثال:
+
+        سلام؟ خوبی
+
+    تبدیل می‌شود به:
+
+        ("text", "سلام")
+        ("symbol", "؟")
+        ("text", " خوبی")
+
+    بنابراین فقط خود علامت با فونت جایگزین
+    نوشته می‌شود و کل جمله تغییر فونت نمی‌دهد.
     """
+
+    if not text:
+
+        return []
+
+    parts = []
+
+    current_type = None
+    current_text = ""
 
     for char in text:
 
-        if char in KEYBOARD_SYMBOLS:
+        if is_keyboard_symbol(char):
 
-            return True
+            char_type = "symbol"
 
-    return False
+        else:
+
+            char_type = "text"
+
+        if (
+            current_type is not None
+            and char_type != current_type
+        ):
+
+            parts.append(
+                (
+                    current_type,
+                    current_text
+                )
+            )
+
+            current_text = ""
+
+        current_type = char_type
+        current_text += char
+
+    if current_text:
+
+        parts.append(
+            (
+                current_type,
+                current_text
+            )
+        )
+
+    return parts
 
 
-def get_poem_font(
-    text,
-    size
+def get_symbol_font_size(
+    base_font_size,
+    symbol
 ):
 
-    if line_needs_fallback(text):
+    """
+    اندازه فونت علامت را کمی با فونت اصلی
+    هماهنگ می‌کند.
 
-        print(
-            f"[FONT] Fallback font used for line: {text}"
+    فونت جایگزین در همان اندازه اسمی BNazanin
+    الزاماً از نظر ارتفاع ظاهری هم‌اندازه نیست.
+
+    برای جلوگیری از بزرگ دیده شدن علائم،
+    اندازه آن یک پله کوچک‌تر می‌شود.
+    """
+
+    if symbol in (
+        ".",
+        ",",
+        ":",
+        ";",
+        "،",
+        "؛",
+        "٫",
+        "٬"
+    ):
+
+        adjustment = 5
+
+    elif symbol in (
+        "?",
+        "؟",
+        "!",
+        "؟",
+        "#",
+        "%",
+        "&",
+        "*",
+        "+",
+        "=",
+        "/",
+        "\\",
+        "|",
+        "_",
+        "~",
+        "@",
+        "^",
+        "$"
+    ):
+
+        adjustment = 4
+
+    else:
+
+        adjustment = 3
+
+    return max(
+        18,
+        base_font_size - adjustment
+    )
+
+
+def get_text_parts_metrics(
+    draw,
+    text,
+    base_font_size
+):
+
+    """
+    عرض و ارتفاع واقعی متن ترکیبی را محاسبه می‌کند
+    بدون اینکه فونت کل جمله را عوض کند.
+    """
+
+    parts = split_text_for_fallback(
+        text
+    )
+
+    total_width = 0
+    max_height = 0
+
+    metrics = []
+
+    for part_type, part_text in parts:
+
+        if part_type == "text":
+
+            font = get_font(
+                POEM_FONT,
+                base_font_size
+            )
+
+        else:
+
+            symbol = part_text[0]
+
+            symbol_size = get_symbol_font_size(
+                base_font_size,
+                symbol
+            )
+
+            font = get_font(
+                POEM_FALLBACK_FONT,
+                symbol_size
+            )
+
+        bbox = draw.textbbox(
+            (0, 0),
+            part_text,
+            font=font
         )
 
-        return get_font(
-            POEM_FALLBACK_FONT,
-            size
+        width = (
+            bbox[2]
+            - bbox[0]
         )
 
-    return get_font(
-        POEM_FONT,
-        size
+        height = (
+            bbox[3]
+            - bbox[1]
+        )
+
+        total_width += width
+
+        if height > max_height:
+            max_height = height
+
+        metrics.append(
+            {
+                "type": part_type,
+                "text": part_text,
+                "font": font,
+                "bbox": bbox,
+                "width": width,
+                "height": height
+            }
+        )
+
+    return (
+        total_width,
+        max_height,
+        metrics
+    )
+
+
+def draw_mixed_text(
+    draw,
+    text,
+    x,
+    y,
+    base_font_size,
+    fill
+):
+
+    """
+    متن را به صورت ترکیبی رسم می‌کند:
+
+    - متن فارسی/لاتین با BNazanin
+    - فقط علائم کیبورد با Vazirmatn
+
+    به این ترتیب دیگر وجود یک علامت مثل # یا ؟
+    باعث تغییر فونت کل جمله نمی‌شود.
+    """
+
+    (
+        total_width,
+        max_height,
+        metrics
+    ) = get_text_parts_metrics(
+        draw,
+        text,
+        base_font_size
+    )
+
+    current_x = x
+
+    for item in metrics:
+
+        part_type = item["type"]
+        part_text = item["text"]
+        font = item["font"]
+        bbox = item["bbox"]
+        part_width = item["width"]
+
+        draw_y = y
+
+        if part_type == "symbol":
+
+            symbol_height = (
+                bbox[3]
+                - bbox[1]
+            )
+
+            vertical_adjust = (
+                max_height
+                - symbol_height
+            ) // 2
+
+            draw_y += vertical_adjust
+
+        draw.text(
+            (
+                current_x,
+                draw_y
+            ),
+            part_text,
+            font=font,
+            fill=fill
+        )
+
+        current_x += part_width
+
+    return (
+        total_width,
+        max_height
     )
 
 
@@ -829,6 +1078,25 @@ def normalize_text(text):
     )
 
 
+def get_mixed_text_width(
+    draw,
+    text,
+    font_size
+):
+
+    (
+        width,
+        height,
+        metrics
+    ) = get_text_parts_metrics(
+        draw,
+        text,
+        font_size
+    )
+
+    return width
+
+
 def wrap_text(
     draw,
     text,
@@ -845,19 +1113,20 @@ def wrap_text(
 
     current = words[0]
 
+    base_font_size = getattr(
+        font,
+        "size",
+        62
+    )
+
     for word in words[1:]:
 
         test = current + " " + word
 
-        bbox = draw.textbbox(
-            (0, 0),
+        width = get_mixed_text_width(
+            draw,
             test,
-            font=font
-        )
-
-        width = (
-            bbox[2]
-            - bbox[0]
+            base_font_size
         )
 
         if width <= max_width:
@@ -873,6 +1142,7 @@ def wrap_text(
             current = word
 
     if current:
+
         lines.append(
             current
         )
@@ -930,6 +1200,12 @@ def calculate_text_height(
     if not lines:
         return 0
 
+    base_font_size = getattr(
+        font,
+        "size",
+        62
+    )
+
     total = 0
 
     for line in lines:
@@ -940,15 +1216,14 @@ def calculate_text_height(
 
             continue
 
-        bbox = draw.textbbox(
-            (0, 0),
+        (
+            width,
+            height,
+            metrics
+        ) = get_text_parts_metrics(
+            draw,
             line,
-            font=font
-        )
-
-        height = (
-            bbox[3]
-            - bbox[1]
+            base_font_size
         )
 
         total += (
@@ -1888,47 +2163,31 @@ def create_poetry_card(
 
             continue
 
-        # فونت اصلی برای شعرهای عادی.
-        # اگر خط شامل علائم معمول کیبورد باشد،
-        # فونت پشتیبان استفاده می‌شود.
-        current_poem_font = get_poem_font(
+        (
+            line_width,
+            line_height
+        ) = get_text_parts_metrics(
+            draw,
             line,
             font_size
-        )
-
-        bbox = draw.textbbox(
-            (0, 0),
-            line,
-            font=current_poem_font
-        )
-
-        width = (
-            bbox[2]
-            - bbox[0]
-        )
-
-        height = (
-            bbox[3]
-            - bbox[1]
-        )
+        )[:2]
 
         x = (
             CARD_WIDTH
-            - width
+            - line_width
         ) // 2
 
-        draw.text(
-            (
-                x,
-                y
-            ),
+        draw_mixed_text(
+            draw,
             line,
-            font=current_poem_font,
-            fill=palette["text"]
+            x,
+            y,
+            font_size,
+            palette["text"]
         )
 
         y += (
-            height
+            line_height
             + line_spacing
         )
 
@@ -3043,4 +3302,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-        )
+    )
