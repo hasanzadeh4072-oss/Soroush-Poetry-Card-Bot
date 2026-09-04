@@ -30,7 +30,6 @@ FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
 BACKGROUND_IMAGE = "background.jpg"
 
-# مدت اعتبار هر مرحله
 PENDING_TIMEOUT = 120
 
 
@@ -59,11 +58,7 @@ PENDING_POEMS = {}
 # ==================================
 
 CACHED_BACKGROUND = None
-
-# پس‌زمینه کامل و آماده برای هر ۹ رنگ
 CACHED_CARD_BACKGROUNDS = {}
-
-# Cache فونت‌ها
 FONT_CACHE = {}
 
 
@@ -364,7 +359,6 @@ PALETTES = [
         "side_line": (195, 160, 95, 75),
         "side_dot": (215, 175, 105, 100),
     },
-
 ]
 
 
@@ -399,18 +393,6 @@ def get_font(
 def create_gradient_background(
     palette
 ):
-
-    # ==================================
-    # Fast Vertical Gradient
-    # ==================================
-    #
-    # قبلاً برای هر سطر، ۱۰۸۰ پیکسل
-    # جداگانه محاسبه می‌شد.
-    #
-    # حالا فقط یک ستون ۱۰۸۰ پیکسلی
-    # ساخته می‌شود و سپس افقی گسترش
-    # پیدا می‌کند.
-    #
 
     gradient = Image.new(
         "RGB",
@@ -495,10 +477,6 @@ def create_gradient_background(
         Image.Resampling.NEAREST
     )
 
-    # ==================================
-    # Cached Background Image
-    # ==================================
-
     if CACHED_BACKGROUND is not None:
 
         image = Image.alpha_composite(
@@ -511,10 +489,6 @@ def create_gradient_background(
         image = image.convert(
             "RGBA"
         )
-
-    # ==================================
-    # Soft Glow
-    # ==================================
 
     glow = Image.new(
         "RGBA",
@@ -567,10 +541,6 @@ def create_gradient_background(
         image,
         glow
     )
-
-    # ==================================
-    # Very subtle texture
-    # ==================================
 
     texture = Image.new(
         "RGBA",
@@ -631,7 +601,7 @@ def build_cached_card_backgrounds():
         "Building cached card backgrounds..."
     )
 
-    start_time = time.time()
+    start_time = time.perf_counter()
 
     CACHED_CARD_BACKGROUNDS = {}
 
@@ -644,13 +614,21 @@ def build_cached_card_backgrounds():
             f"{palette_name}"
         )
 
+        palette_start = time.perf_counter()
+
         CACHED_CARD_BACKGROUNDS[
             palette_name
         ] = create_gradient_background(
             palette
         )
 
-    elapsed = time.time() - start_time
+        print(
+            f"[TIMING] Background "
+            f"{palette_name}: "
+            f"{time.perf_counter() - palette_start:.4f}s"
+        )
+
+    elapsed = time.perf_counter() - start_time
 
     print(
         "All card backgrounds cached."
@@ -658,7 +636,7 @@ def build_cached_card_backgrounds():
 
     print(
         f"Background cache build time: "
-        f"{elapsed:.2f} seconds"
+        f"{elapsed:.4f} seconds"
     )
 
 
@@ -675,27 +653,15 @@ build_cached_card_backgrounds()
 # Text Helpers
 # ==================================
 
-def normalize_text(
-    text
-):
-
-    return text.replace(
-        "…",
-        "..."
-    )
+def normalize_text(text):
+    return text.replace("…", "...")
 
 
-def wrap_text(
-    draw,
-    text,
-    font,
-    max_width
-):
+def wrap_text(draw, text, font, max_width):
 
     words = text.split()
 
     if not words:
-
         return []
 
     lines = []
@@ -704,11 +670,7 @@ def wrap_text(
 
     for word in words[1:]:
 
-        test = (
-            current
-            + " "
-            + word
-        )
+        test = current + " " + word
 
         bbox = draw.textbbox(
             (0, 0),
@@ -716,10 +678,7 @@ def wrap_text(
             font=font
         )
 
-        width = (
-            bbox[2]
-            - bbox[0]
-        )
+        width = bbox[2] - bbox[0]
 
         if width <= max_width:
 
@@ -727,17 +686,12 @@ def wrap_text(
 
         else:
 
-            lines.append(
-                current
-            )
+            lines.append(current)
 
             current = word
 
     if current:
-
-        lines.append(
-            current
-        )
+        lines.append(current)
 
     return lines
 
@@ -749,9 +703,7 @@ def prepare_poem_lines(
     max_width
 ):
 
-    text = normalize_text(
-        text
-    )
+    text = normalize_text(text)
 
     raw_lines = text.splitlines()
 
@@ -761,9 +713,7 @@ def prepare_poem_lines(
 
         if not line.strip():
 
-            final_lines.append(
-                None
-            )
+            final_lines.append(None)
 
             continue
 
@@ -790,7 +740,6 @@ def calculate_text_height(
 ):
 
     if not lines:
-
         return 0
 
     total = 0
@@ -809,10 +758,7 @@ def calculate_text_height(
             font=font
         )
 
-        height = (
-            bbox[3]
-            - bbox[1]
-        )
+        height = bbox[3] - bbox[1]
 
         total += (
             height
@@ -842,25 +788,16 @@ def expire_pending_poem(
         )
 
         if not pending:
-
             return
 
         current_created_at = pending.get(
             "created_at"
         )
 
-        # اگر این تایمر متعلق به درخواست
-        # قدیمی باشد، نباید درخواست جدید
-        # را حذف کند.
         if current_created_at != created_at:
-
             return
 
-        if (
-            time.time()
-            - created_at
-            >= PENDING_TIMEOUT
-        ):
+        if time.time() - created_at >= PENDING_TIMEOUT:
 
             PENDING_POEMS.pop(
                 chat_id,
@@ -888,21 +825,15 @@ def store_pending_poem(
     created_at = time.time()
 
     PENDING_POEMS[chat_id] = {
-
         "poem": poem,
-
         "branded": True,
-
         "created_at": created_at
     }
 
     timer = threading.Timer(
         PENDING_TIMEOUT,
         expire_pending_poem,
-        args=(
-            chat_id,
-            created_at
-        )
+        args=(chat_id, created_at)
     )
 
     timer.daemon = True
@@ -924,7 +855,6 @@ def refresh_pending_timeout(
     )
 
     if not pending:
-
         return
 
     created_at = time.time()
@@ -936,10 +866,7 @@ def refresh_pending_timeout(
     timer = threading.Timer(
         PENDING_TIMEOUT,
         expire_pending_poem,
-        args=(
-            chat_id,
-            created_at
-        )
+        args=(chat_id, created_at)
     )
 
     timer.daemon = True
@@ -962,14 +889,16 @@ def create_poetry_card(
     branded=True
 ):
 
-    # ==================================
-    # Use Cached Background
-    # ==================================
+    total_start = time.perf_counter()
 
-    cached_background = (
-        CACHED_CARD_BACKGROUNDS.get(
-            palette["name"]
-        )
+    # ------------------------------
+    # 1. Background
+    # ------------------------------
+
+    stage_start = time.perf_counter()
+
+    cached_background = CACHED_CARD_BACKGROUNDS.get(
+        palette["name"]
     )
 
     if cached_background is not None:
@@ -978,22 +907,24 @@ def create_poetry_card(
 
     else:
 
-        # فقط در صورت بروز مشکل در Cache
         image = create_gradient_background(
             palette
         )
 
-    image = image.convert(
-        "RGBA"
+    image = image.convert("RGBA")
+
+    draw = ImageDraw.Draw(image)
+
+    print(
+        f"[TIMING] 01 - Background copy: "
+        f"{time.perf_counter() - stage_start:.4f}s"
     )
 
-    draw = ImageDraw.Draw(
-        image
-    )
+    # ------------------------------
+    # 2. Outer frame
+    # ------------------------------
 
-    # ==================================
-    # Outer Frame
-    # ==================================
+    stage_start = time.perf_counter()
 
     margin = 40
 
@@ -1009,9 +940,16 @@ def create_poetry_card(
         width=OUTER_FRAME_WIDTH
     )
 
-    # ==================================
-    # Inner Frame
-    # ==================================
+    print(
+        f"[TIMING] 02 - Outer frame: "
+        f"{time.perf_counter() - stage_start:.4f}s"
+    )
+
+    # ------------------------------
+    # 3. Inner frame
+    # ------------------------------
+
+    stage_start = time.perf_counter()
 
     inner_margin = 49
 
@@ -1027,9 +965,16 @@ def create_poetry_card(
         width=INNER_FRAME_WIDTH
     )
 
-    # ==================================
-    # Header
-    # ==================================
+    print(
+        f"[TIMING] 03 - Inner frame: "
+        f"{time.perf_counter() - stage_start:.4f}s"
+    )
+
+    # ------------------------------
+    # 4. Header
+    # ------------------------------
+
+    stage_start = time.perf_counter()
 
     title_font = get_font(
         TITLE_FONT,
@@ -1079,15 +1024,11 @@ def create_poetry_card(
 
     title_y = 78
 
-    header_center = (
-        CARD_WIDTH // 2
-    )
+    header_center = CARD_WIDTH // 2
 
     gap = 20
 
-    title_x = (
-        header_center + 10
-    )
+    title_x = header_center + 10
 
     subtitle_x = (
         title_x
@@ -1103,10 +1044,6 @@ def create_poetry_card(
         ) // 2
         - 3
     )
-
-    # ==================================
-    # Branded Header
-    # ==================================
 
     if branded:
 
@@ -1140,10 +1077,6 @@ def create_poetry_card(
             fill=palette["subtitle"]
         )
 
-        # ==================================
-        # Header Ornament
-        # ==================================
-
         line_y = (
             title_y
             + title_height
@@ -1152,9 +1085,7 @@ def create_poetry_card(
 
         line_width = 150
 
-        center_x = (
-            CARD_WIDTH // 2
-        )
+        center_x = CARD_WIDTH // 2
 
         draw.line(
             (
@@ -1204,17 +1135,11 @@ def create_poetry_card(
 
     else:
 
-        # ==================================
-        # Public Card Top Ornament
-        # ==================================
-
         ornament_y = 112
 
         ornament_width = 82
 
-        center_x = (
-            CARD_WIDTH // 2
-        )
+        center_x = CARD_WIDTH // 2
 
         draw.line(
             (
@@ -1262,9 +1187,16 @@ def create_poetry_card(
             fill=palette["accent"]
         )
 
-    # ==================================
-    # Poem Area
-    # ==================================
+    print(
+        f"[TIMING] 04 - Header: "
+        f"{time.perf_counter() - stage_start:.4f}s"
+    )
+
+    # ------------------------------
+    # 5. Text wrapping / font sizing
+    # ------------------------------
+
+    stage_start = time.perf_counter()
 
     text_left = 75
     text_right = 1005
@@ -1283,18 +1215,20 @@ def create_poetry_card(
     )
 
     font_size = 62
+
     min_font_size = 28
 
     line_spacing = 16
+
     blank_line_spacing = 44
 
     lines = []
 
-    # ==================================
-    # Smart Font Sizing
-    # ==================================
+    font_iterations = 0
 
     while font_size >= min_font_size:
+
+        font_iterations += 1
 
         poem_font = get_font(
             POEM_FONT,
@@ -1317,14 +1251,9 @@ def create_poetry_card(
         )
 
         if total_height <= available_height:
-
             break
 
         font_size -= 2
-
-    # ==================================
-    # Empty Text Fallback
-    # ==================================
 
     if not lines:
 
@@ -1345,9 +1274,19 @@ def create_poetry_card(
         blank_line_spacing
     )
 
-    # ==================================
-    # Glass Panel
-    # ==================================
+    print(
+        f"[TIMING] 05 - Text preparation: "
+        f"{time.perf_counter() - stage_start:.4f}s "
+        f"| font={font_size} "
+        f"| iterations={font_iterations} "
+        f"| lines={len(lines)}"
+    )
+
+    # ------------------------------
+    # 6. Glass panel
+    # ------------------------------
+
+    stage_start = time.perf_counter()
 
     panel_top = max(
         text_top - 38,
@@ -1421,9 +1360,16 @@ def create_poetry_card(
         image
     )
 
-    # ==================================
-    # Side Ornaments
-    # ==================================
+    print(
+        f"[TIMING] 06 - Glass panel: "
+        f"{time.perf_counter() - stage_start:.4f}s"
+    )
+
+    # ------------------------------
+    # 7. Side ornaments
+    # ------------------------------
+
+    stage_start = time.perf_counter()
 
     deco_y = (
         text_top
@@ -1472,9 +1418,16 @@ def create_poetry_card(
         fill=palette["side_dot"]
     )
 
-    # ==================================
-    # Poem
-    # ==================================
+    print(
+        f"[TIMING] 07 - Side ornaments: "
+        f"{time.perf_counter() - stage_start:.4f}s"
+    )
+
+    # ------------------------------
+    # 8. Poem drawing
+    # ------------------------------
+
+    stage_start = time.perf_counter()
 
     y = (
         text_top
@@ -1528,9 +1481,16 @@ def create_poetry_card(
             + line_spacing
         )
 
-    # ==================================
-    # Footer
-    # ==================================
+    print(
+        f"[TIMING] 08 - Poem drawing: "
+        f"{time.perf_counter() - stage_start:.4f}s"
+    )
+
+    # ------------------------------
+    # 9. Footer
+    # ------------------------------
+
+    stage_start = time.perf_counter()
 
     footer_font = get_font(
         FOOTER_FONT,
@@ -1555,13 +1515,9 @@ def create_poetry_card(
         - footer_width
     ) // 2
 
-    footer_y = (
-        CARD_HEIGHT - 86
-    )
+    footer_y = CARD_HEIGHT - 86
 
-    center_x = (
-        CARD_WIDTH // 2
-    )
+    center_x = CARD_WIDTH // 2
 
     draw.line(
         (
@@ -1584,19 +1540,73 @@ def create_poetry_card(
         fill=palette["accent"]
     )
 
-    # ==================================
-    # Save
-    # ==================================
+    print(
+        f"[TIMING] 09 - Footer: "
+        f"{time.perf_counter() - stage_start:.4f}s"
+    )
+
+    # ------------------------------
+    # 10. PNG save
+    # ------------------------------
+
+    stage_start = time.perf_counter()
 
     filename = "/tmp/poetry_card.png"
 
-    image.convert(
-        "RGB"
-    ).save(
+    image.convert("RGB").save(
         filename,
         "PNG",
         compress_level=1
     )
+
+    save_time = (
+        time.perf_counter()
+        - stage_start
+    )
+
+    file_size = 0
+
+    try:
+
+        file_size = (
+            os.path.getsize(filename)
+            / 1024
+        )
+
+    except Exception:
+        pass
+
+    print(
+        f"[TIMING] 10 - PNG save: "
+        f"{save_time:.4f}s "
+        f"| size={file_size:.1f} KB"
+    )
+
+    # ------------------------------
+    # Total
+    # ------------------------------
+
+    total_time = (
+        time.perf_counter()
+        - total_start
+    )
+
+    print("")
+    print("========== CARD TIMING ==========")
+    print(
+        f"[TIMING] CREATE CARD TOTAL: "
+        f"{total_time:.4f}s"
+    )
+    print(
+        f"[TIMING] Palette: "
+        f"{palette['name']}"
+    )
+    print(
+        f"[TIMING] Branded: "
+        f"{branded}"
+    )
+    print("=================================")
+    print("")
 
     return filename
 
@@ -1620,7 +1630,6 @@ def send_message(
         }
 
         if reply_markup is not None:
-
             data["reply_markup"] = reply_markup
 
         response = requests.post(
@@ -1782,13 +1791,15 @@ def get_card_type_keyboard():
             [
                 {
                     "text": "🖋️ با امضای شعرکده",
-                    "callback_data": "type_branded"
+                    "callback_data":
+                        "type_branded"
                 }
             ],
             [
                 {
                     "text": "◻️ کارت عمومی، بدون امضا",
-                    "callback_data": "type_public"
+                    "callback_data":
+                        "type_public"
                 }
             ]
         ]
@@ -1826,6 +1837,7 @@ def get_color_keyboard():
 
     return {
         "inline_keyboard": [
+
             [
                 {
                     "text": "🟣 بنفش سلطنتی",
@@ -1840,6 +1852,7 @@ def get_color_keyboard():
                     "callback_data": "color_2"
                 }
             ],
+
             [
                 {
                     "text": "🟢 سبز زمردی",
@@ -1854,6 +1867,7 @@ def get_color_keyboard():
                     "callback_data": "color_5"
                 }
             ],
+
             [
                 {
                     "text": "🟤 قهوه‌ای شکلاتی",
@@ -1868,6 +1882,7 @@ def get_color_keyboard():
                     "callback_data": "color_8"
                 }
             ]
+
         ]
     }
 
@@ -1982,13 +1997,7 @@ def process_card_type_selection(
         or {}
     )
 
-    chat_id = chat.get(
-        "id"
-    )
-
-    # ==================================
-    # Delete Type Selection Message
-    # ==================================
+    chat_id = chat.get("id")
 
     type_message_id = (
         callback_message.get(
@@ -1996,10 +2005,7 @@ def process_card_type_selection(
         )
     )
 
-    if (
-        chat_id
-        and type_message_id
-    ):
+    if chat_id and type_message_id:
 
         delete_message(
             chat_id,
@@ -2034,10 +2040,6 @@ def process_card_type_selection(
 
     PENDING_POEMS[chat_id] = pending
 
-    # ==================================
-    # شروع ۲ دقیقه جدید برای انتخاب رنگ
-    # ==================================
-
     refresh_pending_timeout(
         chat_id
     )
@@ -2062,6 +2064,8 @@ def process_color_selection(
     update
 ):
 
+    overall_start = time.perf_counter()
+
     callback_query = (
         update.get("callback_query")
         or {}
@@ -2073,8 +2077,15 @@ def process_color_selection(
 
     if callback_query_id:
 
+        stage_start = time.perf_counter()
+
         answer_callback_query(
             callback_query_id
+        )
+
+        print(
+            f"[TIMING] answerCallbackQuery: "
+            f"{time.perf_counter() - stage_start:.4f}s"
         )
 
     data = callback_query.get(
@@ -2085,9 +2096,7 @@ def process_color_selection(
 
         return "OK", 200
 
-    if not data.startswith(
-        "color_"
-    ):
+    if not data.startswith("color_"):
 
         return "OK", 200
 
@@ -2101,13 +2110,7 @@ def process_color_selection(
         or {}
     )
 
-    chat_id = chat.get(
-        "id"
-    )
-
-    # ==================================
-    # Delete Color Selection Message
-    # ==================================
+    chat_id = chat.get("id")
 
     color_message_id = (
         callback_message.get(
@@ -2115,14 +2118,18 @@ def process_color_selection(
         )
     )
 
-    if (
-        chat_id
-        and color_message_id
-    ):
+    if chat_id and color_message_id:
+
+        stage_start = time.perf_counter()
 
         delete_message(
             chat_id,
             color_message_id
+        )
+
+        print(
+            f"[TIMING] Delete color message: "
+            f"{time.perf_counter() - stage_start:.4f}s"
         )
 
     if not chat_id:
@@ -2158,10 +2165,6 @@ def process_color_selection(
         )
 
         return "OK", 200
-
-    # ==================================
-    # حذف شعر از حافظه
-    # ==================================
 
     pending = PENDING_POEMS.pop(
         chat_id,
@@ -2211,13 +2214,20 @@ def process_color_selection(
         f"{branded}"
     )
 
-    # ==================================
-    # Show Building Message
-    # ==================================
+    # ------------------------------
+    # Send building message
+    # ------------------------------
+
+    stage_start = time.perf_counter()
 
     building_response = send_message(
         chat_id,
         "⏳ <b>کارت شعر در حال ساخت است...</b>"
+    )
+
+    print(
+        f"[TIMING] Send building message: "
+        f"{time.perf_counter() - stage_start:.4f}s"
     )
 
     building_message_id = None
@@ -2234,9 +2244,7 @@ def process_color_selection(
             )
 
             result = (
-                building_result.get(
-                    "result"
-                )
+                building_result.get("result")
                 or {}
             )
 
@@ -2253,6 +2261,10 @@ def process_color_selection(
 
     try:
 
+        # ------------------------------
+        # Create card
+        # ------------------------------
+
         filename = create_poetry_card(
             poem,
             palette,
@@ -2264,9 +2276,25 @@ def process_color_selection(
             f"{filename}"
         )
 
+        # ------------------------------
+        # Send photo
+        # ------------------------------
+
+        stage_start = time.perf_counter()
+
         photo_response = send_photo(
             chat_id,
             filename
+        )
+
+        photo_time = (
+            time.perf_counter()
+            - stage_start
+        )
+
+        print(
+            f"[TIMING] sendPhoto: "
+            f"{photo_time:.4f}s"
         )
 
         if (
@@ -2278,19 +2306,41 @@ def process_color_selection(
                 "Poetry card sent successfully."
             )
 
-            # ==================================
-            # Delete Building Message
-            # ==================================
+            # ------------------------------
+            # Delete building message
+            # ------------------------------
 
             if building_message_id:
+
+                stage_start = (
+                    time.perf_counter()
+                )
 
                 delete_message(
                     chat_id,
                     building_message_id
                 )
 
+                print(
+                    f"[TIMING] Delete building message: "
+                    f"{time.perf_counter() - stage_start:.4f}s"
+                )
+
+            # ------------------------------
+            # Send after-card message
+            # ------------------------------
+
+            stage_start = (
+                time.perf_counter()
+            )
+
             send_after_card_message(
                 chat_id
+            )
+
+            print(
+                f"[TIMING] Send after-card message: "
+                f"{time.perf_counter() - stage_start:.4f}s"
             )
 
         else:
@@ -2301,9 +2351,18 @@ def process_color_selection(
 
             if building_message_id:
 
+                stage_start = (
+                    time.perf_counter()
+                )
+
                 delete_message(
                     chat_id,
                     building_message_id
+                )
+
+                print(
+                    f"[TIMING] Delete building message: "
+                    f"{time.perf_counter() - stage_start:.4f}s"
                 )
 
             send_message(
@@ -2321,15 +2380,42 @@ def process_color_selection(
 
         if building_message_id:
 
+            stage_start = (
+                time.perf_counter()
+            )
+
             delete_message(
                 chat_id,
                 building_message_id
+            )
+
+            print(
+                f"[TIMING] Delete building message: "
+                f"{time.perf_counter() - stage_start:.4f}s"
             )
 
         send_message(
             chat_id,
             "❌ هنگام ساخت کارت مشکلی پیش آمد."
         )
+
+    # ------------------------------
+    # Overall timing
+    # ------------------------------
+
+    overall_time = (
+        time.perf_counter()
+        - overall_start
+    )
+
+    print("")
+    print("======= COLOR SELECTION TOTAL =======")
+    print(
+        f"[TIMING] Total color click -> finished: "
+        f"{overall_time:.4f}s"
+    )
+    print("=====================================")
+    print("")
 
     return "OK", 200
 
@@ -2366,10 +2452,6 @@ def webhook():
         update
     )
 
-    # ==================================
-    # Callback Query
-    # ==================================
-
     if update.get(
         "callback_query"
     ):
@@ -2403,10 +2485,6 @@ def webhook():
 
         return "OK", 200
 
-    # ==================================
-    # Normal Message
-    # ==================================
-
     message = (
         update.get("message")
         or {}
@@ -2433,10 +2511,6 @@ def webhook():
 
         return "OK", 200
 
-    # ==================================
-    # /start
-    # ==================================
-
     if text == "/start":
 
         PENDING_POEMS.pop(
@@ -2449,10 +2523,6 @@ def webhook():
         )
 
         return "OK", 200
-
-    # ==================================
-    # New Poem
-    # ==================================
 
     store_pending_poem(
         chat_id,
@@ -2482,4 +2552,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
+)
