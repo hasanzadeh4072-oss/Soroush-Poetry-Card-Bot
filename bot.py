@@ -976,216 +976,115 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    title_font = get_font(
-        TITLE_FONT,
-        50
-    )
-
-    title = "شعرکده"
-
-    title_bbox = draw.textbbox(
-        (0, 0),
-        title,
-        font=title_font
-    )
-
-    title_width = (
-        title_bbox[2]
-        - title_bbox[0]
-    )
-
-    title_height = (
-        title_bbox[3]
-        - title_bbox[1]
-    )
-
-    subtitle_font = get_font(
-        SUBTITLE_FONT,
+    # عنوان کوچک بالای کارت
+    header_font = get_font(
+        FOOTER_FONT,
         23
     )
 
-    subtitle = "( سروش پلاس )"
+    header = "کارت شعر"
 
-    subtitle_bbox = draw.textbbox(
+    header_bbox = draw.textbbox(
         (0, 0),
-        subtitle,
-        font=subtitle_font
+        header,
+        font=header_font
     )
 
-    subtitle_width = (
-        subtitle_bbox[2]
-        - subtitle_bbox[0]
+    header_width = (
+        header_bbox[2]
+        - header_bbox[0]
     )
 
-    subtitle_height = (
-        subtitle_bbox[3]
-        - subtitle_bbox[1]
+    header_height = (
+        header_bbox[3]
+        - header_bbox[1]
     )
 
-    title_y = 78
+    center_x = CARD_WIDTH // 2
 
-    header_center = CARD_WIDTH // 2
-
-    gap = 20
-
-    title_x = header_center + 10
-
-    subtitle_x = (
-        title_x
-        - subtitle_width
-        - gap
+    header_x = (
+        center_x
+        - header_width // 2
     )
 
-    subtitle_y = (
-        title_y
-        + (
-            title_height
-            - subtitle_height
-        ) // 2
-        - 3
+    header_y = 76
+
+    # سایه بسیار ظریف
+    draw.text(
+        (
+            header_x + 2,
+            header_y + 2
+        ),
+        header,
+        font=header_font,
+        fill=(0, 0, 0, 65)
     )
 
-    if branded:
+    # عنوان اصلی کوچک
+    draw.text(
+        (
+            header_x,
+            header_y
+        ),
+        header,
+        font=header_font,
+        fill=palette["accent"]
+    )
 
-        draw.text(
+    # تزئین ظریف زیر عنوان
+    line_y = (
+        header_y
+        + header_height
+        + 19
+    )
+
+    line_width = 82
+
+    draw.line(
+        (
+            center_x - line_width,
+            line_y,
+            center_x - 10,
+            line_y
+        ),
+        fill=palette["ornament"],
+        width=ORNAMENT_LINE_WIDTH
+    )
+
+    draw.line(
+        (
+            center_x + 10,
+            line_y,
+            center_x + line_width,
+            line_y
+        ),
+        fill=palette["ornament"],
+        width=ORNAMENT_LINE_WIDTH
+    )
+
+    diamond_size = 4
+
+    draw.polygon(
+        [
             (
-                title_x + 2,
-                title_y + 3
+                center_x,
+                line_y - diamond_size
             ),
-            title,
-            font=title_font,
-            fill=(0, 0, 0, 80)
-        )
-
-        draw.text(
             (
-                title_x,
-                title_y
-            ),
-            title,
-            font=title_font,
-            fill=palette["accent"]
-        )
-
-        draw.text(
-            (
-                subtitle_x,
-                subtitle_y
-            ),
-            subtitle,
-            font=subtitle_font,
-            fill=palette["subtitle"]
-        )
-
-        line_y = (
-            title_y
-            + title_height
-            + 25
-        )
-
-        line_width = 150
-
-        center_x = CARD_WIDTH // 2
-
-        draw.line(
-            (
-                center_x - line_width,
-                line_y,
-                center_x - 12,
+                center_x + diamond_size,
                 line_y
             ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        draw.line(
             (
-                center_x + 12,
-                line_y,
-                center_x + line_width,
+                center_x,
+                line_y + diamond_size
+            ),
+            (
+                center_x - diamond_size,
                 line_y
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        diamond_size = 5
-
-        draw.polygon(
-            [
-                (
-                    center_x,
-                    line_y - diamond_size
-                ),
-                (
-                    center_x + diamond_size,
-                    line_y
-                ),
-                (
-                    center_x,
-                    line_y + diamond_size
-                ),
-                (
-                    center_x - diamond_size,
-                    line_y
-                )
-            ],
-            fill=palette["accent"]
-        )
-
-    else:
-
-        ornament_y = 112
-
-        ornament_width = 82
-
-        center_x = CARD_WIDTH // 2
-
-        draw.line(
-            (
-                center_x - ornament_width,
-                ornament_y,
-                center_x - 14,
-                ornament_y
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        draw.line(
-            (
-                center_x + 14,
-                ornament_y,
-                center_x + ornament_width,
-                ornament_y
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        diamond_size = 4
-
-        draw.polygon(
-            [
-                (
-                    center_x,
-                    ornament_y - diamond_size
-                ),
-                (
-                    center_x + diamond_size,
-                    ornament_y
-                ),
-                (
-                    center_x,
-                    ornament_y + diamond_size
-                ),
-                (
-                    center_x - diamond_size,
-                    ornament_y
-                )
-            ],
-            fill=palette["accent"]
-        )
+            )
+        ],
+        fill=palette["accent"]
+    )
 
     print(
         f"[TIMING] 04 - Header: "
@@ -1492,53 +1391,69 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    footer_font = get_font(
-        FOOTER_FONT,
-        23
-    )
+    # فقط کارت‌های امضادار، «شعرکده» را پایین نشان می‌دهند
+    if branded:
 
-    footer = "کارت شعر"
+        footer_font = get_font(
+            TITLE_FONT,
+            36
+        )
 
-    footer_bbox = draw.textbbox(
-        (0, 0),
-        footer,
-        font=footer_font
-    )
+        footer = "شعرکده"
 
-    footer_width = (
-        footer_bbox[2]
-        - footer_bbox[0]
-    )
+        footer_bbox = draw.textbbox(
+            (0, 0),
+            footer,
+            font=footer_font
+        )
 
-    footer_x = (
-        CARD_WIDTH
-        - footer_width
-    ) // 2
+        footer_width = (
+            footer_bbox[2]
+            - footer_bbox[0]
+        )
 
-    footer_y = CARD_HEIGHT - 86
+        footer_x = (
+            CARD_WIDTH
+            - footer_width
+        ) // 2
 
-    center_x = CARD_WIDTH // 2
+        footer_y = CARD_HEIGHT - 88
 
-    draw.line(
-        (
-            center_x - 35,
-            footer_y - 13,
-            center_x + 35,
-            footer_y - 13
-        ),
-        fill=palette["ornament"],
-        width=FOOTER_LINE_WIDTH
-    )
+        center_x = CARD_WIDTH // 2
 
-    draw.text(
-        (
-            footer_x,
-            footer_y
-        ),
-        footer,
-        font=footer_font,
-        fill=palette["accent"]
-    )
+        # خط ظریف بالای امضا
+        draw.line(
+            (
+                center_x - 45,
+                footer_y - 14,
+                center_x + 45,
+                footer_y - 14
+            ),
+            fill=palette["ornament"],
+            width=FOOTER_LINE_WIDTH
+        )
+
+        # سایه بسیار ظریف
+        draw.text(
+            (
+                footer_x + 2,
+                footer_y + 3
+            ),
+            footer,
+            font=footer_font,
+            fill=(0, 0, 0, 75)
+        )
+
+        # امضای شعرکده
+        draw.text(
+            (
+                footer_x,
+                footer_y
+            ),
+            footer,
+            font=footer_font,
+            fill=palette["accent"]
+        )
 
     print(
         f"[TIMING] 09 - Footer: "
@@ -2552,4 +2467,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+    )
