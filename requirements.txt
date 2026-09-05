@@ -4,5 +4,4 @@ pillow
 gunicorn
 arabic-reshaper
 python-bidi
-
-
+cairosvg
