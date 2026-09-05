@@ -4,6 +4,8 @@ import time
 import threading
 import requests
 import uuid
+import io
+import cairosvg
 
 from flask import Flask, request
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
@@ -29,7 +31,21 @@ TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
-BACKGROUND_IMAGE = "background.jpg"
+
+# ==================================
+# SVG Background
+# ==================================
+
+BACKGROUND_SVG_URL = (
+    "https://raw.githubusercontent.com/"
+    "hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/"
+    "be5859ec92836a14ef0ef28d82ca6c161959cb26/"
+    "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
+)
+
+# SVG is rendered at high resolution before being
+# resized/cropped to the final 1080x1080 card.
+BACKGROUND_RENDER_SIZE = 2160
 
 PENDING_TIMEOUT = 120
 
@@ -55,10 +71,8 @@ PENDING_POEMS = {}
 
 READY_MESSAGES = {}
 
-# Lock for shared user state
 STATE_LOCK = threading.RLock()
 
-# Timer belonging to each pending poem
 PENDING_TIMERS = {}
 
 
@@ -180,27 +194,48 @@ FONT_CACHE = {}
 
 
 # ==================================
-# Load Original Background
+# Load SVG Background
 # ==================================
 
 def load_background_image():
 
     global CACHED_BACKGROUND
 
-    if not os.path.exists(BACKGROUND_IMAGE):
-
-        print(
-            "Background image not found:",
-            BACKGROUND_IMAGE
-        )
-
-        return None
-
     try:
 
+        print(
+            "Loading SVG background from GitHub..."
+        )
+
+        response = requests.get(
+            BACKGROUND_SVG_URL,
+            timeout=30
+        )
+
+        response.raise_for_status()
+
+        svg_data = response.content
+
+        print(
+            f"SVG downloaded: "
+            f"{len(svg_data) / 1024:.1f} KB"
+        )
+
+        # Render SVG at 2160px.
+        # CairoSVG keeps the vector quality during rendering.
+        png_data = cairosvg.svg2png(
+            bytestring=svg_data,
+            output_width=BACKGROUND_RENDER_SIZE
+        )
+
         background = Image.open(
-            BACKGROUND_IMAGE
-        ).convert("RGB")
+            io.BytesIO(png_data)
+        ).convert("RGBA")
+
+        print(
+            f"SVG rendered: "
+            f"{background.width}x{background.height}"
+        )
 
         background_ratio = (
             background.width
@@ -212,6 +247,7 @@ def load_background_image():
             / CARD_HEIGHT
         )
 
+        # Cover the card without distortion.
         if background_ratio > card_ratio:
 
             new_height = CARD_HEIGHT
@@ -259,6 +295,7 @@ def load_background_image():
             )
         )
 
+        # Keep the same soft treatment as the previous background.
         background = ImageEnhance.Brightness(
             background
         ).enhance(0.48)
@@ -267,16 +304,13 @@ def load_background_image():
             ImageFilter.GaussianBlur(4)
         )
 
-        background = background.convert(
-            "RGBA"
-        )
-
+        # Subtle decorative layer over the gradient.
         background.putalpha(42)
 
         CACHED_BACKGROUND = background
 
         print(
-            "Background image loaded and cached."
+            "SVG background loaded and cached successfully."
         )
 
         return CACHED_BACKGROUND
@@ -284,9 +318,11 @@ def load_background_image():
     except Exception as error:
 
         print(
-            "Background image error:",
+            "SVG background error:",
             error
         )
+
+        CACHED_BACKGROUND = None
 
         return None
 
@@ -296,10 +332,6 @@ def load_background_image():
 # ==================================
 
 PALETTES = [
-
-    # ------------------------------
-    # DARK
-    # ------------------------------
 
     {
         "name": "بنفش سلطنتی",
@@ -361,10 +393,6 @@ PALETTES = [
         "side_dot": (215, 175, 105, 100),
     },
 
-    # ------------------------------
-    # MEDIUM
-    # ------------------------------
-
     {
         "name": "فیروزه‌ای تیره",
         "top": (10, 61, 67),
@@ -424,10 +452,6 @@ PALETTES = [
         "side_line": (210, 155, 145, 75),
         "side_dot": (225, 170, 158, 100),
     },
-
-    # ------------------------------
-    # LIGHT
-    # ------------------------------
 
     {
         "name": "کرم",
@@ -800,6 +824,7 @@ def wrap_text(
     words = text.split()
 
     if not words:
+
         return []
 
     lines = []
@@ -853,7 +878,9 @@ def prepare_poem_lines(
     max_width
 ):
 
-    text = normalize_text(text)
+    text = normalize_text(
+        text
+    )
 
     raw_lines = text.splitlines()
 
@@ -2024,8 +2051,6 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    # IMPORTANT:
-    # Every card gets its own unique file.
     filename = (
         "/tmp/poetry_card_"
         + uuid.uuid4().hex
@@ -2053,6 +2078,7 @@ def create_poetry_card(
         )
 
     except Exception:
+
         pass
 
     print(
@@ -2316,7 +2342,6 @@ def get_color_keyboard():
     return {
         "inline_keyboard": [
 
-            # تیره
             [
                 {
                     "text": "🟣 سلطنتی",
@@ -2332,7 +2357,6 @@ def get_color_keyboard():
                 }
             ],
 
-            # متوسط
             [
                 {
                     "text": "🩵 فیروزه‌ای تیره",
@@ -2348,7 +2372,6 @@ def get_color_keyboard():
                 }
             ],
 
-            # روشن
             [
                 {
                     "text": "🟡 کرم",
@@ -2529,8 +2552,6 @@ def process_card_type_selection(
 
     with STATE_LOCK:
 
-        # Only update if the same pending item
-        # still exists.
         current_pending = (
             PENDING_POEMS.get(
                 chat_id
@@ -2677,7 +2698,6 @@ def process_color_selection(
 
         return "OK", 200
 
-    # Atomically take the pending poem.
     with STATE_LOCK:
 
         pending = PENDING_POEMS.pop(
@@ -2974,8 +2994,6 @@ def process_color_selection(
 
     finally:
 
-        # IMPORTANT:
-        # Remove the unique temporary file after use.
         if filename:
 
             try:
@@ -3209,4 +3227,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-        )
+    )
