@@ -1967,9 +1967,9 @@ def create_poetry_card(
 
     draw.line(
         (
-            18,
+            51,
             deco_y,
-            38,
+            64,
             deco_y
         ),
         fill=palette["side_line"],
@@ -1978,9 +1978,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            35,
+            63,
             deco_y - 3,
-            41,
+            69,
             deco_y + 3
         ),
         fill=palette["side_dot"]
@@ -1988,9 +1988,9 @@ def create_poetry_card(
 
     draw.line(
         (
-            1042,
+            1016,
             deco_y,
-            1062,
+            1029,
             deco_y
         ),
         fill=palette["side_line"],
@@ -1999,9 +1999,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            1039,
+            1011,
             deco_y - 3,
-            1045,
+            1017,
             deco_y + 3
         ),
         fill=palette["side_dot"]
@@ -2985,9 +2985,7 @@ def process_color_selection(
 
             if building_message_id:
 
-                stage_start = (
-                    time.perf_counter()
-                )
+                stage_start = time.perf_counter()
 
                 delete_message(
                     chat_id,
@@ -3014,9 +3012,7 @@ def process_color_selection(
 
         if building_message_id:
 
-            stage_start = (
-                time.perf_counter()
-            )
+            stage_start = time.perf_counter()
 
             delete_message(
                 chat_id,
@@ -3268,4 +3264,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
+                    )
