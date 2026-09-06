@@ -26,7 +26,7 @@ CHANNEL_URL = "https://splus.ir/life_m23"
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-POEM_FONT = "Vazirmatn-Regular.ttf"
+POEM_FONT = "Digi Mitra Circle Bold.ttf"
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
@@ -1754,13 +1754,13 @@ def create_poetry_card(
         - text_top
     )
 
-    font_size = 60
+    font_size = 58
 
-    min_font_size = 28
+    min_font_size = 26
 
-    line_spacing = 7
+    line_spacing = 8
 
-    blank_line_spacing = 30
+    blank_line_spacing = 32
 
     lines = []
 
@@ -1800,7 +1800,7 @@ def create_poetry_card(
 
         poem_font = get_font(
             POEM_FONT,
-            46
+            44
         )
 
         lines = [
