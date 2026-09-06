@@ -26,7 +26,7 @@ CHANNEL_URL = "https://splus.ir/life_m23"
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-POEM_FONT = "BNazanin.ttf"
+POEM_FONT = "Vazirmatn-SemiBold.ttf"
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
@@ -197,10 +197,10 @@ FONT_CACHE = {}
 POEM_RENDER_SCALE = 4
 
 # فاصله بین خطوط نسبت به اندازه فونت
-POEM_LINE_SPACING_RATIO = 0.24
+POEM_LINE_SPACING_RATIO = 0.18
 
 # فاصله برای خط خالی
-POEM_BLANK_LINE_RATIO = 0.72
+POEM_BLANK_LINE_RATIO = 0.58
 
 
 # ==================================
@@ -1815,7 +1815,8 @@ def create_poetry_card(
         - text_top
     )
 
-    font_size = 62
+    # تنظیم شده مخصوص Vazirmatn SemiBold
+    font_size = 60
 
     min_font_size = 28
 
