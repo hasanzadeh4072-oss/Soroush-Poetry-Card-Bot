@@ -43,8 +43,6 @@ BACKGROUND_SVG_URL = (
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
 )
 
-# SVG is rendered at high resolution before being
-# resized/cropped to the final 1080x1080 card.
 BACKGROUND_RENDER_SIZE = 2160
 
 PENDING_TIMEOUT = 120
@@ -61,6 +59,33 @@ SIDE_LINE_WIDTH = 2
 PANEL_OUTLINE_WIDTH = 2
 PANEL_INNER_WIDTH = 1
 FOOTER_LINE_WIDTH = 2
+
+
+# ==================================
+# Light Template Improvements
+# ==================================
+# IMPORTANT:
+# These settings are used ONLY for:
+# کرم / آبی روشن / مریم‌گلی
+#
+# The other 6 palettes keep the original behavior.
+
+LIGHT_TEMPLATE_NAMES = {
+    "کرم",
+    "آبی روشن",
+    "مریم‌گلی"
+}
+
+LIGHT_PANEL_OUTLINE_WIDTH = 3
+LIGHT_PANEL_OUTLINE_ALPHA = 78
+
+LIGHT_PANEL_INNER_WIDTH = 1
+LIGHT_PANEL_INNER_ALPHA = 95
+
+LIGHT_TEXT_SHADOW_ALPHA = 48
+LIGHT_TEXT_SHADOW_OFFSET = 2
+
+LIGHT_TEXT_THICKNESS = 1
 
 
 # ==================================
@@ -189,7 +214,10 @@ def monitoring_request_finished(
 # ==================================
 
 CACHED_BACKGROUND = None
+CACHED_SHARP_BACKGROUND = None
+
 CACHED_CARD_BACKGROUNDS = {}
+
 FONT_CACHE = {}
 
 
@@ -200,6 +228,7 @@ FONT_CACHE = {}
 def load_background_image():
 
     global CACHED_BACKGROUND
+    global CACHED_SHARP_BACKGROUND
 
     try:
 
@@ -295,19 +324,44 @@ def load_background_image():
             )
         )
 
-        # Keep the same soft treatment as the previous background.
-        background = ImageEnhance.Brightness(
-            background
+        # ----------------------------------
+        # Sharp version
+        # ----------------------------------
+        # Used ONLY by the 3 light templates.
+        #
+        # No blur is applied here so that the
+        # traditional ornament remains visible.
+
+        sharp_background = background.copy()
+
+        sharp_background = ImageEnhance.Brightness(
+            sharp_background
         ).enhance(0.48)
 
-        background = background.filter(
+        sharp_background.putalpha(42)
+
+        CACHED_SHARP_BACKGROUND = (
+            sharp_background
+        )
+
+        # ----------------------------------
+        # Original soft version
+        # ----------------------------------
+        # Kept exactly for the other 6 palettes.
+
+        soft_background = background.copy()
+
+        soft_background = ImageEnhance.Brightness(
+            soft_background
+        ).enhance(0.48)
+
+        soft_background = soft_background.filter(
             ImageFilter.GaussianBlur(4)
         )
 
-        # Subtle decorative layer over the gradient.
-        background.putalpha(42)
+        soft_background.putalpha(42)
 
-        CACHED_BACKGROUND = background
+        CACHED_BACKGROUND = soft_background
 
         print(
             "SVG background loaded and cached successfully."
@@ -323,6 +377,7 @@ def load_background_image():
         )
 
         CACHED_BACKGROUND = None
+        CACHED_SHARP_BACKGROUND = None
 
         return None
 
@@ -540,6 +595,18 @@ def get_font(
 
 
 # ==================================
+# Light Template Check
+# ==================================
+
+def is_light_template(palette):
+
+    return (
+        palette.get("name")
+        in LIGHT_TEMPLATE_NAMES
+    )
+
+
+# ==================================
 # Background
 # ==================================
 
@@ -630,18 +697,51 @@ def create_gradient_background(
         Image.Resampling.NEAREST
     )
 
-    if CACHED_BACKGROUND is not None:
+    # ----------------------------------
+    # Background treatment
+    # ----------------------------------
+    # Only the 3 light templates use the
+    # sharp SVG background.
+    #
+    # Other 6 templates use the original
+    # blurred background exactly as before.
 
-        image = Image.alpha_composite(
-            image.convert("RGBA"),
-            CACHED_BACKGROUND
-        )
+    if is_light_template(palette):
+
+        if CACHED_SHARP_BACKGROUND is not None:
+
+            image = Image.alpha_composite(
+                image.convert("RGBA"),
+                CACHED_SHARP_BACKGROUND
+            )
+
+        elif CACHED_BACKGROUND is not None:
+
+            image = Image.alpha_composite(
+                image.convert("RGBA"),
+                CACHED_BACKGROUND
+            )
+
+        else:
+
+            image = image.convert(
+                "RGBA"
+            )
 
     else:
 
-        image = image.convert(
-            "RGBA"
-        )
+        if CACHED_BACKGROUND is not None:
+
+            image = Image.alpha_composite(
+                image.convert("RGBA"),
+                CACHED_BACKGROUND
+            )
+
+        else:
+
+            image = image.convert(
+                "RGBA"
+            )
 
     glow = Image.new(
         "RGBA",
@@ -1859,45 +1959,112 @@ def create_poetry_card(
         panel
     )
 
-    panel_draw.rounded_rectangle(
-        (
-            62,
-            panel_top + 4,
-            1018,
-            panel_bottom + 6
-        ),
-        radius=45,
-        fill=(0, 0, 0, 34)
-    )
+    # ----------------------------------
+    # Light templates:
+    # slightly stronger panel separation.
+    #
+    # Other 6 templates:
+    # original values remain unchanged.
+    # ----------------------------------
 
-    panel_draw.rounded_rectangle(
-        (
-            62,
-            panel_top,
-            1018,
-            panel_bottom
-        ),
-        radius=45,
-        fill=(255, 255, 255, 14),
-        outline=palette["panel_outline"],
-        width=PANEL_OUTLINE_WIDTH
-    )
+    if is_light_template(palette):
 
-    panel_draw.rounded_rectangle(
-        (
-            72,
-            panel_top + 10,
-            1008,
-            panel_bottom - 10
-        ),
-        radius=37,
-        outline=palette["panel_inner"],
-        width=PANEL_INNER_WIDTH
-    )
+        light_outline_color = (
+            palette["panel_outline"][0],
+            palette["panel_outline"][1],
+            palette["panel_outline"][2],
+            LIGHT_PANEL_OUTLINE_ALPHA
+        )
 
-    panel = panel.filter(
-        ImageFilter.GaussianBlur(0.35)
-    )
+        light_inner_color = (
+            palette["panel_inner"][0],
+            palette["panel_inner"][1],
+            palette["panel_inner"][2],
+            LIGHT_PANEL_INNER_ALPHA
+        )
+
+        panel_draw.rounded_rectangle(
+            (
+                62,
+                panel_top + 4,
+                1018,
+                panel_bottom + 6
+            ),
+            radius=45,
+            fill=(0, 0, 0, 34)
+        )
+
+        panel_draw.rounded_rectangle(
+            (
+                62,
+                panel_top,
+                1018,
+                panel_bottom
+            ),
+            radius=45,
+            fill=(255, 255, 255, 14),
+            outline=light_outline_color,
+            width=LIGHT_PANEL_OUTLINE_WIDTH
+        )
+
+        panel_draw.rounded_rectangle(
+            (
+                72,
+                panel_top + 10,
+                1008,
+                panel_bottom - 10
+            ),
+            radius=37,
+            outline=light_inner_color,
+            width=LIGHT_PANEL_INNER_WIDTH
+        )
+
+        # Keep this panel sharp for the light templates.
+        # The original panel blur is intentionally not used here.
+
+    else:
+
+        # Original glass panel for the other 6 templates.
+
+        panel_draw.rounded_rectangle(
+            (
+                62,
+                panel_top + 4,
+                1018,
+                panel_bottom + 6
+            ),
+            radius=45,
+            fill=(0, 0, 0, 34)
+        )
+
+        panel_draw.rounded_rectangle(
+            (
+                62,
+                panel_top,
+                1018,
+                panel_bottom
+            ),
+            radius=45,
+            fill=(255, 255, 255, 14),
+            outline=palette["panel_outline"],
+            width=PANEL_OUTLINE_WIDTH
+        )
+
+        panel_draw.rounded_rectangle(
+            (
+                72,
+                panel_top + 10,
+                1008,
+                panel_bottom - 10
+            ),
+            radius=37,
+            outline=palette["panel_inner"],
+            width=PANEL_INNER_WIDTH
+        )
+
+        panel = panel.filter(
+            ImageFilter.GaussianBlur(0.35)
+        )
 
     image = Image.alpha_composite(
         image.convert("RGBA"),
@@ -2014,15 +2181,87 @@ def create_poetry_card(
             - width
         ) // 2
 
-        draw.text(
-            (
-                x,
-                y
-            ),
-            line,
-            font=poem_font,
-            fill=palette["text"]
-        )
+        # ----------------------------------
+        # Light templates:
+        # improve black text readability.
+        #
+        # The text color itself remains the
+        # palette's original dark color.
+        #
+        # A very subtle shadow plus a tiny
+        # pixel reinforcement makes the
+        # letters visually stronger without
+        # turning the font into a bold font.
+        # ----------------------------------
+
+        if is_light_template(palette):
+
+            shadow_alpha = LIGHT_TEXT_SHADOW_ALPHA
+            shadow_offset = LIGHT_TEXT_SHADOW_OFFSET
+
+            shadow_color = (
+                0,
+                0,
+                0,
+                shadow_alpha
+            )
+
+            # Subtle shadow.
+            draw.text(
+                (
+                    x + shadow_offset,
+                    y + shadow_offset
+                ),
+                line,
+                font=poem_font,
+                fill=shadow_color
+            )
+
+            # Very small edge reinforcement.
+            draw.text(
+                (
+                    x - LIGHT_TEXT_THICKNESS,
+                    y
+                ),
+                line,
+                font=poem_font,
+                fill=palette["text"]
+            )
+
+            draw.text(
+                (
+                    x + LIGHT_TEXT_THICKNESS,
+                    y
+                ),
+                line,
+                font=poem_font,
+                fill=palette["text"]
+            )
+
+            # Final main text.
+            draw.text(
+                (
+                    x,
+                    y
+                ),
+                line,
+                font=poem_font,
+                fill=palette["text"]
+            )
+
+        else:
+
+            # Original drawing for the other 6 palettes.
+
+            draw.text(
+                (
+                    x,
+                    y
+                ),
+                line,
+                font=poem_font,
+                fill=palette["text"]
+            )
 
         y += (
             height
@@ -2405,8 +2644,7 @@ def send_color_selection(
 
     return send_message(
         chat_id,
-        text,
-        reply_markup=get_color_keyboard()
+        text
     )
 
 
