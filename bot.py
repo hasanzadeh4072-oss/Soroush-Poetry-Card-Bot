@@ -1965,11 +1965,55 @@ def create_poetry_card(
         + available_height // 2
     )
 
+    side_line_length = 11
+    side_dot_radius = 3
+    side_gap = 5
+
+    left_inner_edge = panel_left
+    left_outer_edge = margin
+
+    right_inner_edge = panel_right
+    right_outer_edge = CARD_WIDTH - margin
+
+    left_dot_x = (
+        left_inner_edge
+        - side_gap
+        - side_dot_radius
+    )
+
+    left_line_start = (
+        left_outer_edge
+        + 8
+    )
+
+    left_line_end = (
+        left_dot_x
+        - side_dot_radius
+        - 2
+    )
+
+    right_dot_x = (
+        right_inner_edge
+        + side_gap
+        + side_dot_radius
+    )
+
+    right_line_end = (
+        right_outer_edge
+        - 8
+    )
+
+    right_line_start = (
+        right_dot_x
+        + side_dot_radius
+        + 2
+    )
+
     draw.line(
         (
-            51,
+            left_line_start,
             deco_y,
-            64,
+            left_line_end,
             deco_y
         ),
         fill=palette["side_line"],
@@ -1978,33 +2022,33 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            63,
-            deco_y - 3,
-            69,
-            deco_y + 3
+            left_dot_x - side_dot_radius,
+            deco_y - side_dot_radius,
+            left_dot_x + side_dot_radius,
+            deco_y + side_dot_radius
+        ),
+        fill=palette["side_dot"]
+    )
+
+    draw.ellipse(
+        (
+            right_dot_x - side_dot_radius,
+            deco_y - side_dot_radius,
+            right_dot_x + side_dot_radius,
+            deco_y + side_dot_radius
         ),
         fill=palette["side_dot"]
     )
 
     draw.line(
         (
-            1016,
+            right_line_start,
             deco_y,
-            1029,
+            right_line_end,
             deco_y
         ),
         fill=palette["side_line"],
         width=SIDE_LINE_WIDTH
-    )
-
-    draw.ellipse(
-        (
-            1011,
-            deco_y - 3,
-            1017,
-            deco_y + 3
-        ),
-        fill=palette["side_dot"]
     )
 
     print(
@@ -3264,4 +3308,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-                    )
+)
