@@ -23,8 +23,14 @@ API = f"https://api.splus.ir/bot{TOKEN}"
 
 CHANNEL_URL = "https://splus.ir/life_m23"
 
+# خروجی نهایی
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
+
+# رندر داخلی با کیفیت 2X
+RENDER_SCALE = 2
+RENDER_WIDTH = CARD_WIDTH * RENDER_SCALE
+RENDER_HEIGHT = CARD_HEIGHT * RENDER_SCALE
 
 POEM_FONT = "Parastoo[wght].ttf"
 TITLE_FONT = "BTitrBd.ttf"
@@ -43,7 +49,7 @@ BACKGROUND_SVG_URL = (
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
 )
 
-BACKGROUND_RENDER_SIZE = 2160
+BACKGROUND_RENDER_SIZE = 4320
 
 PENDING_TIMEOUT = 120
 
@@ -192,6 +198,192 @@ FONT_CACHE = {}
 
 
 # ==================================
+# High Resolution Drawing Helper
+# ==================================
+
+class ScaledDraw:
+
+    """
+    تمام مختصات را در ظاهر همان 1080×1080 نگه می‌دارد،
+    اما عملیات واقعی را روی بوم 2160×2160 انجام می‌دهد.
+
+    برای textbbox اندازه را دوباره به مقیاس منطقی برمی‌گرداند
+    تا محاسبات مرکزچینی و اندازه متن در کد اصلی تغییر نکند.
+    """
+
+    def __init__(
+        self,
+        image,
+        scale=RENDER_SCALE
+    ):
+
+        self.image = image
+        self.scale = scale
+        self.draw = ImageDraw.Draw(image)
+
+    def _point(
+        self,
+        point
+    ):
+
+        return (
+            int(round(point[0] * self.scale)),
+            int(round(point[1] * self.scale))
+        )
+
+    def _box(
+        self,
+        box
+    ):
+
+        return (
+            int(round(box[0] * self.scale)),
+            int(round(box[1] * self.scale)),
+            int(round(box[2] * self.scale)),
+            int(round(box[3] * self.scale))
+        )
+
+    def _width(
+        self,
+        width
+    ):
+
+        return max(
+            1,
+            int(round(width * self.scale))
+        )
+
+    def textbbox(
+        self,
+        xy,
+        text,
+        font,
+        *args,
+        **kwargs
+    ):
+
+        actual_bbox = self.draw.textbbox(
+            self._point(xy),
+            text,
+            font=font,
+            *args,
+            **kwargs
+        )
+
+        return (
+            actual_bbox[0] / self.scale,
+            actual_bbox[1] / self.scale,
+            actual_bbox[2] / self.scale,
+            actual_bbox[3] / self.scale
+        )
+
+    def text(
+        self,
+        xy,
+        text,
+        font,
+        *args,
+        **kwargs
+    ):
+
+        return self.draw.text(
+            self._point(xy),
+            text,
+            font=font,
+            *args,
+            **kwargs
+        )
+
+    def line(
+        self,
+        xy,
+        *args,
+        **kwargs
+    ):
+
+        scaled_xy = []
+
+        for point in xy:
+
+            scaled_xy.append(
+                self._point(point)
+            )
+
+        if "width" in kwargs:
+
+            kwargs["width"] = self._width(
+                kwargs["width"]
+            )
+
+        return self.draw.line(
+            scaled_xy,
+            *args,
+            **kwargs
+        )
+
+    def rounded_rectangle(
+        self,
+        xy,
+        *args,
+        **kwargs
+    ):
+
+        if "radius" in kwargs:
+
+            kwargs["radius"] = (
+                int(
+                    round(
+                        kwargs["radius"]
+                        * self.scale
+                    )
+                )
+            )
+
+        if "width" in kwargs:
+
+            kwargs["width"] = self._width(
+                kwargs["width"]
+            )
+
+        return self.draw.rounded_rectangle(
+            self._box(xy),
+            *args,
+            **kwargs
+        )
+
+    def ellipse(
+        self,
+        xy,
+        *args,
+        **kwargs
+    ):
+
+        return self.draw.ellipse(
+            self._box(xy),
+            *args,
+            **kwargs
+        )
+
+    def polygon(
+        self,
+        xy,
+        *args,
+        **kwargs
+    ):
+
+        scaled_points = [
+            self._point(point)
+            for point in xy
+        ]
+
+        return self.draw.polygon(
+            scaled_points,
+            *args,
+            **kwargs
+        )
+
+
+# ==================================
 # Load SVG Background
 # ==================================
 
@@ -239,27 +431,27 @@ def load_background_image():
         )
 
         card_ratio = (
-            CARD_WIDTH
-            / CARD_HEIGHT
+            RENDER_WIDTH
+            / RENDER_HEIGHT
         )
 
         if background_ratio > card_ratio:
 
-            new_height = CARD_HEIGHT
+            new_height = RENDER_HEIGHT
 
             new_width = int(
                 background.width
-                * CARD_HEIGHT
+                * RENDER_HEIGHT
                 / background.height
             )
 
         else:
 
-            new_width = CARD_WIDTH
+            new_width = RENDER_WIDTH
 
             new_height = int(
                 background.height
-                * CARD_WIDTH
+                * RENDER_WIDTH
                 / background.width
             )
 
@@ -273,20 +465,20 @@ def load_background_image():
 
         left = (
             new_width
-            - CARD_WIDTH
+            - RENDER_WIDTH
         ) // 2
 
         top_crop = (
             new_height
-            - CARD_HEIGHT
+            - RENDER_HEIGHT
         ) // 2
 
         background = background.crop(
             (
                 left,
                 top_crop,
-                left + CARD_WIDTH,
-                top_crop + CARD_HEIGHT
+                left + RENDER_WIDTH,
+                top_crop + RENDER_HEIGHT
             )
         )
 
@@ -295,7 +487,9 @@ def load_background_image():
         ).enhance(0.48)
 
         background = background.filter(
-            ImageFilter.GaussianBlur(4)
+            ImageFilter.GaussianBlur(
+                4 * RENDER_SCALE
+            )
         )
 
         background.putalpha(42)
@@ -517,16 +711,23 @@ def get_font(
     size
 ):
 
+    # در حالت رندر 2X، فونت نیز 2X خوانده می‌شود.
+    actual_size = int(
+        round(
+            size * RENDER_SCALE
+        )
+    )
+
     key = (
         font_name,
-        size
+        actual_size
     )
 
     if key not in FONT_CACHE:
 
         font = ImageFont.truetype(
             font_name,
-            size
+            actual_size
         )
 
         if font_name == POEM_FONT:
@@ -596,7 +797,7 @@ def create_gradient_background(
         "RGB",
         (
             1,
-            CARD_HEIGHT
+            RENDER_HEIGHT
         )
     )
 
@@ -607,12 +808,12 @@ def create_gradient_background(
     bottom = palette["bottom"]
 
     for y in range(
-        CARD_HEIGHT
+        RENDER_HEIGHT
     ):
 
         ratio = (
             y
-            / (CARD_HEIGHT - 1)
+            / (RENDER_HEIGHT - 1)
         )
 
         if ratio < 0.52:
@@ -669,8 +870,8 @@ def create_gradient_background(
 
     image = gradient.resize(
         (
-            CARD_WIDTH,
-            CARD_HEIGHT
+            RENDER_WIDTH,
+            RENDER_HEIGHT
         ),
         Image.Resampling.NEAREST
     )
@@ -691,8 +892,8 @@ def create_gradient_background(
     glow = Image.new(
         "RGBA",
         (
-            CARD_WIDTH,
-            CARD_HEIGHT
+            RENDER_WIDTH,
+            RENDER_HEIGHT
         ),
         (0, 0, 0, 0)
     )
@@ -701,38 +902,42 @@ def create_gradient_background(
         glow
     )
 
+    s = RENDER_SCALE
+
     glow_draw.ellipse(
         (
-            -260,
-            -180,
-            650,
-            560
+            -260 * s,
+            -180 * s,
+            650 * s,
+            560 * s
         ),
         fill=palette["glow1"]
     )
 
     glow_draw.ellipse(
         (
-            690,
-            690,
-            1250,
-            1250
+            690 * s,
+            690 * s,
+            1250 * s,
+            1250 * s
         ),
         fill=palette["glow2"]
     )
 
     glow_draw.ellipse(
         (
-            250,
-            350,
-            850,
-            950
+            250 * s,
+            350 * s,
+            850 * s,
+            950 * s
         ),
         fill=palette["glow3"]
     )
 
     glow = glow.filter(
-        ImageFilter.GaussianBlur(110)
+        ImageFilter.GaussianBlur(
+            110 * s
+        )
     )
 
     image = Image.alpha_composite(
@@ -743,8 +948,8 @@ def create_gradient_background(
     texture = Image.new(
         "RGBA",
         (
-            CARD_WIDTH,
-            CARD_HEIGHT
+            RENDER_WIDTH,
+            RENDER_HEIGHT
         ),
         (0, 0, 0, 0)
     )
@@ -754,15 +959,15 @@ def create_gradient_background(
     random_generator = random.Random(8)
 
     for _ in range(
-        14000
+        56000
     ):
 
         x = random_generator.randrange(
-            CARD_WIDTH
+            RENDER_WIDTH
         )
 
         y = random_generator.randrange(
-            CARD_HEIGHT
+            RENDER_HEIGHT
         )
 
         value = random_generator.choice(
@@ -1318,7 +1523,7 @@ def create_poetry_card(
         "RGBA"
     )
 
-    draw = ImageDraw.Draw(
+    draw = ScaledDraw(
         image
     )
 
@@ -1523,10 +1728,8 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x - line_width,
-                line_y,
-                center_x - 12,
-                line_y
+                (center_x - line_width, line_y),
+                (center_x - 12, line_y)
             ),
             fill=palette["ornament"],
             width=ORNAMENT_LINE_WIDTH
@@ -1534,10 +1737,8 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 12,
-                line_y,
-                center_x + line_width,
-                line_y
+                (center_x + 12, line_y),
+                (center_x + line_width, line_y)
             ),
             fill=palette["ornament"],
             width=ORNAMENT_LINE_WIDTH
@@ -1608,10 +1809,8 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x - line_width,
-                line_y,
-                center_x - 12,
-                line_y
+                (center_x - line_width, line_y),
+                (center_x - 12, line_y)
             ),
             fill=palette["ornament"],
             width=ORNAMENT_LINE_WIDTH
@@ -1619,10 +1818,8 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 12,
-                line_y,
-                center_x + line_width,
-                line_y
+                (center_x + 12, line_y),
+                (center_x + line_width, line_y)
             ),
             fill=palette["ornament"],
             width=ORNAMENT_LINE_WIDTH
@@ -1686,10 +1883,8 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x - ornament_width,
-                ornament_y,
-                center_x - 12,
-                ornament_y
+                (center_x - ornament_width, ornament_y),
+                (center_x - 12, ornament_y)
             ),
             fill=palette["ornament"],
             width=ORNAMENT_LINE_WIDTH
@@ -1697,10 +1892,8 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 12,
-                ornament_y,
-                center_x + ornament_width,
-                ornament_y
+                (center_x + 12, ornament_y),
+                (center_x + ornament_width, ornament_y)
             ),
             fill=palette["ornament"],
             width=ORNAMENT_LINE_WIDTH
@@ -1737,10 +1930,8 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x - ornament_width,
-                bottom_ornament_y,
-                center_x - 12,
-                bottom_ornament_y
+                (center_x - ornament_width, bottom_ornament_y),
+                (center_x - 12, bottom_ornament_y)
             ),
             fill=palette["ornament"],
             width=ORNAMENT_LINE_WIDTH
@@ -1748,10 +1939,8 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 12,
-                bottom_ornament_y,
-                center_x + ornament_width,
-                bottom_ornament_y
+                (center_x + 12, bottom_ornament_y),
+                (center_x + ornament_width, bottom_ornament_y)
             ),
             fill=palette["ornament"],
             width=ORNAMENT_LINE_WIDTH
@@ -1881,20 +2070,19 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    # فقط جای مستطیل شیشه‌ای تغییر کرده است
     panel_top = 160
     panel_bottom = 890
 
     panel = Image.new(
         "RGBA",
         (
-            CARD_WIDTH,
-            CARD_HEIGHT
+            RENDER_WIDTH,
+            RENDER_HEIGHT
         ),
         (0, 0, 0, 0)
     )
 
-    panel_draw = ImageDraw.Draw(
+    panel_draw = ScaledDraw(
         panel
     )
 
@@ -1935,7 +2123,9 @@ def create_poetry_card(
     )
 
     panel = panel.filter(
-        ImageFilter.GaussianBlur(0.35)
+        ImageFilter.GaussianBlur(
+            0.35 * RENDER_SCALE
+        )
     )
 
     image = Image.alpha_composite(
@@ -1943,7 +2133,7 @@ def create_poetry_card(
         panel
     )
 
-    draw = ImageDraw.Draw(
+    draw = ScaledDraw(
         image
     )
 
@@ -1965,10 +2155,8 @@ def create_poetry_card(
 
     draw.line(
         (
-            65,
-            deco_y - 30,
-            65,
-            deco_y + 30
+            (65, deco_y - 30),
+            (65, deco_y + 30)
         ),
         fill=palette["side_line"],
         width=SIDE_LINE_WIDTH
@@ -1986,10 +2174,8 @@ def create_poetry_card(
 
     draw.line(
         (
-            1015,
-            deco_y - 30,
-            1015,
-            deco_y + 30
+            (1015, deco_y - 30),
+            (1015, deco_y + 30)
         ),
         fill=palette["side_line"],
         width=SIDE_LINE_WIDTH
@@ -2085,7 +2271,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 10. PNG save
+    # 10. Downsample + PNG save
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2096,10 +2282,29 @@ def create_poetry_card(
         + ".png"
     )
 
-    image.convert("RGB").save(
+    # -----------------------------------------
+    # کاهش اندازه با فیلتر بسیار باکیفیت
+    # -----------------------------------------
+
+    final_image = image.convert(
+        "RGB"
+    ).resize(
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
+        Image.Resampling.LANCZOS
+    )
+
+    # -----------------------------------------
+    # PNG lossless با فشرده‌سازی متعادل
+    # -----------------------------------------
+
+    final_image.save(
         filename,
         "PNG",
-        compress_level=1
+        compress_level=6,
+        optimize=True
     )
 
     save_time = (
@@ -2121,9 +2326,19 @@ def create_poetry_card(
         pass
 
     print(
-        f"[TIMING] 10 - PNG save: "
+        f"[TIMING] 10 - Downsample + PNG save: "
         f"{save_time:.4f}s "
         f"| size={file_size:.1f} KB"
+    )
+
+    print(
+        f"[TIMING] Render resolution: "
+        f"{RENDER_WIDTH}x{RENDER_HEIGHT}"
+    )
+
+    print(
+        f"[TIMING] Final resolution: "
+        f"{CARD_WIDTH}x{CARD_HEIGHT}"
     )
 
     total_time = (
@@ -2144,6 +2359,10 @@ def create_poetry_card(
     print(
         f"[TIMING] Branded: "
         f"{branded}"
+    )
+    print(
+        f"[TIMING] Supersampling: "
+        f"{RENDER_SCALE}X"
     )
     print("=================================")
     print("")
@@ -3266,4 +3485,7 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+    )
+
+
+
