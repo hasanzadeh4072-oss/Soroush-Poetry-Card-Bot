@@ -26,7 +26,7 @@ CHANNEL_URL = "https://splus.ir/life_m23"
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-POEM_FONT = "Digi Mitra Circle Bold.ttf"
+POEM_FONT = "Parastoo[wght].ttf"
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
@@ -524,10 +524,62 @@ def get_font(
 
     if key not in FONT_CACHE:
 
-        FONT_CACHE[key] = ImageFont.truetype(
+        font = ImageFont.truetype(
             font_name,
             size
         )
+
+        if font_name == POEM_FONT:
+
+            try:
+
+                axes = font.get_variation_axes()
+
+                weight_index = None
+
+                for index, axis in enumerate(axes):
+
+                    axis_name = axis.get(
+                        "name",
+                        ""
+                    )
+
+                    if axis_name.lower() == "weight":
+
+                        weight_index = index
+
+                        break
+
+                if weight_index is not None:
+
+                    variations = [
+                        axis.get(
+                            "default",
+                            axis.get(
+                                "min",
+                                400
+                            )
+                        )
+                        for axis in axes
+                    ]
+
+                    variations[
+                        weight_index
+                    ] = 400
+
+                    font.set_variation_by_axes(
+                        variations
+                    )
+
+            except Exception as error:
+
+                print(
+                    "Parastoo variable font "
+                    "weight adjustment skipped:",
+                    error
+                )
+
+        FONT_CACHE[key] = font
 
     return FONT_CACHE[key]
 
@@ -1754,11 +1806,11 @@ def create_poetry_card(
         - text_top
     )
 
-    font_size = 58
+    font_size = 62
 
-    min_font_size = 26
+    min_font_size = 28
 
-    line_spacing = 8
+    line_spacing = 9
 
     blank_line_spacing = 32
 
@@ -1800,7 +1852,7 @@ def create_poetry_card(
 
         poem_font = get_font(
             POEM_FONT,
-            44
+            46
         )
 
         lines = [
@@ -3220,4 +3272,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+    )
