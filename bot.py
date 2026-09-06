@@ -25,9 +25,9 @@ API = f"https://api.splus.ir/bot{TOKEN}"
 
 CHANNEL_URL = "https://splus.ir/life_m23"
 
-# افزایش ابعاد برای کیفیت بهتر با محدودیت حافظه
-CARD_WIDTH = 1500
-CARD_HEIGHT = 1500
+# ابعاد متعادل برای کیفیت خوب و حجم مناسب
+CARD_WIDTH = 1300
+CARD_HEIGHT = 1300
 
 POEM_FONT = "Parastoo[wght].ttf"
 TITLE_FONT = "BTitrBd.ttf"
@@ -46,17 +46,16 @@ BACKGROUND_SVG_URL = (
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
 )
 
-# افزایش کیفیت رندر SVG
-BACKGROUND_RENDER_SIZE = 3000
+BACKGROUND_RENDER_SIZE = 2600
 
 PENDING_TIMEOUT = 120
 
 
 # ==================================
-# Line Thickness (افزایش برای کیفیت بهتر)
+# Line Thickness
 # ==================================
 
-OUTER_FRAME_WIDTH = 5
+OUTER_FRAME_WIDTH = 4
 INNER_FRAME_WIDTH = 3
 ORNAMENT_LINE_WIDTH = 3
 SIDE_LINE_WIDTH = 3
@@ -320,16 +319,15 @@ def load_background_image():
             )
         )
 
-        # افزایش کیفیت پس‌زمینه
         background = ImageEnhance.Brightness(
             background
-        ).enhance(0.52)
+        ).enhance(0.50)
 
         background = background.filter(
-            ImageFilter.GaussianBlur(6)
+            ImageFilter.GaussianBlur(5)
         )
 
-        background.putalpha(80)
+        background.putalpha(65)
 
         CACHED_BACKGROUND = background
 
@@ -736,36 +734,36 @@ def create_gradient_background(
 
     glow_draw.ellipse(
         (
-            -360,
-            -250,
-            900,
-            780
+            -300,
+            -200,
+            750,
+            650
         ),
         fill=palette["glow1"]
     )
 
     glow_draw.ellipse(
         (
-            960,
-            960,
-            1740,
-            1740
+            800,
+            800,
+            1450,
+            1450
         ),
         fill=palette["glow2"]
     )
 
     glow_draw.ellipse(
         (
-            350,
-            490,
-            1150,
-            1320
+            300,
+            400,
+            1000,
+            1100
         ),
         fill=palette["glow3"]
     )
 
     glow = glow.filter(
-        ImageFilter.GaussianBlur(150)
+        ImageFilter.GaussianBlur(130)
     )
 
     image = Image.alpha_composite(
@@ -787,7 +785,7 @@ def create_gradient_background(
     random_generator = random.Random(8)
 
     for _ in range(
-        20000
+        17000
     ):
 
         x = random_generator.randrange(
@@ -800,8 +798,8 @@ def create_gradient_background(
 
         value = random_generator.choice(
             [
-                (255, 255, 255, 4),
-                (0, 0, 0, 5)
+                (255, 255, 255, 3),
+                (0, 0, 0, 4)
             ]
         )
 
@@ -859,7 +857,6 @@ def build_cached_card_backgrounds():
             f"{time.perf_counter() - palette_start:.4f}s"
         )
 
-        # اجبار به آزادسازی حافظه
         gc.collect()
 
     elapsed = time.perf_counter() - start_time
@@ -1319,7 +1316,7 @@ def delete_previous_ready_message(
 
 
 # ==================================
-# Create Poetry Card (با کیفیت بالا)
+# Create Poetry Card (نسخه بهینه)
 # ==================================
 
 def create_poetry_card(
@@ -1364,12 +1361,12 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 2. Outer frame (افزایش حاشیه)
+    # 2. Outer frame
     # ------------------------------
 
     stage_start = time.perf_counter()
 
-    margin = 55
+    margin = 48
 
     draw.rounded_rectangle(
         (
@@ -1378,7 +1375,7 @@ def create_poetry_card(
             CARD_WIDTH - margin,
             CARD_HEIGHT - margin
         ),
-        radius=58,
+        radius=50,
         outline=palette["frame"],
         width=OUTER_FRAME_WIDTH
     )
@@ -1389,12 +1386,12 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 3. Inner frame (افزایش حاشیه)
+    # 3. Inner frame
     # ------------------------------
 
     stage_start = time.perf_counter()
 
-    inner_margin = 68
+    inner_margin = 58
 
     draw.rounded_rectangle(
         (
@@ -1403,7 +1400,7 @@ def create_poetry_card(
             CARD_WIDTH - inner_margin,
             CARD_HEIGHT - inner_margin
         ),
-        radius=48,
+        radius=42,
         outline=palette["frame_inner"],
         width=INNER_FRAME_WIDTH
     )
@@ -1414,14 +1411,14 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 4. Header / Branding (افزایش سایز)
+    # 4. Header / Branding
     # ------------------------------
 
     stage_start = time.perf_counter()
 
     title_font = get_font(
         TITLE_FONT,
-        70
+        60
     )
 
     title = "شعرکده"
@@ -1444,7 +1441,7 @@ def create_poetry_card(
 
     subtitle_font = get_font(
         SUBTITLE_FONT,
-        32
+        28
     )
 
     subtitle = "( سروش پلاس )"
@@ -1467,7 +1464,7 @@ def create_poetry_card(
 
     footer_font = get_font(
         FOOTER_FONT,
-        32
+        28
     )
 
     footer = "کارت شعر"
@@ -1493,21 +1490,21 @@ def create_poetry_card(
         - footer_width
     ) // 2
 
-    footer_y = 108
+    footer_y = 90
 
     title_y = (
         CARD_HEIGHT
-        - 108
+        - 90
         - title_height
     )
 
     header_center = CARD_WIDTH // 2
 
-    gap = 28
+    gap = 24
 
     title_x = (
         header_center
-        + 14
+        + 12
     )
 
     subtitle_x = (
@@ -1522,7 +1519,7 @@ def create_poetry_card(
             title_height
             - subtitle_height
         ) // 2
-        - 4
+        - 3
     )
 
     if branded:
@@ -1550,10 +1547,10 @@ def create_poetry_card(
         line_y = (
             footer_y
             + footer_height
-            + 35
+            + 30
         )
 
-        line_width = 210
+        line_width = 180
 
         center_x = CARD_WIDTH // 2
 
@@ -1561,7 +1558,7 @@ def create_poetry_card(
             (
                 center_x - line_width,
                 line_y,
-                center_x - 16,
+                center_x - 14,
                 line_y
             ),
             fill=palette["ornament"],
@@ -1570,7 +1567,7 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 16,
+                center_x + 14,
                 line_y,
                 center_x + line_width,
                 line_y
@@ -1579,7 +1576,7 @@ def create_poetry_card(
             width=ORNAMENT_LINE_WIDTH
         )
 
-        diamond_size = 7
+        diamond_size = 6
 
         draw.polygon(
             [
@@ -1635,10 +1632,10 @@ def create_poetry_card(
 
         line_y = (
             title_y
-            - 35
+            - 30
         )
 
-        line_width = 210
+        line_width = 180
 
         center_x = CARD_WIDTH // 2
 
@@ -1646,7 +1643,7 @@ def create_poetry_card(
             (
                 center_x - line_width,
                 line_y,
-                center_x - 16,
+                center_x - 14,
                 line_y
             ),
             fill=palette["ornament"],
@@ -1655,7 +1652,7 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 16,
+                center_x + 14,
                 line_y,
                 center_x + line_width,
                 line_y
@@ -1664,7 +1661,7 @@ def create_poetry_card(
             width=ORNAMENT_LINE_WIDTH
         )
 
-        diamond_size = 7
+        diamond_size = 6
 
         draw.polygon(
             [
@@ -1713,10 +1710,10 @@ def create_poetry_card(
         ornament_y = (
             footer_y
             + footer_height
-            + 35
+            + 30
         )
 
-        ornament_width = 210
+        ornament_width = 180
 
         center_x = CARD_WIDTH // 2
 
@@ -1724,7 +1721,7 @@ def create_poetry_card(
             (
                 center_x - ornament_width,
                 ornament_y,
-                center_x - 16,
+                center_x - 14,
                 ornament_y
             ),
             fill=palette["ornament"],
@@ -1733,7 +1730,7 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 16,
+                center_x + 14,
                 ornament_y,
                 center_x + ornament_width,
                 ornament_y
@@ -1742,7 +1739,7 @@ def create_poetry_card(
             width=ORNAMENT_LINE_WIDTH
         )
 
-        diamond_size = 7
+        diamond_size = 6
 
         draw.polygon(
             [
@@ -1768,14 +1765,14 @@ def create_poetry_card(
 
         bottom_ornament_y = (
             CARD_HEIGHT
-            - 155
+            - 130
         )
 
         draw.line(
             (
                 center_x - ornament_width,
                 bottom_ornament_y,
-                center_x - 16,
+                center_x - 14,
                 bottom_ornament_y
             ),
             fill=palette["ornament"],
@@ -1784,7 +1781,7 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 16,
+                center_x + 14,
                 bottom_ornament_y,
                 center_x + ornament_width,
                 bottom_ornament_y
@@ -1821,34 +1818,34 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 5. Text wrapping / font sizing (افزایش سایز)
+    # 5. Text wrapping / font sizing
     # ------------------------------
 
     stage_start = time.perf_counter()
 
-    text_left = 58
-    text_right = 1442
+    text_left = 50
+    text_right = 1250
 
     max_width = (
         text_right
         - text_left
     )
 
-    text_top = 285
-    text_bottom = 1215
+    text_top = 245
+    text_bottom = 1055
 
     available_height = (
         text_bottom
         - text_top
     )
 
-    font_size = 90
+    font_size = 78
 
-    min_font_size = 38
+    min_font_size = 32
 
-    line_spacing = 13
+    line_spacing = 11
 
-    blank_line_spacing = 58
+    blank_line_spacing = 50
 
     lines = []
 
@@ -1888,7 +1885,7 @@ def create_poetry_card(
 
         poem_font = get_font(
             POEM_FONT,
-            64
+            55
         )
 
         lines = [
@@ -1912,13 +1909,13 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 6. Glass panel (افزایش ابعاد)
+    # 6. Glass panel
     # ------------------------------
 
     stage_start = time.perf_counter()
 
-    panel_top = 220
-    panel_bottom = 1235
+    panel_top = 190
+    panel_bottom = 1070
 
     panel = Image.new(
         "RGBA",
@@ -1935,23 +1932,23 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            140,
-            panel_top + 6,
-            1360,
-            panel_bottom + 8
+            120,
+            panel_top + 5,
+            1180,
+            panel_bottom + 7
         ),
-        radius=62,
+        radius=55,
         fill=(0, 0, 0, 45)
     )
 
     panel_draw.rounded_rectangle(
         (
-            140,
+            120,
             panel_top,
-            1360,
+            1180,
             panel_bottom
         ),
-        radius=62,
+        radius=55,
         fill=(255, 255, 255, 24),
         outline=palette["panel_outline"],
         width=PANEL_OUTLINE_WIDTH
@@ -1959,18 +1956,18 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            155,
-            panel_top + 14,
-            1345,
-            panel_bottom - 14
+            132,
+            panel_top + 12,
+            1168,
+            panel_bottom - 12
         ),
-        radius=52,
+        radius=45,
         outline=palette["panel_inner"],
         width=PANEL_INNER_WIDTH
     )
 
     panel = panel.filter(
-        ImageFilter.GaussianBlur(0.7)
+        ImageFilter.GaussianBlur(0.5)
     )
 
     image = Image.alpha_composite(
@@ -1988,7 +1985,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 7. Side ornaments (افزایش ابعاد)
+    # 7. Side ornaments
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2000,10 +1997,10 @@ def create_poetry_card(
 
     draw.line(
         (
-            90,
-            deco_y - 42,
-            90,
-            deco_y + 42
+            78,
+            deco_y - 36,
+            78,
+            deco_y + 36
         ),
         fill=palette["side_line"],
         width=SIDE_LINE_WIDTH
@@ -2011,20 +2008,20 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            86,
-            deco_y - 4,
-            94,
-            deco_y + 4
+            75,
+            deco_y - 3,
+            81,
+            deco_y + 3
         ),
         fill=palette["side_dot"]
     )
 
     draw.line(
         (
-            1410,
-            deco_y - 42,
-            1410,
-            deco_y + 42
+            1222,
+            deco_y - 36,
+            1222,
+            deco_y + 36
         ),
         fill=palette["side_line"],
         width=SIDE_LINE_WIDTH
@@ -2032,10 +2029,10 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            1406,
-            deco_y - 4,
-            1414,
-            deco_y + 4
+            1219,
+            deco_y - 3,
+            1225,
+            deco_y + 3
         ),
         fill=palette["side_dot"]
     )
@@ -2120,7 +2117,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 10. PNG save (بدون فشرده‌سازی)
+    # 10. PNG save (با فشرده‌سازی متعادل)
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2134,8 +2131,8 @@ def create_poetry_card(
     image.convert("RGB").save(
         filename,
         "PNG",
-        compress_level=0,
-        optimize=False
+        compress_level=6,
+        optimize=True
     )
 
     save_time = (
@@ -2162,7 +2159,6 @@ def create_poetry_card(
         f"| size={file_size:.1f} KB"
     )
 
-    # آزادسازی حافظه
     del image
     del draw
     gc.collect()
@@ -3096,7 +3092,6 @@ def process_color_selection(
                     error
                 )
 
-        # آزادسازی حافظه
         gc.collect()
 
     overall_time = (
@@ -3310,4 +3305,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
+            )
