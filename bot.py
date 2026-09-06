@@ -1799,20 +1799,20 @@ def create_poetry_card(
     )
 
     text_top = 205
-    text_bottom = 905
+    text_bottom = 875
 
     available_height = (
         text_bottom
         - text_top
     )
 
-    font_size = 62
+    font_size = 66
 
     min_font_size = 28
 
     line_spacing = 9
 
-    blank_line_spacing = 32
+    blank_line_spacing = 42
 
     lines = []
 
@@ -1881,15 +1881,8 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    panel_top = max(
-        text_top - 38,
-        160
-    )
-
-    panel_bottom = min(
-        text_bottom + 38,
-        940
-    )
+    panel_top = 175
+    panel_bottom = 905
 
     panel = Image.new(
         "RGBA",
@@ -3272,4 +3265,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+        )
