@@ -1899,33 +1899,33 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            48,
+            100,
             panel_top + 4,
-            1032,
+            980,
             panel_bottom + 6
         ),
         radius=45,
-        fill=(0, 0, 0, 34)
+        fill=(0, 0, 0, 45)
     )
 
     panel_draw.rounded_rectangle(
         (
-            48,
+            100,
             panel_top,
-            1032,
+            980,
             panel_bottom
         ),
         radius=45,
-        fill=(255, 255, 255, 14),
+        fill=(255, 255, 255, 24),
         outline=palette["panel_outline"],
         width=PANEL_OUTLINE_WIDTH
     )
 
     panel_draw.rounded_rectangle(
         (
-            58,
+            110,
             panel_top + 10,
-            1022,
+            970,
             panel_bottom - 10
         ),
         radius=37,
@@ -3265,7 +3265,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
-
-
-
+)
