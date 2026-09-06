@@ -26,7 +26,7 @@ CHANNEL_URL = "https://splus.ir/life_m23"
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-POEM_FONT = "BNazanin.ttf"
+POEM_FONT = "Vazirmatn-SemiBold.ttf"
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
@@ -1761,13 +1761,16 @@ def create_poetry_card(
         - text_top
     )
 
-    font_size = 62
+    # Vazirmatn SemiBold has a different visual density
+    # from BNazanin, so the starting size and spacing
+    # are tuned for the new font.
+    font_size = 58
 
-    min_font_size = 28
+    min_font_size = 26
 
-    line_spacing = 16
+    line_spacing = 14
 
-    blank_line_spacing = 44
+    blank_line_spacing = 40
 
     lines = []
 
@@ -1807,7 +1810,7 @@ def create_poetry_card(
 
         poem_font = get_font(
             POEM_FONT,
-            48
+            46
         )
 
         lines = [
