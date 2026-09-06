@@ -204,11 +204,8 @@ FONT_CACHE = {}
 class ScaledDraw:
 
     """
-    تمام مختصات را در ظاهر همان 1080×1080 نگه می‌دارد،
-    اما عملیات واقعی را روی بوم 2160×2160 انجام می‌دهد.
-
-    برای textbbox اندازه را دوباره به مقیاس منطقی برمی‌گرداند
-    تا محاسبات مرکزچینی و اندازه متن در کد اصلی تغییر نکند.
+    تمام مختصات در ظاهر همان 1080×1080 هستند،
+    اما عملیات واقعی روی بوم 2160×2160 انجام می‌شود.
     """
 
     def __init__(
@@ -711,7 +708,6 @@ def get_font(
     size
 ):
 
-    # در حالت رندر 2X، فونت نیز 2X خوانده می‌شود.
     actual_size = int(
         round(
             size * RENDER_SCALE
@@ -1974,33 +1970,122 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 5. Text wrapping / font sizing
+    # 5. Glass panel
     # ------------------------------
 
     stage_start = time.perf_counter()
 
-    text_left = 42
-    text_right = 1038
+    panel_top = 160
+    panel_bottom = 890
 
-    max_width = (
-        text_right
-        - text_left
+    panel_left = 100
+    panel_right = 980
+
+    panel = Image.new(
+        "RGBA",
+        (
+            RENDER_WIDTH,
+            RENDER_HEIGHT
+        ),
+        (0, 0, 0, 0)
     )
 
-    text_top = 205
-    text_bottom = 875
+    panel_draw = ScaledDraw(
+        panel
+    )
+
+    panel_draw.rounded_rectangle(
+        (
+            panel_left,
+            panel_top + 4,
+            panel_right,
+            panel_bottom + 6
+        ),
+        radius=45,
+        fill=(0, 0, 0, 45)
+    )
+
+    panel_draw.rounded_rectangle(
+        (
+            panel_left,
+            panel_top,
+            panel_right,
+            panel_bottom
+        ),
+        radius=45,
+        fill=(255, 255, 255, 24),
+        outline=palette["panel_outline"],
+        width=PANEL_OUTLINE_WIDTH
+    )
+
+    panel_draw.rounded_rectangle(
+        (
+            panel_left + 10,
+            panel_top + 10,
+            panel_right - 10,
+            panel_bottom - 10
+        ),
+        radius=37,
+        outline=palette["panel_inner"],
+        width=PANEL_INNER_WIDTH
+    )
+
+    panel = panel.filter(
+        ImageFilter.GaussianBlur(
+            0.35 * RENDER_SCALE
+        )
+    )
+
+    image = Image.alpha_composite(
+        image.convert("RGBA"),
+        panel
+    )
+
+    draw = ScaledDraw(
+        image
+    )
+
+    print(
+        f"[TIMING] 05 - Glass panel: "
+        f"{time.perf_counter() - stage_start:.4f}s"
+    )
+
+    # ------------------------------
+    # 6. Poem safe area
+    # ------------------------------
+
+    stage_start = time.perf_counter()
+
+    # ==========================================
+    # محدوده واقعی شعر داخل مستطیل شیشه‌ای
+    #
+    # چپ  : 145
+    # راست : 935
+    # بالا : 205
+    # پایین: 845
+    #
+    # متن از هر چهار جهت داخل پنل باقی می‌ماند.
+    # ==========================================
+
+    poem_left = 145
+    poem_right = 935
+    poem_top = 205
+    poem_bottom = 845
+
+    max_width = (
+        poem_right
+        - poem_left
+    )
 
     available_height = (
-        text_bottom
-        - text_top
+        poem_bottom
+        - poem_top
     )
 
     font_size = 66
-
     min_font_size = 28
 
     line_spacing = 9
-
     blank_line_spacing = 42
 
     lines = []
@@ -2057,89 +2142,11 @@ def create_poetry_card(
     )
 
     print(
-        f"[TIMING] 05 - Text preparation: "
+        f"[TIMING] 06 - Text preparation: "
         f"{time.perf_counter() - stage_start:.4f}s "
         f"| font={font_size} "
         f"| iterations={font_iterations} "
         f"| lines={len(lines)}"
-    )
-
-    # ------------------------------
-    # 6. Glass panel
-    # ------------------------------
-
-    stage_start = time.perf_counter()
-
-    panel_top = 160
-    panel_bottom = 890
-
-    panel = Image.new(
-        "RGBA",
-        (
-            RENDER_WIDTH,
-            RENDER_HEIGHT
-        ),
-        (0, 0, 0, 0)
-    )
-
-    panel_draw = ScaledDraw(
-        panel
-    )
-
-    panel_draw.rounded_rectangle(
-        (
-            100,
-            panel_top + 4,
-            980,
-            panel_bottom + 6
-        ),
-        radius=45,
-        fill=(0, 0, 0, 45)
-    )
-
-    panel_draw.rounded_rectangle(
-        (
-            100,
-            panel_top,
-            980,
-            panel_bottom
-        ),
-        radius=45,
-        fill=(255, 255, 255, 24),
-        outline=palette["panel_outline"],
-        width=PANEL_OUTLINE_WIDTH
-    )
-
-    panel_draw.rounded_rectangle(
-        (
-            110,
-            panel_top + 10,
-            970,
-            panel_bottom - 10
-        ),
-        radius=37,
-        outline=palette["panel_inner"],
-        width=PANEL_INNER_WIDTH
-    )
-
-    panel = panel.filter(
-        ImageFilter.GaussianBlur(
-            0.35 * RENDER_SCALE
-        )
-    )
-
-    image = Image.alpha_composite(
-        image.convert("RGBA"),
-        panel
-    )
-
-    draw = ScaledDraw(
-        image
-    )
-
-    print(
-        f"[TIMING] 06 - Glass panel: "
-        f"{time.perf_counter() - stage_start:.4f}s"
     )
 
     # ------------------------------
@@ -2149,7 +2156,7 @@ def create_poetry_card(
     stage_start = time.perf_counter()
 
     deco_y = (
-        text_top
+        poem_top
         + available_height // 2
     )
 
@@ -2202,19 +2209,27 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    y = (
-        text_top
-        + (
-            available_height
-            - total_height
-        ) // 2
-    )
+    # ------------------------------------------
+    # محاسبه دقیق محدوده بصری واقعی متن
+    # ------------------------------------------
+
+    visual_items = []
+
+    visual_height = 0
 
     for line in lines:
 
         if line is None:
 
-            y += blank_line_spacing
+            visual_items.append(
+                {
+                    "line": None,
+                    "bbox": None,
+                    "height": blank_line_spacing
+                }
+            )
+
+            visual_height += blank_line_spacing
 
             continue
 
@@ -2223,6 +2238,69 @@ def create_poetry_card(
             line,
             font=poem_font
         )
+
+        height = (
+            bbox[3]
+            - bbox[1]
+        )
+
+        visual_items.append(
+            {
+                "line": line,
+                "bbox": bbox,
+                "height": height
+            }
+        )
+
+        visual_height += height
+
+        if line != lines[-1]:
+
+            visual_height += line_spacing
+
+    # ------------------------------------------
+    # مرکزچینی عمودی داخل محدوده شیشه‌ای
+    # ------------------------------------------
+
+    visual_y = (
+        poem_top
+        + (
+            available_height
+            - visual_height
+        ) / 2
+    )
+
+    # اطمینان نهایی از قرارگیری در چهار طرف
+    if visual_y < poem_top:
+
+        visual_y = poem_top
+
+    if (
+        visual_y
+        + visual_height
+        > poem_bottom
+    ):
+
+        visual_y = (
+            poem_bottom
+            - visual_height
+        )
+
+    current_visual_y = visual_y
+
+    for item in visual_items:
+
+        line = item["line"]
+
+        if line is None:
+
+            current_visual_y += (
+                blank_line_spacing
+            )
+
+            continue
+
+        bbox = item["bbox"]
 
         width = (
             bbox[2]
@@ -2234,22 +2312,90 @@ def create_poetry_card(
             - bbox[1]
         )
 
+        # --------------------------------------
+        # مرکزچینی افقی داخل محدوده امن
+        # --------------------------------------
+
         x = (
-            CARD_WIDTH
-            - width
-        ) // 2
+            poem_left
+            + (
+                max_width
+                - width
+            ) / 2
+        )
+
+        # --------------------------------------
+        # اصلاح offset فونت برای اینکه خود
+        # پیکسل‌های متن نیز از محدوده خارج نشوند
+        # --------------------------------------
+
+        draw_y = (
+            current_visual_y
+            - bbox[1]
+        )
+
+        # کنترل نهایی بالا
+        actual_top = (
+            draw_y
+            + bbox[1]
+        )
+
+        if actual_top < poem_top:
+
+            draw_y += (
+                poem_top
+                - actual_top
+            )
+
+        # کنترل نهایی پایین
+        actual_bottom = (
+            draw_y
+            + bbox[3]
+        )
+
+        if actual_bottom > poem_bottom:
+
+            draw_y -= (
+                actual_bottom
+                - poem_bottom
+            )
+
+        # کنترل نهایی چپ و راست
+        actual_left = (
+            x
+            + bbox[0]
+        )
+
+        actual_right = (
+            x
+            + bbox[2]
+        )
+
+        if actual_left < poem_left:
+
+            x += (
+                poem_left
+                - actual_left
+            )
+
+        if actual_right > poem_right:
+
+            x -= (
+                actual_right
+                - poem_right
+            )
 
         draw.text(
             (
                 x,
-                y
+                draw_y
             ),
             line,
             font=poem_font,
             fill=palette["text"]
         )
 
-        y += (
+        current_visual_y += (
             height
             + line_spacing
         )
@@ -2282,10 +2428,6 @@ def create_poetry_card(
         + ".png"
     )
 
-    # -----------------------------------------
-    # کاهش اندازه با فیلتر بسیار باکیفیت
-    # -----------------------------------------
-
     final_image = image.convert(
         "RGB"
     ).resize(
@@ -2295,10 +2437,6 @@ def create_poetry_card(
         ),
         Image.Resampling.LANCZOS
     )
-
-    # -----------------------------------------
-    # PNG lossless با فشرده‌سازی متعادل
-    # -----------------------------------------
 
     final_image.save(
         filename,
@@ -3486,6 +3624,3 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port
     )
-
-
-
