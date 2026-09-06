@@ -26,34 +26,10 @@ CHANNEL_URL = "https://splus.ir/life_m23"
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-
-# ==================================
-# Font Paths
-# ==================================
-
-BASE_DIR = os.path.dirname(
-    os.path.abspath(__file__)
-)
-
-POEM_FONT = os.path.join(
-    BASE_DIR,
-    "Vazirmatn-SemiBold.ttf"
-)
-
-TITLE_FONT = os.path.join(
-    BASE_DIR,
-    "BTitrBd.ttf"
-)
-
-SUBTITLE_FONT = os.path.join(
-    BASE_DIR,
-    "Vazirmatn-Regular.ttf"
-)
-
-FOOTER_FONT = os.path.join(
-    BASE_DIR,
-    "Vazirmatn-Regular.ttf"
-)
+POEM_FONT = "BNazanin.ttf"
+TITLE_FONT = "BTitrBd.ttf"
+SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
+FOOTER_FONT = "Vazirmatn-Regular.ttf"
 
 
 # ==================================
@@ -210,19 +186,21 @@ FONT_CACHE = {}
 # High Quality Poem Typography
 # ==================================
 
-# شعر در رزولوشن 4x رندر می‌شود.
+# فقط شعر در رزولوشن 4x رندر می‌شود.
 # سپس با LANCZOS به 1080x1080 برمی‌گردد.
 #
-# بدون stroke
-# بدون sharpening
+# مهم:
+# - هیچ stroke روی شعر وجود ندارد.
+# - هیچ sharpening روی شعر وجود ندارد.
+# - تمام اندازه‌گیری‌ها نیز در همین مقیاس انجام می‌شوند.
 
 POEM_RENDER_SCALE = 4
 
-# تنظیم‌شده برای Vazirmatn SemiBold
-POEM_LINE_SPACING_RATIO = 0.18
+# فاصله بین خطوط نسبت به اندازه فونت
+POEM_LINE_SPACING_RATIO = 0.24
 
-# تنظیم‌شده برای Vazirmatn SemiBold
-POEM_BLANK_LINE_RATIO = 0.58
+# فاصله برای خط خالی
+POEM_BLANK_LINE_RATIO = 0.72
 
 
 # ==================================
@@ -1837,12 +1815,15 @@ def create_poetry_card(
         - text_top
     )
 
-    # تنظیم‌شده برای Vazirmatn SemiBold
-    font_size = 60
+    font_size = 62
 
     min_font_size = 28
 
     scale = POEM_RENDER_SCALE
+
+    # ------------------------------------------------
+    # از اینجا به بعد تمام محاسبات شعر در 4x هستند.
+    # ------------------------------------------------
 
     measurement_layer = Image.new(
         "L",
@@ -1918,7 +1899,6 @@ def create_poetry_card(
         if total_height <= scaled_available_height:
 
             selected_line_spacing = line_spacing
-
             selected_blank_line_spacing = (
                 blank_line_spacing
             )
@@ -2124,6 +2104,10 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
+    # ------------------------------------------------
+    # شعر روی لایه شفاف 4x رندر می‌شود.
+    # ------------------------------------------------
+
     poem_layer = Image.new(
         "RGBA",
         (
@@ -2142,6 +2126,7 @@ def create_poetry_card(
         font_size * scale
     )
 
+    # مرکز عمودی ناحیه شعر در مقیاس 4x
     scaled_text_top = (
         text_top * scale
     )
@@ -2193,6 +2178,10 @@ def create_poetry_card(
             - bbox_top
         )
 
+        # --------------------------------------------
+        # مرکزچینی واقعی بر اساس خود bbox
+        # --------------------------------------------
+
         glyph_center = (
             bbox_left
             + bbox_right
@@ -2203,6 +2192,8 @@ def create_poetry_card(
             - glyph_center
         )
 
+        # y در اینجا "لبه بالایی واقعی حروف" است.
+        # بنابراین bbox_top را جبران می‌کنیم.
         draw_y = (
             y
             - bbox_top
@@ -2218,6 +2209,10 @@ def create_poetry_card(
             fill=palette["text"]
         )
 
+        # --------------------------------------------
+        # فاصله خط بعدی
+        # --------------------------------------------
+
         if index < len(lines) - 1:
 
             next_line = lines[index + 1]
@@ -2232,6 +2227,10 @@ def create_poetry_card(
                 y += height
                 y += selected_line_spacing
 
+    # --------------------------------------------
+    # Downsample با LANCZOS
+    # --------------------------------------------
+
     poem_layer = poem_layer.resize(
         (
             CARD_WIDTH,
@@ -2239,6 +2238,15 @@ def create_poetry_card(
         ),
         Image.Resampling.LANCZOS
     )
+
+    # ------------------------------------------------
+    # عمداً هیچ UnsharpMask یا Stroke نداریم.
+    #
+    # این قسمت مهم است:
+    # قبلاً sharpening روی RGBA layer می‌توانست
+    # لبه آلفای حروف را هم دستکاری کند و باعث
+    # حس پخش‌شدن دور حروف شود.
+    # ------------------------------------------------
 
     image = Image.alpha_composite(
         image.convert("RGBA"),
@@ -2628,7 +2636,8 @@ def send_color_selection(
 
     return send_message(
         chat_id,
-        text
+        text,
+        reply_markup=get_color_keyboard()
     )
 
 
