@@ -1790,16 +1790,16 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    text_left = 48
-    text_right = 1032
+    text_left = 42
+    text_right = 1038
 
     max_width = (
         text_right
         - text_left
     )
 
-    text_top = 218
-    text_bottom = 895
+    text_top = 205
+    text_bottom = 905
 
     available_height = (
         text_bottom
