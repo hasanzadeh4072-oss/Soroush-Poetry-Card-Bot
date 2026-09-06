@@ -103,6 +103,7 @@ def monitoring_request_started():
         TOTAL_REQUESTS += 1
 
         if ACTIVE_REQUESTS > MAX_ACTIVE_REQUESTS:
+
             MAX_ACTIVE_REQUESTS = ACTIVE_REQUESTS
 
         current_active = ACTIVE_REQUESTS
@@ -131,16 +132,21 @@ def monitoring_request_finished(
     with MONITOR_LOCK:
 
         if ACTIVE_REQUESTS > 0:
+
             ACTIVE_REQUESTS -= 1
 
         TOTAL_REQUEST_TIME += elapsed
 
         if elapsed > MAX_REQUEST_TIME:
+
             MAX_REQUEST_TIME = elapsed
 
         if successful:
+
             SUCCESSFUL_REQUESTS += 1
+
         else:
+
             FAILED_REQUESTS += 1
 
         current_active = ACTIVE_REQUESTS
@@ -155,11 +161,14 @@ def monitoring_request_finished(
         )
 
         if completed_requests > 0:
+
             average_request_time = (
                 total_request_time
                 / completed_requests
             )
+
         else:
+
             average_request_time = 0.0
 
     print(
@@ -183,24 +192,26 @@ FONT_CACHE = {}
 
 
 # ==================================
-# High Quality Poem Typography
+# High Quality Poem Text Rendering
 # ==================================
 
-# فقط شعر در رزولوشن 4x رندر می‌شود.
-# سپس با LANCZOS به 1080x1080 برمی‌گردد.
-#
-# مهم:
-# - هیچ stroke روی شعر وجود ندارد.
-# - هیچ sharpening روی شعر وجود ندارد.
-# - تمام اندازه‌گیری‌ها نیز در همین مقیاس انجام می‌شوند.
+# The poem is rendered at 4x resolution
+# and then reduced to 1080x1080.
+# This improves Persian glyph edge quality
+# without changing the actual visual font size.
 
 POEM_RENDER_SCALE = 4
 
-# فاصله بین خطوط نسبت به اندازه فونت
-POEM_LINE_SPACING_RATIO = 0.24
+# Very subtle strengthening of glyph edges.
+# 2px at 4x resolution equals roughly 0.5px
+# in the final 1080px image.
+POEM_STROKE_WIDTH = 2
 
-# فاصله برای خط خالی
-POEM_BLANK_LINE_RATIO = 0.72
+# Extremely mild sharpening after downsampling.
+# This is intentionally conservative to avoid halos.
+POEM_SHARPEN_RADIUS = 0.45
+POEM_SHARPEN_PERCENT = 45
+POEM_SHARPEN_THRESHOLD = 3
 
 
 # ==================================
@@ -819,55 +830,6 @@ def normalize_text(text):
     )
 
 
-def get_text_bbox(
-    draw,
-    text,
-    font
-):
-
-    return draw.textbbox(
-        (0, 0),
-        text,
-        font=font
-    )
-
-
-def get_text_width(
-    draw,
-    text,
-    font
-):
-
-    bbox = get_text_bbox(
-        draw,
-        text,
-        font
-    )
-
-    return (
-        bbox[2]
-        - bbox[0]
-    )
-
-
-def get_text_height(
-    draw,
-    text,
-    font
-):
-
-    bbox = get_text_bbox(
-        draw,
-        text,
-        font
-    )
-
-    return (
-        bbox[3]
-        - bbox[1]
-    )
-
-
 def wrap_text(
     draw,
     text,
@@ -893,10 +855,15 @@ def wrap_text(
             + word
         )
 
-        width = get_text_width(
-            draw,
+        bbox = draw.textbbox(
+            (0, 0),
             test,
-            font
+            font=font
+        )
+
+        width = (
+            bbox[2]
+            - bbox[0]
         )
 
         if width <= max_width:
@@ -971,7 +938,7 @@ def calculate_text_height(
 
     total = 0
 
-    for index, line in enumerate(lines):
+    for line in lines:
 
         if line is None:
 
@@ -979,10 +946,10 @@ def calculate_text_height(
 
             continue
 
-        bbox = get_text_bbox(
-            draw,
+        bbox = draw.textbbox(
+            (0, 0),
             line,
-            font
+            font=font
         )
 
         height = (
@@ -990,19 +957,14 @@ def calculate_text_height(
             - bbox[1]
         )
 
-        total += height
+        total += (
+            height
+            + line_spacing
+        )
 
-        if index < len(lines) - 1:
+    if lines[-1] is not None:
 
-            next_line = lines[index + 1]
-
-            if next_line is None:
-
-                total += blank_line_spacing
-
-            else:
-
-                total += line_spacing
+        total -= line_spacing
 
     return total
 
@@ -1819,93 +1781,39 @@ def create_poetry_card(
 
     min_font_size = 28
 
-    scale = POEM_RENDER_SCALE
+    line_spacing = 16
 
-    # ------------------------------------------------
-    # از اینجا به بعد تمام محاسبات شعر در 4x هستند.
-    # ------------------------------------------------
-
-    measurement_layer = Image.new(
-        "L",
-        (
-            CARD_WIDTH * scale,
-            CARD_HEIGHT * scale
-        ),
-        0
-    )
-
-    measurement_draw = ImageDraw.Draw(
-        measurement_layer
-    )
+    blank_line_spacing = 44
 
     lines = []
 
     font_iterations = 0
 
-    selected_line_spacing = 0
-    selected_blank_line_spacing = 0
-    selected_total_height = 0
-
     while font_size >= min_font_size:
 
         font_iterations += 1
 
-        high_quality_font = get_font(
+        poem_font = get_font(
             POEM_FONT,
-            font_size * scale
-        )
-
-        scaled_max_width = (
-            max_width * scale
+            font_size
         )
 
         lines = prepare_poem_lines(
-            measurement_draw,
+            draw,
             text,
-            high_quality_font,
-            scaled_max_width
-        )
-
-        line_spacing = max(
-            1,
-            round(
-                font_size
-                * POEM_LINE_SPACING_RATIO
-                * scale
-            )
-        )
-
-        blank_line_spacing = max(
-            1,
-            round(
-                font_size
-                * POEM_BLANK_LINE_RATIO
-                * scale
-            )
+            poem_font,
+            max_width
         )
 
         total_height = calculate_text_height(
-            measurement_draw,
+            draw,
             lines,
-            high_quality_font,
+            poem_font,
             line_spacing,
             blank_line_spacing
         )
 
-        scaled_available_height = (
-            available_height * scale
-        )
-
-        if total_height <= scaled_available_height:
-
-            selected_line_spacing = line_spacing
-            selected_blank_line_spacing = (
-                blank_line_spacing
-            )
-
-            selected_total_height = (
-                total_height
-            )
+        if total_height <= available_height:
 
             break
 
@@ -1913,48 +1821,29 @@ def create_poetry_card(
 
     if not lines:
 
-        font_size = 48
-
-        high_quality_font = get_font(
+        poem_font = get_font(
             POEM_FONT,
-            font_size * scale
+            48
         )
 
         lines = [
             "متن خالی است"
         ]
 
-        selected_line_spacing = round(
-            font_size
-            * POEM_LINE_SPACING_RATIO
-            * scale
-        )
-
-        selected_blank_line_spacing = round(
-            font_size
-            * POEM_BLANK_LINE_RATIO
-            * scale
-        )
-
-        selected_total_height = (
-            calculate_text_height(
-                measurement_draw,
-                lines,
-                high_quality_font,
-                selected_line_spacing,
-                selected_blank_line_spacing
-            )
-        )
-
-    total_height = selected_total_height
+    total_height = calculate_text_height(
+        draw,
+        lines,
+        poem_font,
+        line_spacing,
+        blank_line_spacing
+    )
 
     print(
         f"[TIMING] 05 - Text preparation: "
         f"{time.perf_counter() - stage_start:.4f}s "
         f"| font={font_size} "
         f"| iterations={font_iterations} "
-        f"| lines={len(lines)} "
-        f"| scale={scale}x"
+        f"| lines={len(lines)}"
     )
 
     # ------------------------------
@@ -2104,10 +1993,10 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    # ------------------------------------------------
-    # شعر روی لایه شفاف 4x رندر می‌شود.
-    # ------------------------------------------------
+    scale = POEM_RENDER_SCALE
 
+    # Transparent high-resolution layer.
+    # Only the poem is rendered here.
     poem_layer = Image.new(
         "RGBA",
         (
@@ -2126,111 +2015,69 @@ def create_poetry_card(
         font_size * scale
     )
 
-    # مرکز عمودی ناحیه شعر در مقیاس 4x
-    scaled_text_top = (
-        text_top * scale
-    )
-
-    scaled_available_height = (
-        available_height * scale
-    )
-
+    # Preserve the original 1080px layout exactly.
     y = (
-        scaled_text_top
+        text_top
         + (
-            scaled_available_height
+            available_height
             - total_height
         ) // 2
     )
 
-    center_x = (
-        CARD_WIDTH
-        * scale
-        // 2
-    )
-
-    for index, line in enumerate(lines):
+    for line in lines:
 
         if line is None:
 
-            y += selected_blank_line_spacing
+            y += blank_line_spacing
 
             continue
 
-        bbox = poem_draw.textbbox(
+        # Use the original font metrics for positioning.
+        # This prevents the stroke from changing line spacing.
+        bbox = draw.textbbox(
             (0, 0),
             line,
-            font=high_quality_font
+            font=poem_font
         )
 
-        bbox_left = bbox[0]
-        bbox_top = bbox[1]
-        bbox_right = bbox[2]
-        bbox_bottom = bbox[3]
-
         width = (
-            bbox_right
-            - bbox_left
+            bbox[2]
+            - bbox[0]
         )
 
         height = (
-            bbox_bottom
-            - bbox_top
+            bbox[3]
+            - bbox[1]
         )
 
-        # --------------------------------------------
-        # مرکزچینی واقعی بر اساس خود bbox
-        # --------------------------------------------
+        x = (
+            CARD_WIDTH
+            - width
+        ) // 2
 
-        glyph_center = (
-            bbox_left
-            + bbox_right
-        ) / 2
+        # Convert final coordinates to 4x coordinates.
+        high_quality_x = x * scale
+        high_quality_y = y * scale
 
-        draw_x = (
-            center_x
-            - glyph_center
-        )
-
-        # y در اینجا "لبه بالایی واقعی حروف" است.
-        # بنابراین bbox_top را جبران می‌کنیم.
-        draw_y = (
-            y
-            - bbox_top
-        )
-
+        # Render with a very subtle strengthening stroke.
         poem_draw.text(
             (
-                int(round(draw_x)),
-                int(round(draw_y))
+                high_quality_x,
+                high_quality_y
             ),
             line,
             font=high_quality_font,
-            fill=palette["text"]
+            fill=palette["text"],
+            stroke_width=POEM_STROKE_WIDTH,
+            stroke_fill=palette["text"]
         )
 
-        # --------------------------------------------
-        # فاصله خط بعدی
-        # --------------------------------------------
+        y += (
+            height
+            + line_spacing
+        )
 
-        if index < len(lines) - 1:
-
-            next_line = lines[index + 1]
-
-            if next_line is None:
-
-                y += height
-                y += selected_blank_line_spacing
-
-            else:
-
-                y += height
-                y += selected_line_spacing
-
-    # --------------------------------------------
-    # Downsample با LANCZOS
-    # --------------------------------------------
-
+    # Downsample the entire text layer using LANCZOS.
     poem_layer = poem_layer.resize(
         (
             CARD_WIDTH,
@@ -2239,15 +2086,18 @@ def create_poetry_card(
         Image.Resampling.LANCZOS
     )
 
-    # ------------------------------------------------
-    # عمداً هیچ UnsharpMask یا Stroke نداریم.
-    #
-    # این قسمت مهم است:
-    # قبلاً sharpening روی RGBA layer می‌توانست
-    # لبه آلفای حروف را هم دستکاری کند و باعث
-    # حس پخش‌شدن دور حروف شود.
-    # ------------------------------------------------
+    # Very mild sharpening.
+    # This is intentionally much lower than aggressive
+    # sharpening so Persian letters do not develop halos.
+    poem_layer = poem_layer.filter(
+        ImageFilter.UnsharpMask(
+            radius=POEM_SHARPEN_RADIUS,
+            percent=POEM_SHARPEN_PERCENT,
+            threshold=POEM_SHARPEN_THRESHOLD
+        )
+    )
 
+    # Composite the final text onto the card.
     image = Image.alpha_composite(
         image.convert("RGBA"),
         poem_layer
@@ -2261,8 +2111,7 @@ def create_poetry_card(
         f"[TIMING] 08 - High quality poem drawing: "
         f"{time.perf_counter() - stage_start:.4f}s "
         f"| scale={POEM_RENDER_SCALE}x "
-        f"| stroke=0 "
-        f"| sharpen=off"
+        f"| stroke={POEM_STROKE_WIDTH}"
     )
 
     # ------------------------------
@@ -3458,4 +3307,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+    )
