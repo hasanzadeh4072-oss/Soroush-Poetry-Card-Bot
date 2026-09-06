@@ -26,7 +26,7 @@ CHANNEL_URL = "https://splus.ir/life_m23"
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-POEM_FONT = "Digi Mitra Circle Bold.ttf"
+POEM_FONT = "Vazirmatn-Regular.ttf"
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
@@ -43,8 +43,6 @@ BACKGROUND_SVG_URL = (
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
 )
 
-# SVG is rendered at high resolution before being
-# resized/cropped to the final 1080x1080 card.
 BACKGROUND_RENDER_SIZE = 2160
 
 PENDING_TIMEOUT = 120
@@ -221,8 +219,6 @@ def load_background_image():
             f"{len(svg_data) / 1024:.1f} KB"
         )
 
-        # Render SVG at 2160px.
-        # CairoSVG keeps the vector quality during rendering.
         png_data = cairosvg.svg2png(
             bytestring=svg_data,
             output_width=BACKGROUND_RENDER_SIZE
@@ -247,7 +243,6 @@ def load_background_image():
             / CARD_HEIGHT
         )
 
-        # Cover the card without distortion.
         if background_ratio > card_ratio:
 
             new_height = CARD_HEIGHT
@@ -295,7 +290,6 @@ def load_background_image():
             )
         )
 
-        # Keep the same soft treatment as the previous background.
         background = ImageEnhance.Brightness(
             background
         ).enhance(0.48)
@@ -304,7 +298,6 @@ def load_background_image():
             ImageFilter.GaussianBlur(4)
         )
 
-        # Subtle decorative layer over the gradient.
         background.putalpha(42)
 
         CACHED_BACKGROUND = background
@@ -1745,8 +1738,8 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    text_left = 75
-    text_right = 1005
+    text_left = 55
+    text_right = 1025
 
     max_width = (
         text_right
@@ -1861,9 +1854,9 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            62,
+            55,
             panel_top + 4,
-            1018,
+            1025,
             panel_bottom + 6
         ),
         radius=45,
@@ -1872,9 +1865,9 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            62,
+            55,
             panel_top,
-            1018,
+            1025,
             panel_bottom
         ),
         radius=45,
@@ -1885,9 +1878,9 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            72,
+            65,
             panel_top + 10,
-            1008,
+            1015,
             panel_bottom - 10
         ),
         radius=37,
@@ -1926,9 +1919,9 @@ def create_poetry_card(
 
     draw.line(
         (
-            79,
+            72,
             deco_y - 30,
-            79,
+            72,
             deco_y + 30
         ),
         fill=palette["side_line"],
@@ -1937,9 +1930,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            76,
+            69,
             deco_y - 3,
-            82,
+            75,
             deco_y + 3
         ),
         fill=palette["side_dot"]
@@ -1947,9 +1940,9 @@ def create_poetry_card(
 
     draw.line(
         (
-            1001,
+            1008,
             deco_y - 30,
-            1001,
+            1008,
             deco_y + 30
         ),
         fill=palette["side_line"],
@@ -1958,9 +1951,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            998,
+            1005,
             deco_y - 3,
-            1004,
+            1011,
             deco_y + 3
         ),
         fill=palette["side_dot"]
