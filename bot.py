@@ -6,8 +6,6 @@ import requests
 import uuid
 import io
 import cairosvg
-import gc
-from collections import OrderedDict
 
 from flask import Flask, request
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
@@ -25,9 +23,8 @@ API = f"https://api.splus.ir/bot{TOKEN}"
 
 CHANNEL_URL = "https://splus.ir/life_m23"
 
-# ابعاد متعادل برای کیفیت خوب و حجم مناسب
-CARD_WIDTH = 1300
-CARD_HEIGHT = 1300
+CARD_WIDTH = 1080
+CARD_HEIGHT = 1080
 
 POEM_FONT = "Parastoo[wght].ttf"
 TITLE_FONT = "BTitrBd.ttf"
@@ -46,7 +43,7 @@ BACKGROUND_SVG_URL = (
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
 )
 
-BACKGROUND_RENDER_SIZE = 2600
+BACKGROUND_RENDER_SIZE = 2160
 
 PENDING_TIMEOUT = 120
 
@@ -55,40 +52,13 @@ PENDING_TIMEOUT = 120
 # Line Thickness
 # ==================================
 
-OUTER_FRAME_WIDTH = 4
-INNER_FRAME_WIDTH = 3
-ORNAMENT_LINE_WIDTH = 3
-SIDE_LINE_WIDTH = 3
-PANEL_OUTLINE_WIDTH = 3
-PANEL_INNER_WIDTH = 2
-FOOTER_LINE_WIDTH = 3
-
-
-# ==================================
-# Font Cache with Size Limit
-# ==================================
-
-MAX_FONT_CACHE = 50
-
-class FontCache:
-    def __init__(self, max_size=MAX_FONT_CACHE):
-        self.cache = OrderedDict()
-        self.max_size = max_size
-    
-    def get(self, key):
-        if key in self.cache:
-            self.cache.move_to_end(key)
-            return self.cache[key]
-        return None
-    
-    def set(self, key, value):
-        if len(self.cache) >= self.max_size:
-            oldest = next(iter(self.cache))
-            del self.cache[oldest]
-        self.cache[key] = value
-        self.cache.move_to_end(key)
-
-FONT_CACHE = FontCache()
+OUTER_FRAME_WIDTH = 3
+INNER_FRAME_WIDTH = 2
+ORNAMENT_LINE_WIDTH = 2
+SIDE_LINE_WIDTH = 2
+PANEL_OUTLINE_WIDTH = 2
+PANEL_INNER_WIDTH = 1
+FOOTER_LINE_WIDTH = 2
 
 
 # ==================================
@@ -218,6 +188,7 @@ def monitoring_request_finished(
 
 CACHED_BACKGROUND = None
 CACHED_CARD_BACKGROUNDS = {}
+FONT_CACHE = {}
 
 
 # ==================================
@@ -321,13 +292,13 @@ def load_background_image():
 
         background = ImageEnhance.Brightness(
             background
-        ).enhance(0.50)
+        ).enhance(0.48)
 
         background = background.filter(
-            ImageFilter.GaussianBlur(5)
+            ImageFilter.GaussianBlur(4)
         )
 
-        background.putalpha(65)
+        background.putalpha(42)
 
         CACHED_BACKGROUND = background
 
@@ -551,68 +522,66 @@ def get_font(
         size
     )
 
-    cached = FONT_CACHE.get(key)
-    if cached is not None:
-        return cached
+    if key not in FONT_CACHE:
 
-    font = ImageFont.truetype(
-        font_name,
-        size
-    )
+        font = ImageFont.truetype(
+            font_name,
+            size
+        )
 
-    if font_name == POEM_FONT:
+        if font_name == POEM_FONT:
 
-        try:
+            try:
 
-            axes = font.get_variation_axes()
+                axes = font.get_variation_axes()
 
-            weight_index = None
+                weight_index = None
 
-            for index, axis in enumerate(axes):
+                for index, axis in enumerate(axes):
 
-                axis_name = axis.get(
-                    "name",
-                    ""
-                )
-
-                if axis_name.lower() == "weight":
-
-                    weight_index = index
-
-                    break
-
-            if weight_index is not None:
-
-                variations = [
-                    axis.get(
-                        "default",
-                        axis.get(
-                            "min",
-                            400
-                        )
+                    axis_name = axis.get(
+                        "name",
+                        ""
                     )
-                    for axis in axes
-                ]
 
-                variations[
-                    weight_index
-                ] = 400
+                    if axis_name.lower() == "weight":
 
-                font.set_variation_by_axes(
-                    variations
+                        weight_index = index
+
+                        break
+
+                if weight_index is not None:
+
+                    variations = [
+                        axis.get(
+                            "default",
+                            axis.get(
+                                "min",
+                                400
+                            )
+                        )
+                        for axis in axes
+                    ]
+
+                    variations[
+                        weight_index
+                    ] = 400
+
+                    font.set_variation_by_axes(
+                        variations
+                    )
+
+            except Exception as error:
+
+                print(
+                    "Parastoo variable font "
+                    "weight adjustment skipped:",
+                    error
                 )
 
-        except Exception as error:
+        FONT_CACHE[key] = font
 
-            print(
-                "Parastoo variable font "
-                "weight adjustment skipped:",
-                error
-            )
-
-    FONT_CACHE.set(key, font)
-
-    return font
+    return FONT_CACHE[key]
 
 
 # ==================================
@@ -734,36 +703,36 @@ def create_gradient_background(
 
     glow_draw.ellipse(
         (
-            -300,
-            -200,
-            750,
-            650
+            -260,
+            -180,
+            650,
+            560
         ),
         fill=palette["glow1"]
     )
 
     glow_draw.ellipse(
         (
-            800,
-            800,
-            1450,
-            1450
+            690,
+            690,
+            1250,
+            1250
         ),
         fill=palette["glow2"]
     )
 
     glow_draw.ellipse(
         (
-            300,
-            400,
-            1000,
-            1100
+            250,
+            350,
+            850,
+            950
         ),
         fill=palette["glow3"]
     )
 
     glow = glow.filter(
-        ImageFilter.GaussianBlur(130)
+        ImageFilter.GaussianBlur(110)
     )
 
     image = Image.alpha_composite(
@@ -785,7 +754,7 @@ def create_gradient_background(
     random_generator = random.Random(8)
 
     for _ in range(
-        17000
+        14000
     ):
 
         x = random_generator.randrange(
@@ -856,8 +825,6 @@ def build_cached_card_backgrounds():
             f"{palette_name}: "
             f"{time.perf_counter() - palette_start:.4f}s"
         )
-
-        gc.collect()
 
     elapsed = time.perf_counter() - start_time
 
@@ -1316,7 +1283,7 @@ def delete_previous_ready_message(
 
 
 # ==================================
-# Create Poetry Card (نسخه بهینه)
+# Create Poetry Card
 # ==================================
 
 def create_poetry_card(
@@ -1366,7 +1333,7 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    margin = 48
+    margin = 40
 
     draw.rounded_rectangle(
         (
@@ -1375,7 +1342,7 @@ def create_poetry_card(
             CARD_WIDTH - margin,
             CARD_HEIGHT - margin
         ),
-        radius=50,
+        radius=42,
         outline=palette["frame"],
         width=OUTER_FRAME_WIDTH
     )
@@ -1391,7 +1358,7 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    inner_margin = 58
+    inner_margin = 49
 
     draw.rounded_rectangle(
         (
@@ -1400,7 +1367,7 @@ def create_poetry_card(
             CARD_WIDTH - inner_margin,
             CARD_HEIGHT - inner_margin
         ),
-        radius=42,
+        radius=35,
         outline=palette["frame_inner"],
         width=INNER_FRAME_WIDTH
     )
@@ -1418,7 +1385,7 @@ def create_poetry_card(
 
     title_font = get_font(
         TITLE_FONT,
-        60
+        50
     )
 
     title = "شعرکده"
@@ -1441,7 +1408,7 @@ def create_poetry_card(
 
     subtitle_font = get_font(
         SUBTITLE_FONT,
-        28
+        23
     )
 
     subtitle = "( سروش پلاس )"
@@ -1464,7 +1431,7 @@ def create_poetry_card(
 
     footer_font = get_font(
         FOOTER_FONT,
-        28
+        23
     )
 
     footer = "کارت شعر"
@@ -1490,21 +1457,21 @@ def create_poetry_card(
         - footer_width
     ) // 2
 
-    footer_y = 90
+    footer_y = 78
 
     title_y = (
         CARD_HEIGHT
-        - 90
+        - 78
         - title_height
     )
 
     header_center = CARD_WIDTH // 2
 
-    gap = 24
+    gap = 20
 
     title_x = (
         header_center
-        + 12
+        + 10
     )
 
     subtitle_x = (
@@ -1547,10 +1514,10 @@ def create_poetry_card(
         line_y = (
             footer_y
             + footer_height
-            + 30
+            + 25
         )
 
-        line_width = 180
+        line_width = 150
 
         center_x = CARD_WIDTH // 2
 
@@ -1558,7 +1525,7 @@ def create_poetry_card(
             (
                 center_x - line_width,
                 line_y,
-                center_x - 14,
+                center_x - 12,
                 line_y
             ),
             fill=palette["ornament"],
@@ -1567,7 +1534,7 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 14,
+                center_x + 12,
                 line_y,
                 center_x + line_width,
                 line_y
@@ -1576,7 +1543,7 @@ def create_poetry_card(
             width=ORNAMENT_LINE_WIDTH
         )
 
-        diamond_size = 6
+        diamond_size = 5
 
         draw.polygon(
             [
@@ -1632,10 +1599,10 @@ def create_poetry_card(
 
         line_y = (
             title_y
-            - 30
+            - 25
         )
 
-        line_width = 180
+        line_width = 150
 
         center_x = CARD_WIDTH // 2
 
@@ -1643,7 +1610,7 @@ def create_poetry_card(
             (
                 center_x - line_width,
                 line_y,
-                center_x - 14,
+                center_x - 12,
                 line_y
             ),
             fill=palette["ornament"],
@@ -1652,7 +1619,7 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 14,
+                center_x + 12,
                 line_y,
                 center_x + line_width,
                 line_y
@@ -1661,7 +1628,7 @@ def create_poetry_card(
             width=ORNAMENT_LINE_WIDTH
         )
 
-        diamond_size = 6
+        diamond_size = 5
 
         draw.polygon(
             [
@@ -1710,10 +1677,10 @@ def create_poetry_card(
         ornament_y = (
             footer_y
             + footer_height
-            + 30
+            + 25
         )
 
-        ornament_width = 180
+        ornament_width = 150
 
         center_x = CARD_WIDTH // 2
 
@@ -1721,7 +1688,7 @@ def create_poetry_card(
             (
                 center_x - ornament_width,
                 ornament_y,
-                center_x - 14,
+                center_x - 12,
                 ornament_y
             ),
             fill=palette["ornament"],
@@ -1730,7 +1697,7 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 14,
+                center_x + 12,
                 ornament_y,
                 center_x + ornament_width,
                 ornament_y
@@ -1739,7 +1706,7 @@ def create_poetry_card(
             width=ORNAMENT_LINE_WIDTH
         )
 
-        diamond_size = 6
+        diamond_size = 5
 
         draw.polygon(
             [
@@ -1765,14 +1732,14 @@ def create_poetry_card(
 
         bottom_ornament_y = (
             CARD_HEIGHT
-            - 130
+            - 112
         )
 
         draw.line(
             (
                 center_x - ornament_width,
                 bottom_ornament_y,
-                center_x - 14,
+                center_x - 12,
                 bottom_ornament_y
             ),
             fill=palette["ornament"],
@@ -1781,7 +1748,7 @@ def create_poetry_card(
 
         draw.line(
             (
-                center_x + 14,
+                center_x + 12,
                 bottom_ornament_y,
                 center_x + ornament_width,
                 bottom_ornament_y
@@ -1823,29 +1790,29 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    text_left = 50
-    text_right = 1250
+    text_left = 42
+    text_right = 1038
 
     max_width = (
         text_right
         - text_left
     )
 
-    text_top = 245
-    text_bottom = 1055
+    text_top = 205
+    text_bottom = 875
 
     available_height = (
         text_bottom
         - text_top
     )
 
-    font_size = 78
+    font_size = 66
 
-    min_font_size = 32
+    min_font_size = 28
 
-    line_spacing = 11
+    line_spacing = 9
 
-    blank_line_spacing = 50
+    blank_line_spacing = 42
 
     lines = []
 
@@ -1885,7 +1852,7 @@ def create_poetry_card(
 
         poem_font = get_font(
             POEM_FONT,
-            55
+            46
         )
 
         lines = [
@@ -1914,8 +1881,9 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    panel_top = 190
-    panel_bottom = 1070
+    # فقط جای مستطیل شیشه‌ای تغییر کرده است
+    panel_top = 160
+    panel_bottom = 890
 
     panel = Image.new(
         "RGBA",
@@ -1932,23 +1900,23 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            120,
-            panel_top + 5,
-            1180,
-            panel_bottom + 7
+            100,
+            panel_top + 4,
+            980,
+            panel_bottom + 6
         ),
-        radius=55,
+        radius=45,
         fill=(0, 0, 0, 45)
     )
 
     panel_draw.rounded_rectangle(
         (
-            120,
+            100,
             panel_top,
-            1180,
+            980,
             panel_bottom
         ),
-        radius=55,
+        radius=45,
         fill=(255, 255, 255, 24),
         outline=palette["panel_outline"],
         width=PANEL_OUTLINE_WIDTH
@@ -1956,18 +1924,18 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            132,
-            panel_top + 12,
-            1168,
-            panel_bottom - 12
+            110,
+            panel_top + 10,
+            970,
+            panel_bottom - 10
         ),
-        radius=45,
+        radius=37,
         outline=palette["panel_inner"],
         width=PANEL_INNER_WIDTH
     )
 
     panel = panel.filter(
-        ImageFilter.GaussianBlur(0.5)
+        ImageFilter.GaussianBlur(0.35)
     )
 
     image = Image.alpha_composite(
@@ -1997,10 +1965,10 @@ def create_poetry_card(
 
     draw.line(
         (
-            78,
-            deco_y - 36,
-            78,
-            deco_y + 36
+            65,
+            deco_y - 30,
+            65,
+            deco_y + 30
         ),
         fill=palette["side_line"],
         width=SIDE_LINE_WIDTH
@@ -2008,9 +1976,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            75,
+            62,
             deco_y - 3,
-            81,
+            68,
             deco_y + 3
         ),
         fill=palette["side_dot"]
@@ -2018,10 +1986,10 @@ def create_poetry_card(
 
     draw.line(
         (
-            1222,
-            deco_y - 36,
-            1222,
-            deco_y + 36
+            1015,
+            deco_y - 30,
+            1015,
+            deco_y + 30
         ),
         fill=palette["side_line"],
         width=SIDE_LINE_WIDTH
@@ -2029,9 +1997,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            1219,
+            1012,
             deco_y - 3,
-            1225,
+            1018,
             deco_y + 3
         ),
         fill=palette["side_dot"]
@@ -2117,7 +2085,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 10. PNG save (با فشرده‌سازی متعادل)
+    # 10. PNG save
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2131,8 +2099,7 @@ def create_poetry_card(
     image.convert("RGB").save(
         filename,
         "PNG",
-        compress_level=6,
-        optimize=True
+        compress_level=1
     )
 
     save_time = (
@@ -2158,10 +2125,6 @@ def create_poetry_card(
         f"{save_time:.4f}s "
         f"| size={file_size:.1f} KB"
     )
-
-    del image
-    del draw
-    gc.collect()
 
     total_time = (
         time.perf_counter()
@@ -3092,8 +3055,6 @@ def process_color_selection(
                     error
                 )
 
-        gc.collect()
-
     overall_time = (
         time.perf_counter()
         - overall_start
@@ -3305,4 +3266,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-            )
+)
