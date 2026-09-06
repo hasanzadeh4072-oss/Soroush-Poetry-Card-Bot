@@ -43,8 +43,6 @@ BACKGROUND_SVG_URL = (
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
 )
 
-# SVG is rendered at high resolution before being
-# resized/cropped to the final 1080x1080 card.
 BACKGROUND_RENDER_SIZE = 2160
 
 PENDING_TIMEOUT = 120
@@ -194,6 +192,29 @@ FONT_CACHE = {}
 
 
 # ==================================
+# High Quality Poem Text Rendering
+# ==================================
+
+# The poem is rendered at 4x resolution
+# and then reduced to 1080x1080.
+# This improves Persian glyph edge quality
+# without changing the actual visual font size.
+
+POEM_RENDER_SCALE = 4
+
+# Very subtle strengthening of glyph edges.
+# 2px at 4x resolution equals roughly 0.5px
+# in the final 1080px image.
+POEM_STROKE_WIDTH = 2
+
+# Extremely mild sharpening after downsampling.
+# This is intentionally conservative to avoid halos.
+POEM_SHARPEN_RADIUS = 0.45
+POEM_SHARPEN_PERCENT = 45
+POEM_SHARPEN_THRESHOLD = 3
+
+
+# ==================================
 # Load SVG Background
 # ==================================
 
@@ -221,8 +242,6 @@ def load_background_image():
             f"{len(svg_data) / 1024:.1f} KB"
         )
 
-        # Render SVG at 2160px.
-        # CairoSVG keeps the vector quality during rendering.
         png_data = cairosvg.svg2png(
             bytestring=svg_data,
             output_width=BACKGROUND_RENDER_SIZE
@@ -247,7 +266,6 @@ def load_background_image():
             / CARD_HEIGHT
         )
 
-        # Cover the card without distortion.
         if background_ratio > card_ratio:
 
             new_height = CARD_HEIGHT
@@ -295,7 +313,6 @@ def load_background_image():
             )
         )
 
-        # Keep the same soft treatment as the previous background.
         background = ImageEnhance.Brightness(
             background
         ).enhance(0.48)
@@ -304,7 +321,6 @@ def load_background_image():
             ImageFilter.GaussianBlur(4)
         )
 
-        # Subtle decorative layer over the gradient.
         background.putalpha(42)
 
         CACHED_BACKGROUND = background
@@ -639,7 +655,7 @@ def create_gradient_background(
 
     else:
 
-        image = image.convert(
+        image = gradient.convert(
             "RGBA"
         )
 
@@ -1972,11 +1988,34 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 8. Poem drawing
+    # 8. High Quality Poem Drawing
     # ------------------------------
 
     stage_start = time.perf_counter()
 
+    scale = POEM_RENDER_SCALE
+
+    # Transparent high-resolution layer.
+    # Only the poem is rendered here.
+    poem_layer = Image.new(
+        "RGBA",
+        (
+            CARD_WIDTH * scale,
+            CARD_HEIGHT * scale
+        ),
+        (0, 0, 0, 0)
+    )
+
+    poem_draw = ImageDraw.Draw(
+        poem_layer
+    )
+
+    high_quality_font = get_font(
+        POEM_FONT,
+        font_size * scale
+    )
+
+    # Preserve the original 1080px layout exactly.
     y = (
         text_top
         + (
@@ -1993,6 +2032,8 @@ def create_poetry_card(
 
             continue
 
+        # Use the original font metrics for positioning.
+        # This prevents the stroke from changing line spacing.
         bbox = draw.textbbox(
             (0, 0),
             line,
@@ -2014,14 +2055,21 @@ def create_poetry_card(
             - width
         ) // 2
 
-        draw.text(
+        # Convert final coordinates to 4x coordinates.
+        high_quality_x = x * scale
+        high_quality_y = y * scale
+
+        # Render with a very subtle strengthening stroke.
+        poem_draw.text(
             (
-                x,
-                y
+                high_quality_x,
+                high_quality_y
             ),
             line,
-            font=poem_font,
-            fill=palette["text"]
+            font=high_quality_font,
+            fill=palette["text"],
+            stroke_width=POEM_STROKE_WIDTH,
+            stroke_fill=palette["text"]
         )
 
         y += (
@@ -2029,9 +2077,41 @@ def create_poetry_card(
             + line_spacing
         )
 
+    # Downsample the entire text layer using LANCZOS.
+    poem_layer = poem_layer.resize(
+        (
+            CARD_WIDTH,
+            CARD_HEIGHT
+        ),
+        Image.Resampling.LANCZOS
+    )
+
+    # Very mild sharpening.
+    # This is intentionally much lower than aggressive
+    # sharpening so Persian letters do not develop halos.
+    poem_layer = poem_layer.filter(
+        ImageFilter.UnsharpMask(
+            radius=POEM_SHARPEN_RADIUS,
+            percent=POEM_SHARPEN_PERCENT,
+            threshold=POEM_SHARPEN_THRESHOLD
+        )
+    )
+
+    # Composite the final text onto the card.
+    image = Image.alpha_composite(
+        image.convert("RGBA"),
+        poem_layer
+    )
+
+    draw = ImageDraw.Draw(
+        image
+    )
+
     print(
-        f"[TIMING] 08 - Poem drawing: "
-        f"{time.perf_counter() - stage_start:.4f}s"
+        f"[TIMING] 08 - High quality poem drawing: "
+        f"{time.perf_counter() - stage_start:.4f}s "
+        f"| scale={POEM_RENDER_SCALE}x "
+        f"| stroke={POEM_STROKE_WIDTH}"
     )
 
     # ------------------------------
