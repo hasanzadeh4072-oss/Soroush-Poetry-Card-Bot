@@ -26,7 +26,7 @@ CHANNEL_URL = "https://splus.ir/life_m23"
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-POEM_FONT = "Sahel.ttf"
+POEM_FONT = "BMitra.ttf"
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
@@ -43,6 +43,8 @@ BACKGROUND_SVG_URL = (
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
 )
 
+# SVG is rendered at high resolution before being
+# resized/cropped to the final 1080x1080 card.
 BACKGROUND_RENDER_SIZE = 2160
 
 PENDING_TIMEOUT = 120
@@ -219,6 +221,8 @@ def load_background_image():
             f"{len(svg_data) / 1024:.1f} KB"
         )
 
+        # Render SVG at 2160px.
+        # CairoSVG keeps the vector quality during rendering.
         png_data = cairosvg.svg2png(
             bytestring=svg_data,
             output_width=BACKGROUND_RENDER_SIZE
@@ -243,6 +247,7 @@ def load_background_image():
             / CARD_HEIGHT
         )
 
+        # Cover the card without distortion.
         if background_ratio > card_ratio:
 
             new_height = CARD_HEIGHT
@@ -290,6 +295,7 @@ def load_background_image():
             )
         )
 
+        # Keep the same soft treatment as the previous background.
         background = ImageEnhance.Brightness(
             background
         ).enhance(0.48)
@@ -298,6 +304,7 @@ def load_background_image():
             ImageFilter.GaussianBlur(4)
         )
 
+        # Subtle decorative layer over the gradient.
         background.putalpha(42)
 
         CACHED_BACKGROUND = background
@@ -1754,14 +1761,13 @@ def create_poetry_card(
         - text_top
     )
 
-    # Tuned for Sahel Regular.
-    font_size = 60
+    font_size = 62
 
     min_font_size = 28
 
-    line_spacing = 10
+    line_spacing = 8
 
-    blank_line_spacing = 38
+    blank_line_spacing = 32
 
     lines = []
 
@@ -1801,7 +1807,7 @@ def create_poetry_card(
 
         poem_font = get_font(
             POEM_FONT,
-            46
+            48
         )
 
         lines = [
@@ -3221,4 +3227,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
+        )
