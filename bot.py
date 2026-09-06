@@ -1881,8 +1881,9 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    panel_top = 175
-    panel_bottom = 905
+    # فقط جای مستطیل شیشه‌ای تغییر کرده است
+    panel_top = 160
+    panel_bottom = 890
 
     panel = Image.new(
         "RGBA",
@@ -3265,4 +3266,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+                )
