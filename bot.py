@@ -340,7 +340,7 @@ PALETTES = [
         "accent": (244, 210, 137),
         "subtitle": (205, 191, 168),
         "ornament": (145, 112, 68),
-        "panel_outline": (205, 172, 105, 65),
+        "panel_outline": (205, 172, 105, 60),
         "panel_inner": (255, 255, 255, 12),
         "side_line": (205, 172, 105, 75),
         "side_dot": (205, 172, 105, 100),
@@ -360,7 +360,7 @@ PALETTES = [
         "accent": (239, 210, 139),
         "subtitle": (195, 204, 211),
         "ornament": (140, 125, 82),
-        "panel_outline": (190, 170, 110, 65),
+        "panel_outline": (190, 170, 110, 60),
         "panel_inner": (255, 255, 255, 12),
         "side_line": (200, 175, 110, 75),
         "side_dot": (215, 185, 115, 100),
@@ -380,7 +380,7 @@ PALETTES = [
         "accent": (241, 210, 139),
         "subtitle": (211, 193, 181),
         "ornament": (145, 105, 65),
-        "panel_outline": (195, 155, 95, 65),
+        "panel_outline": (195, 155, 95, 60),
         "panel_inner": (255, 255, 255, 12),
         "side_line": (200, 160, 100, 75),
         "side_dot": (215, 175, 105, 100),
@@ -400,7 +400,7 @@ PALETTES = [
         "accent": (224, 199, 132),
         "subtitle": (188, 209, 208),
         "ornament": (130, 137, 91),
-        "panel_outline": (185, 170, 110, 65),
+        "panel_outline": (185, 170, 110, 60),
         "panel_inner": (255, 255, 255, 12),
         "side_line": (185, 175, 110, 75),
         "side_dot": (210, 190, 120, 100),
@@ -420,7 +420,7 @@ PALETTES = [
         "accent": (239, 211, 137),
         "subtitle": (194, 207, 197),
         "ornament": (140, 118, 70),
-        "panel_outline": (190, 165, 100, 65),
+        "panel_outline": (190, 165, 100, 60),
         "panel_inner": (255, 255, 255, 12),
         "side_line": (190, 170, 105, 75),
         "side_dot": (210, 180, 110, 100),
@@ -440,7 +440,7 @@ PALETTES = [
         "accent": (235, 181, 163),
         "subtitle": (216, 194, 187),
         "ornament": (164, 112, 106),
-        "panel_outline": (215, 160, 150, 65),
+        "panel_outline": (215, 160, 150, 60),
         "panel_inner": (255, 255, 255, 12),
         "side_line": (210, 155, 145, 75),
         "side_dot": (225, 170, 158, 100),
@@ -1884,6 +1884,9 @@ def create_poetry_card(
     panel_top = 175
     panel_bottom = 905
 
+    panel_left = 78
+    panel_right = 1002
+
     panel = Image.new(
         "RGBA",
         (
@@ -1899,9 +1902,9 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            48,
+            panel_left,
             panel_top + 4,
-            1032,
+            panel_right,
             panel_bottom + 6
         ),
         radius=45,
@@ -1910,9 +1913,9 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            48,
+            panel_left,
             panel_top,
-            1032,
+            panel_right,
             panel_bottom
         ),
         radius=45,
@@ -1923,9 +1926,9 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            58,
+            panel_left + 10,
             panel_top + 10,
-            1022,
+            panel_right - 10,
             panel_bottom - 10
         ),
         radius=37,
@@ -1966,7 +1969,7 @@ def create_poetry_card(
         (
             18,
             deco_y,
-            36,
+            38,
             deco_y
         ),
         fill=palette["side_line"],
@@ -1975,9 +1978,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            37,
+            35,
             deco_y - 3,
-            43,
+            41,
             deco_y + 3
         ),
         fill=palette["side_dot"]
@@ -1985,7 +1988,7 @@ def create_poetry_card(
 
     draw.line(
         (
-            1044,
+            1042,
             deco_y,
             1062,
             deco_y
@@ -1996,9 +1999,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            1037,
+            1039,
             deco_y - 3,
-            1043,
+            1045,
             deco_y + 3
         ),
         fill=palette["side_dot"]
@@ -3265,4 +3268,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-        )
+    )
