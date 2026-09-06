@@ -26,7 +26,7 @@ CHANNEL_URL = "https://splus.ir/life_m23"
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-POEM_FONT = "Vazirmatn-SemiBold.ttf"
+POEM_FONT = "Sahel.ttf"
 TITLE_FONT = "BTitrBd.ttf"
 SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
 FOOTER_FONT = "Vazirmatn-Regular.ttf"
@@ -43,8 +43,6 @@ BACKGROUND_SVG_URL = (
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
 )
 
-# SVG is rendered at high resolution before being
-# resized/cropped to the final 1080x1080 card.
 BACKGROUND_RENDER_SIZE = 2160
 
 PENDING_TIMEOUT = 120
@@ -221,8 +219,6 @@ def load_background_image():
             f"{len(svg_data) / 1024:.1f} KB"
         )
 
-        # Render SVG at 2160px.
-        # CairoSVG keeps the vector quality during rendering.
         png_data = cairosvg.svg2png(
             bytestring=svg_data,
             output_width=BACKGROUND_RENDER_SIZE
@@ -247,7 +243,6 @@ def load_background_image():
             / CARD_HEIGHT
         )
 
-        # Cover the card without distortion.
         if background_ratio > card_ratio:
 
             new_height = CARD_HEIGHT
@@ -295,7 +290,6 @@ def load_background_image():
             )
         )
 
-        # Keep the same soft treatment as the previous background.
         background = ImageEnhance.Brightness(
             background
         ).enhance(0.48)
@@ -304,7 +298,6 @@ def load_background_image():
             ImageFilter.GaussianBlur(4)
         )
 
-        # Subtle decorative layer over the gradient.
         background.putalpha(42)
 
         CACHED_BACKGROUND = background
@@ -639,7 +632,7 @@ def create_gradient_background(
 
     else:
 
-        image = image.convert(
+        image = gradient.convert(
             "RGBA"
         )
 
@@ -1761,16 +1754,14 @@ def create_poetry_card(
         - text_top
     )
 
-    # Vazirmatn SemiBold has a different visual density
-    # from BNazanin, so the starting size and spacing
-    # are tuned for the new font.
-    font_size = 58
+    # Tuned for Sahel Regular.
+    font_size = 60
 
-    min_font_size = 26
+    min_font_size = 28
 
-    line_spacing = 14
+    line_spacing = 10
 
-    blank_line_spacing = 40
+    blank_line_spacing = 38
 
     lines = []
 
@@ -3230,4 +3221,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-)
+    )
