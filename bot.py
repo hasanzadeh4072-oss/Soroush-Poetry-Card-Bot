@@ -1790,8 +1790,8 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    text_left = 55
-    text_right = 1025
+    text_left = 48
+    text_right = 1032
 
     max_width = (
         text_right
@@ -1906,9 +1906,9 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            55,
+            48,
             panel_top + 4,
-            1025,
+            1032,
             panel_bottom + 6
         ),
         radius=45,
@@ -1917,9 +1917,9 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            55,
+            48,
             panel_top,
-            1025,
+            1032,
             panel_bottom
         ),
         radius=45,
@@ -1930,9 +1930,9 @@ def create_poetry_card(
 
     panel_draw.rounded_rectangle(
         (
-            65,
+            58,
             panel_top + 10,
-            1015,
+            1022,
             panel_bottom - 10
         ),
         radius=37,
@@ -1971,9 +1971,9 @@ def create_poetry_card(
 
     draw.line(
         (
-            72,
+            65,
             deco_y - 30,
-            72,
+            65,
             deco_y + 30
         ),
         fill=palette["side_line"],
@@ -1982,9 +1982,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            69,
+            62,
             deco_y - 3,
-            75,
+            68,
             deco_y + 3
         ),
         fill=palette["side_dot"]
@@ -1992,9 +1992,9 @@ def create_poetry_card(
 
     draw.line(
         (
-            1008,
+            1015,
             deco_y - 30,
-            1008,
+            1015,
             deco_y + 30
         ),
         fill=palette["side_line"],
@@ -2003,9 +2003,9 @@ def create_poetry_card(
 
     draw.ellipse(
         (
-            1005,
+            1012,
             deco_y - 3,
-            1011,
+            1018,
             deco_y + 3
         ),
         fill=palette["side_dot"]
@@ -3272,4 +3272,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
+)
