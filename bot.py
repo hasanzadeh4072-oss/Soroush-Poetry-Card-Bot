@@ -2016,12 +2016,24 @@ def create_poetry_card(
 
         draw.text(
             (
+                x + 1,
+                y + 1
+            ),
+            line,
+            font=poem_font,
+            fill=(0, 0, 0, 35)
+        )
+
+        draw.text(
+            (
                 x,
                 y
             ),
             line,
             font=poem_font,
-            fill=palette["text"]
+            fill=palette["text"],
+            stroke_width=1,
+            stroke_fill=palette["text"]
         )
 
         y += (
@@ -3227,4 +3239,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-        )
+)
