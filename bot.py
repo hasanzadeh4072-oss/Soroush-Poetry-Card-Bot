@@ -81,6 +81,65 @@ PENDING_TIMERS = {}
 
 
 # ==================================
+# Background Cache
+# ==================================
+
+CACHED_BACKGROUND = None
+CACHED_CARD_BACKGROUNDS = {}
+CACHED_TEXTURE = None
+
+BACKGROUND_CACHE_LOCK = threading.Lock()
+
+
+# ==================================
+# Font Cache
+# ==================================
+
+FONT_CACHE = {}
+FONT_CACHE_LOCK = threading.Lock()
+
+
+# ==================================
+# HTTP Session
+# ==================================
+
+HTTP_LOCAL = threading.local()
+
+
+def get_http_session():
+
+    session = getattr(
+        HTTP_LOCAL,
+        "session",
+        None
+    )
+
+    if session is None:
+
+        session = requests.Session()
+
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=20,
+            pool_maxsize=20,
+            max_retries=0
+        )
+
+        session.mount(
+            "http://",
+            adapter
+        )
+
+        session.mount(
+            "https://",
+            adapter
+        )
+
+        HTTP_LOCAL.session = session
+
+    return session
+
+
+# ==================================
 # Monitoring
 # ==================================
 
@@ -186,15 +245,6 @@ def monitoring_request_finished(
         f"avg={average_request_time:.4f}s | "
         f"max_time={max_request_time:.4f}s"
     )
-
-
-# ==================================
-# Cached Backgrounds
-# ==================================
-
-CACHED_BACKGROUND = None
-CACHED_CARD_BACKGROUNDS = {}
-FONT_CACHE = {}
 
 
 # ==================================
@@ -394,7 +444,9 @@ def load_background_image():
             "Loading SVG background from GitHub..."
         )
 
-        response = requests.get(
+        session = get_http_session()
+
+        response = session.get(
             BACKGROUND_SVG_URL,
             timeout=30
         )
@@ -719,7 +771,11 @@ def get_font(
         actual_size
     )
 
-    if key not in FONT_CACHE:
+    with FONT_CACHE_LOCK:
+
+        if key in FONT_CACHE:
+
+            return FONT_CACHE[key]
 
         font = ImageFont.truetype(
             font_name,
@@ -778,7 +834,73 @@ def get_font(
 
         FONT_CACHE[key] = font
 
-    return FONT_CACHE[key]
+        return font
+
+
+# ==================================
+# Shared Texture
+# ==================================
+
+def build_shared_texture():
+
+    global CACHED_TEXTURE
+
+    if CACHED_TEXTURE is not None:
+
+        return CACHED_TEXTURE
+
+    with BACKGROUND_CACHE_LOCK:
+
+        if CACHED_TEXTURE is not None:
+
+            return CACHED_TEXTURE
+
+        print(
+            "Building shared background texture..."
+        )
+
+        texture = Image.new(
+            "RGBA",
+            (
+                RENDER_WIDTH,
+                RENDER_HEIGHT
+            ),
+            (0, 0, 0, 0)
+        )
+
+        texture_pixels = texture.load()
+
+        random_generator = random.Random(8)
+
+        for _ in range(56000):
+
+            x = random_generator.randrange(
+                RENDER_WIDTH
+            )
+
+            y = random_generator.randrange(
+                RENDER_HEIGHT
+            )
+
+            value = random_generator.choice(
+                [
+                    (255, 255, 255, 3),
+                    (0, 0, 0, 4)
+                ]
+            )
+
+            texture_pixels[
+                x,
+                y
+            ] = value
+
+        CACHED_TEXTURE = texture
+
+        print(
+            "Shared background texture cached."
+        )
+
+        return CACHED_TEXTURE
 
 
 # ==================================
@@ -941,42 +1063,7 @@ def create_gradient_background(
         glow
     )
 
-    texture = Image.new(
-        "RGBA",
-        (
-            RENDER_WIDTH,
-            RENDER_HEIGHT
-        ),
-        (0, 0, 0, 0)
-    )
-
-    texture_pixels = texture.load()
-
-    random_generator = random.Random(8)
-
-    for _ in range(
-        56000
-    ):
-
-        x = random_generator.randrange(
-            RENDER_WIDTH
-        )
-
-        y = random_generator.randrange(
-            RENDER_HEIGHT
-        )
-
-        value = random_generator.choice(
-            [
-                (255, 255, 255, 3),
-                (0, 0, 0, 4)
-            ]
-        )
-
-        texture_pixels[
-            x,
-            y
-        ] = value
+    texture = build_shared_texture()
 
     image = Image.alpha_composite(
         image,
@@ -1001,6 +1088,8 @@ def build_cached_card_backgrounds():
     )
 
     start_time = time.perf_counter()
+
+    build_shared_texture()
 
     CACHED_CARD_BACKGROUNDS = {}
 
@@ -1799,10 +1888,6 @@ def create_poetry_card(
             - 25
         )
 
-        line_width = 150
-
-        center_x = CARD_WIDTH // 2
-
         draw.line(
             (
                 (center_x - line_width, line_y),
@@ -1820,8 +1905,6 @@ def create_poetry_card(
             fill=palette["ornament"],
             width=ORNAMENT_LINE_WIDTH
         )
-
-        diamond_size = 5
 
         draw.polygon(
             [
@@ -2056,17 +2139,6 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    # ==========================================
-    # محدوده واقعی شعر داخل مستطیل شیشه‌ای
-    #
-    # چپ  : 145
-    # راست : 935
-    # بالا : 205
-    # پایین: 845
-    #
-    # متن از هر چهار جهت داخل پنل باقی می‌ماند.
-    # ==========================================
-
     poem_left = 145
     poem_right = 935
     poem_top = 205
@@ -2209,10 +2281,6 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    # ------------------------------------------
-    # محاسبه دقیق محدوده بصری واقعی متن
-    # ------------------------------------------
-
     visual_items = []
 
     visual_height = 0
@@ -2258,10 +2326,6 @@ def create_poetry_card(
 
             visual_height += line_spacing
 
-    # ------------------------------------------
-    # مرکزچینی عمودی داخل محدوده شیشه‌ای
-    # ------------------------------------------
-
     visual_y = (
         poem_top
         + (
@@ -2270,7 +2334,6 @@ def create_poetry_card(
         ) / 2
     )
 
-    # اطمینان نهایی از قرارگیری در چهار طرف
     if visual_y < poem_top:
 
         visual_y = poem_top
@@ -2312,10 +2375,6 @@ def create_poetry_card(
             - bbox[1]
         )
 
-        # --------------------------------------
-        # مرکزچینی افقی داخل محدوده امن
-        # --------------------------------------
-
         x = (
             poem_left
             + (
@@ -2324,17 +2383,11 @@ def create_poetry_card(
             ) / 2
         )
 
-        # --------------------------------------
-        # اصلاح offset فونت برای اینکه خود
-        # پیکسل‌های متن نیز از محدوده خارج نشوند
-        # --------------------------------------
-
         draw_y = (
             current_visual_y
             - bbox[1]
         )
 
-        # کنترل نهایی بالا
         actual_top = (
             draw_y
             + bbox[1]
@@ -2347,7 +2400,6 @@ def create_poetry_card(
                 - actual_top
             )
 
-        # کنترل نهایی پایین
         actual_bottom = (
             draw_y
             + bbox[3]
@@ -2360,7 +2412,6 @@ def create_poetry_card(
                 - poem_bottom
             )
 
-        # کنترل نهایی چپ و راست
         actual_left = (
             x
             + bbox[0]
@@ -2532,7 +2583,9 @@ def send_message(
                 reply_markup
             )
 
-        response = requests.post(
+        session = get_http_session()
+
+        response = session.post(
             f"{API}/sendMessage",
             json=data,
             timeout=20
@@ -2567,7 +2620,9 @@ def delete_message(
 
     try:
 
-        response = requests.post(
+        session = get_http_session()
+
+        response = session.post(
             f"{API}/deleteMessage",
             json={
                 "chat_id": chat_id,
@@ -2605,12 +2660,14 @@ def send_photo(
 
     try:
 
+        session = get_http_session()
+
         with open(
             filename,
             "rb"
         ) as photo:
 
-            response = requests.post(
+            response = session.post(
                 f"{API}/sendPhoto",
                 data={
                     "chat_id": chat_id
@@ -2653,7 +2710,9 @@ def answer_callback_query(
 
     try:
 
-        response = requests.post(
+        session = get_http_session()
+
+        response = session.post(
             f"{API}/answerCallbackQuery",
             json={
                 "callback_query_id":
@@ -2985,6 +3044,299 @@ def process_card_type_selection(
 
 
 # ==================================
+# Actual Card Generation Worker
+# ==================================
+
+def generate_and_send_card(
+    chat_id,
+    poem,
+    palette,
+    branded
+):
+
+    overall_start = time.perf_counter()
+
+    building_message_id = None
+    filename = None
+
+    try:
+
+        # ------------------------------
+        # Send building message
+        # ------------------------------
+
+        stage_start = time.perf_counter()
+
+        building_response = send_message(
+            chat_id,
+            "⏳ <b>کارت شعر در حال ساخت است...</b>"
+        )
+
+        print(
+            f"[TIMING] Send building message: "
+            f"{time.perf_counter() - stage_start:.4f}s"
+        )
+
+        if (
+            building_response is not None
+            and building_response.ok
+        ):
+
+            try:
+
+                building_result = (
+                    building_response.json()
+                )
+
+                result = (
+                    building_result.get("result")
+                    or {}
+                )
+
+                building_message_id = (
+                    result.get("message_id")
+                )
+
+            except Exception as error:
+
+                print(
+                    "Building message parse error:",
+                    error
+                )
+
+        # ------------------------------
+        # Create card
+        # ------------------------------
+
+        filename = create_poetry_card(
+            poem,
+            palette,
+            branded=branded
+        )
+
+        print(
+            f"Poetry card created: "
+            f"{filename}"
+        )
+
+        # ------------------------------
+        # Send photo
+        # ------------------------------
+
+        stage_start = time.perf_counter()
+
+        photo_response = send_photo(
+            chat_id,
+            filename
+        )
+
+        photo_time = (
+            time.perf_counter()
+            - stage_start
+        )
+
+        print(
+            f"[TIMING] sendPhoto: "
+            f"{photo_time:.4f}s"
+        )
+
+        if (
+            photo_response is not None
+            and photo_response.ok
+        ):
+
+            print(
+                "Poetry card sent successfully."
+            )
+
+            # --------------------------
+            # Delete building message
+            # --------------------------
+
+            if building_message_id:
+
+                stage_start = (
+                    time.perf_counter()
+                )
+
+                delete_message(
+                    chat_id,
+                    building_message_id
+                )
+
+                print(
+                    f"[TIMING] Delete building message: "
+                    f"{time.perf_counter() - stage_start:.4f}s"
+                )
+
+            # --------------------------
+            # Send after-card message
+            # --------------------------
+
+            stage_start = (
+                time.perf_counter()
+            )
+
+            after_card_response = (
+                send_after_card_message(
+                    chat_id
+                )
+            )
+
+            print(
+                f"[TIMING] Send after-card message: "
+                f"{time.perf_counter() - stage_start:.4f}s"
+            )
+
+            if (
+                after_card_response is not None
+                and after_card_response.ok
+            ):
+
+                try:
+
+                    after_card_result = (
+                        after_card_response.json()
+                    )
+
+                    result = (
+                        after_card_result.get(
+                            "result"
+                        )
+                        or {}
+                    )
+
+                    ready_message_id = (
+                        result.get(
+                            "message_id"
+                        )
+                    )
+
+                    if ready_message_id:
+
+                        with STATE_LOCK:
+
+                            READY_MESSAGES[
+                                chat_id
+                            ] = ready_message_id
+
+                        print(
+                            f"Ready message saved: "
+                            f"{ready_message_id} "
+                            f"for chat {chat_id}"
+                        )
+
+                except Exception as error:
+
+                    print(
+                        "Ready message parse error:",
+                        error
+                    )
+
+        else:
+
+            print(
+                "Photo sending failed."
+            )
+
+            if building_message_id:
+
+                stage_start = (
+                    time.perf_counter()
+                )
+
+                delete_message(
+                    chat_id,
+                    building_message_id
+                )
+
+                print(
+                    f"[TIMING] Delete building message: "
+                    f"{time.perf_counter() - stage_start:.4f}s"
+                )
+
+            send_message(
+                chat_id,
+                "✅ کارت ساخته شد، "
+                "اما ارسال تصویر موفق نشد."
+            )
+
+    except Exception as error:
+
+        print(
+            "Card creation/send error:",
+            error
+        )
+
+        if building_message_id:
+
+            stage_start = (
+                time.perf_counter()
+            )
+
+            delete_message(
+                chat_id,
+                building_message_id
+            )
+
+            print(
+                f"[TIMING] Delete building message: "
+                f"{time.perf_counter() - stage_start:.4f}s"
+            )
+
+        send_message(
+            chat_id,
+            "❌ هنگام ساخت کارت مشکلی پیش آمد."
+        )
+
+    finally:
+
+        if filename:
+
+            try:
+
+                if os.path.exists(filename):
+
+                    os.remove(
+                        filename
+                    )
+
+                    print(
+                        f"Temporary card file removed: "
+                        f"{filename}"
+                    )
+
+            except Exception as error:
+
+                print(
+                    "Temporary card file cleanup error:",
+                    error
+                )
+
+    overall_time = (
+        time.perf_counter()
+        - overall_start
+    )
+
+    print("")
+    print("======= CARD WORKER TOTAL =======")
+    print(
+        f"[TIMING] Card worker total: "
+        f"{overall_time:.4f}s"
+    )
+    print(
+        f"[TIMING] Palette: "
+        f"{palette['name']}"
+    )
+    print(
+        f"[TIMING] Branded: "
+        f"{branded}"
+    )
+    print("=================================")
+    print("")
+
+
+# ==================================
 # Process Color Selection
 # ==================================
 
@@ -3094,6 +3446,10 @@ def process_color_selection(
 
         return "OK", 200
 
+    # --------------------------------
+    # Atomically take pending poem
+    # --------------------------------
+
     with STATE_LOCK:
 
         pending = PENDING_POEMS.pop(
@@ -3162,255 +3518,22 @@ def process_color_selection(
         f"{branded}"
     )
 
-    # ------------------------------
-    # Send building message
-    # ------------------------------
+    # --------------------------------
+    # Start worker
+    # --------------------------------
 
-    stage_start = time.perf_counter()
-
-    building_response = send_message(
-        chat_id,
-        "⏳ <b>کارت شعر در حال ساخت است...</b>"
-    )
-
-    print(
-        f"[TIMING] Send building message: "
-        f"{time.perf_counter() - stage_start:.4f}s"
-    )
-
-    building_message_id = None
-
-    if (
-        building_response is not None
-        and building_response.ok
-    ):
-
-        try:
-
-            building_result = (
-                building_response.json()
-            )
-
-            result = (
-                building_result.get("result")
-                or {}
-            )
-
-            building_message_id = (
-                result.get("message_id")
-            )
-
-        except Exception as error:
-
-            print(
-                "Building message parse error:",
-                error
-            )
-
-    filename = None
-
-    try:
-
-        filename = create_poetry_card(
+    worker = threading.Thread(
+        target=generate_and_send_card,
+        args=(
+            chat_id,
             poem,
             palette,
-            branded=branded
-        )
+            branded
+        ),
+        daemon=True
+    )
 
-        print(
-            f"Poetry card created: "
-            f"{filename}"
-        )
-
-        stage_start = time.perf_counter()
-
-        photo_response = send_photo(
-            chat_id,
-            filename
-        )
-
-        photo_time = (
-            time.perf_counter()
-            - stage_start
-        )
-
-        print(
-            f"[TIMING] sendPhoto: "
-            f"{photo_time:.4f}s"
-        )
-
-        if (
-            photo_response is not None
-            and photo_response.ok
-        ):
-
-            print(
-                "Poetry card sent successfully."
-            )
-
-            if building_message_id:
-
-                stage_start = (
-                    time.perf_counter()
-                )
-
-                delete_message(
-                    chat_id,
-                    building_message_id
-                )
-
-                print(
-                    f"[TIMING] Delete building message: "
-                    f"{time.perf_counter() - stage_start:.4f}s"
-                )
-
-            stage_start = (
-                time.perf_counter()
-            )
-
-            after_card_response = (
-                send_after_card_message(
-                    chat_id
-                )
-            )
-
-            print(
-                f"[TIMING] Send after-card message: "
-                f"{time.perf_counter() - stage_start:.4f}s"
-            )
-
-            if (
-                after_card_response is not None
-                and after_card_response.ok
-            ):
-
-                try:
-
-                    after_card_result = (
-                        after_card_response.json()
-                    )
-
-                    result = (
-                        after_card_result.get(
-                            "result"
-                        )
-                        or {}
-                    )
-
-                    ready_message_id = (
-                        result.get(
-                            "message_id"
-                        )
-                    )
-
-                    if ready_message_id:
-
-                        with STATE_LOCK:
-
-                            READY_MESSAGES[
-                                chat_id
-                            ] = ready_message_id
-
-                        print(
-                            f"Ready message saved: "
-                            f"{ready_message_id} "
-                            f"for chat {chat_id}"
-                        )
-
-                    else:
-
-                        print(
-                            "Ready message ID "
-                            "not found. "
-                            "Continuing normally."
-                        )
-
-                except Exception as error:
-
-                    print(
-                        "Ready message parse error:",
-                        error
-                    )
-
-        else:
-
-            print(
-                "Photo sending failed."
-            )
-
-            if building_message_id:
-
-                stage_start = (
-                    time.perf_counter()
-                )
-
-                delete_message(
-                    chat_id,
-                    building_message_id
-                )
-
-                print(
-                    f"[TIMING] Delete building message: "
-                    f"{time.perf_counter() - stage_start:.4f}s"
-                )
-
-            send_message(
-                chat_id,
-                "✅ کارت ساخته شد، "
-                "اما ارسال تصویر موفق نشد."
-            )
-
-    except Exception as error:
-
-        print(
-            "Card creation error:",
-            error
-        )
-
-        if building_message_id:
-
-            stage_start = (
-                time.perf_counter()
-            )
-
-            delete_message(
-                chat_id,
-                building_message_id
-            )
-
-            print(
-                f"[TIMING] Delete building message: "
-                f"{time.perf_counter() - stage_start:.4f}s"
-            )
-
-        send_message(
-            chat_id,
-            "❌ هنگام ساخت کارت مشکلی پیش آمد."
-        )
-
-    finally:
-
-        if filename:
-
-            try:
-
-                if os.path.exists(filename):
-
-                    os.remove(
-                        filename
-                    )
-
-                    print(
-                        f"Temporary card file removed: "
-                        f"{filename}"
-                    )
-
-            except Exception as error:
-
-                print(
-                    "Temporary card file cleanup error:",
-                    error
-                )
+    worker.start()
 
     overall_time = (
         time.perf_counter()
@@ -3418,12 +3541,16 @@ def process_color_selection(
     )
 
     print("")
-    print("======= COLOR SELECTION TOTAL =======")
+    print("======= COLOR SELECTION =======")
     print(
-        f"[TIMING] Total color click -> finished: "
+        f"[TIMING] Color callback accepted: "
         f"{overall_time:.4f}s"
     )
-    print("=====================================")
+    print(
+        "[TIMING] Card generation moved "
+        "to background worker."
+    )
+    print("================================")
     print("")
 
     return "OK", 200
@@ -3469,6 +3596,10 @@ def webhook():
             update
         )
 
+        # =================================
+        # Callback Query
+        # =================================
+
         if update.get(
             "callback_query"
         ):
@@ -3502,6 +3633,10 @@ def webhook():
 
             return "OK", 200
 
+        # =================================
+        # Normal Message
+        # =================================
+
         message = (
             update.get("message")
             or {}
@@ -3528,11 +3663,9 @@ def webhook():
 
             return "OK", 200
 
-        if text != "/start":
-
-            delete_previous_ready_message(
-                chat_id
-            )
+        # =================================
+        # /start
+        # =================================
 
         if text == "/start":
 
@@ -3571,6 +3704,14 @@ def webhook():
             )
 
             return "OK", 200
+
+        # =================================
+        # New poem
+        # =================================
+
+        delete_previous_ready_message(
+            chat_id
+        )
 
         store_pending_poem(
             chat_id,
@@ -3622,5 +3763,6 @@ if __name__ == "__main__":
 
     app.run(
         host="0.0.0.0",
-        port=port
-)
+        port=port,
+        threaded=True
+    )
