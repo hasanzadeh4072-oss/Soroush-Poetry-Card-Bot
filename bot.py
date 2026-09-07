@@ -89,6 +89,14 @@ BACKGROUND_CACHE_LOCK = threading.Lock()
 
 
 # ==================================
+# Glass Panel Cache
+# ==================================
+
+CACHED_GLASS_PANEL = None
+GLASS_PANEL_LOCK = threading.Lock()
+
+
+# ==================================
 # Font Cache
 # ==================================
 
@@ -1119,12 +1127,107 @@ def build_cached_card_backgrounds():
 
 
 # ==================================
+# Build Glass Panel Cache
+# ==================================
+
+def build_glass_panel():
+
+    global CACHED_GLASS_PANEL
+
+    if CACHED_GLASS_PANEL is not None:
+
+        return CACHED_GLASS_PANEL
+
+    with GLASS_PANEL_LOCK:
+
+        if CACHED_GLASS_PANEL is not None:
+
+            return CACHED_GLASS_PANEL
+
+        print(
+            "Building shared glass panel..."
+        )
+
+        panel = Image.new(
+            "RGBA",
+            (
+                RENDER_WIDTH,
+                RENDER_HEIGHT
+            ),
+            (0, 0, 0, 0)
+        )
+
+        panel_draw = ScaledDraw(
+            panel
+        )
+
+        panel_left = 100
+        panel_right = 980
+        panel_top = 160
+        panel_bottom = 890
+
+        # Shadow
+        panel_draw.rounded_rectangle(
+            (
+                panel_left,
+                panel_top + 4,
+                panel_right,
+                panel_bottom + 6
+            ),
+            radius=45,
+            fill=(0, 0, 0, 45)
+        )
+
+        # Glass body
+        panel_draw.rounded_rectangle(
+            (
+                panel_left,
+                panel_top,
+                panel_right,
+                panel_bottom
+            ),
+            radius=45,
+            fill=(255, 255, 255, 24)
+        )
+
+        # Inner glass border
+        panel_draw.rounded_rectangle(
+            (
+                panel_left + 10,
+                panel_top + 10,
+                panel_right - 10,
+                panel_bottom - 10
+            ),
+            radius=37,
+            outline=(255, 255, 255, 12),
+            width=PANEL_INNER_WIDTH
+        )
+
+        # Exactly the same soft glass blur
+        panel = panel.filter(
+            ImageFilter.GaussianBlur(
+                0.35 * RENDER_SCALE
+            )
+        )
+
+        CACHED_GLASS_PANEL = panel
+
+        print(
+            "Shared glass panel cached."
+        )
+
+        return CACHED_GLASS_PANEL
+
+
+# ==================================
 # Initialize Caches
 # ==================================
 
 load_background_image()
 
 build_cached_card_backgrounds()
+
+build_glass_panel()
 
 
 # ==================================
@@ -2044,69 +2147,91 @@ def create_poetry_card(
 
     stage_start = time.perf_counter()
 
-    panel_top = 160
-    panel_bottom = 890
+    panel = CACHED_GLASS_PANEL
 
-    panel_left = 100
-    panel_right = 980
+    if panel is not None:
 
-    panel = Image.new(
-        "RGBA",
-        (
-            RENDER_WIDTH,
-            RENDER_HEIGHT
-        ),
-        (0, 0, 0, 0)
-    )
+        # Shared panel is immutable during rendering.
+        # copy() gives this card its own layer.
+        panel = panel.copy()
 
-    panel_draw = ScaledDraw(
-        panel
-    )
-
-    panel_draw.rounded_rectangle(
-        (
-            panel_left,
-            panel_top + 4,
-            panel_right,
-            panel_bottom + 6
-        ),
-        radius=45,
-        fill=(0, 0, 0, 45)
-    )
-
-    panel_draw.rounded_rectangle(
-        (
-            panel_left,
-            panel_top,
-            panel_right,
-            panel_bottom
-        ),
-        radius=45,
-        fill=(255, 255, 255, 24),
-        outline=palette["panel_outline"],
-        width=PANEL_OUTLINE_WIDTH
-    )
-
-    panel_draw.rounded_rectangle(
-        (
-            panel_left + 10,
-            panel_top + 10,
-            panel_right - 10,
-            panel_bottom - 10
-        ),
-        radius=37,
-        outline=palette["panel_inner"],
-        width=PANEL_INNER_WIDTH
-    )
-
-    panel = panel.filter(
-        ImageFilter.GaussianBlur(
-            0.35 * RENDER_SCALE
+        # Palette-specific outlines are applied separately
+        # so the cached glass itself stays reusable.
+        panel_draw = ScaledDraw(
+            panel
         )
-    )
+
+        panel_draw.rounded_rectangle(
+            (
+                100,
+                160,
+                980,
+                890
+            ),
+            radius=45,
+            outline=palette["panel_outline"],
+            width=PANEL_OUTLINE_WIDTH
+        )
+
+    else:
+
+        panel = Image.new(
+            "RGBA",
+            (
+                RENDER_WIDTH,
+                RENDER_HEIGHT
+            ),
+            (0, 0, 0, 0)
+        )
+
+        panel_draw = ScaledDraw(
+            panel
+        )
+
+        panel_draw.rounded_rectangle(
+            (
+                100,
+                164,
+                980,
+                896
+            ),
+            radius=45,
+            fill=(0, 0, 0, 45)
+        )
+
+        panel_draw.rounded_rectangle(
+            (
+                100,
+                160,
+                980,
+                890
+            ),
+            radius=45,
+            fill=(255, 255, 255, 24),
+            outline=palette["panel_outline"],
+            width=PANEL_OUTLINE_WIDTH
+        )
+
+        panel_draw.rounded_rectangle(
+            (
+                110,
+                170,
+                970,
+                880
+            ),
+            radius=37,
+            outline=palette["panel_inner"],
+            width=PANEL_INNER_WIDTH
+        )
+
+        panel = panel.filter(
+            ImageFilter.GaussianBlur(
+                0.35 * RENDER_SCALE
+            )
+        )
 
     image = Image.alpha_composite(
-        image.convert("RGBA"),
+        image,
         panel
     )
 
@@ -2271,7 +2396,7 @@ def create_poetry_card(
 
     visual_height = 0
 
-    for line in lines:
+    for index, line in enumerate(lines):
 
         if line is None:
 
@@ -2308,7 +2433,7 @@ def create_poetry_card(
 
         visual_height += height
 
-        if line != lines[-1]:
+        if index != len(lines) - 1:
 
             visual_height += line_spacing
 
@@ -2465,21 +2590,23 @@ def create_poetry_card(
         + ".png"
     )
 
-    final_image = image.convert(
-        "RGB"
-    ).resize(
+    final_image = image.resize(
         (
             CARD_WIDTH,
             CARD_HEIGHT
         ),
         Image.Resampling.LANCZOS
+    ).convert(
+        "RGB"
     )
 
-    # بهینه‌سازی سرعت ذخیره‌سازی بدون افت کیفیت تصویری
+    # Compression level 2:
+    # visually identical output,
+    # faster PNG encoding than level 4.
     final_image.save(
         filename,
         "PNG",
-        compress_level=4,
+        compress_level=2,
         optimize=False
     )
 
@@ -3752,4 +3879,4 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port,
         threaded=True
-)
+        )
