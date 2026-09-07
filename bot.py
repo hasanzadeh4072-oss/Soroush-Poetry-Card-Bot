@@ -23,11 +23,9 @@ API = f"https://api.splus.ir/bot{TOKEN}"
 
 CHANNEL_URL = "https://splus.ir/life_m23"
 
-# خروجی نهایی
 CARD_WIDTH = 1080
 CARD_HEIGHT = 1080
 
-# رندر داخلی با کیفیت 2X
 RENDER_SCALE = 2
 RENDER_WIDTH = CARD_WIDTH * RENDER_SCALE
 RENDER_HEIGHT = CARD_HEIGHT * RENDER_SCALE
@@ -72,7 +70,6 @@ FOOTER_LINE_WIDTH = 2
 # ==================================
 
 PENDING_POEMS = {}
-
 READY_MESSAGES = {}
 
 STATE_LOCK = threading.RLock()
@@ -253,11 +250,6 @@ def monitoring_request_finished(
 
 class ScaledDraw:
 
-    """
-    تمام مختصات در ظاهر همان 1080×1080 هستند،
-    اما عملیات واقعی روی بوم 2160×2160 انجام می‌شود.
-    """
-
     def __init__(
         self,
         image,
@@ -377,12 +369,10 @@ class ScaledDraw:
 
         if "radius" in kwargs:
 
-            kwargs["radius"] = (
-                int(
-                    round(
-                        kwargs["radius"]
-                        * self.scale
-                    )
+            kwargs["radius"] = int(
+                round(
+                    kwargs["radius"]
+                    * self.scale
                 )
             )
 
@@ -1584,10 +1574,6 @@ def create_poetry_card(
 
     total_start = time.perf_counter()
 
-    # ------------------------------
-    # 1. Background
-    # ------------------------------
-
     stage_start = time.perf_counter()
 
     cached_background = CACHED_CARD_BACKGROUNDS.get(
@@ -1618,7 +1604,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 2. Outer frame
+    # Outer frame
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -1643,7 +1629,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 3. Inner frame
+    # Inner frame
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -1668,7 +1654,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 4. Header / Branding
+    # Header / Branding
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2053,7 +2039,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 5. Glass panel
+    # Glass panel
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2134,7 +2120,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 6. Poem safe area
+    # Poem safe area
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2222,7 +2208,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 7. Side ornaments
+    # Side ornaments
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2276,7 +2262,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 8. Poem drawing
+    # Poem drawing
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2457,7 +2443,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 9. Footer
+    # Footer
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2468,7 +2454,7 @@ def create_poetry_card(
     )
 
     # ------------------------------
-    # 10. Downsample + PNG save
+    # Downsample + PNG save
     # ------------------------------
 
     stage_start = time.perf_counter()
@@ -2489,11 +2475,12 @@ def create_poetry_card(
         Image.Resampling.LANCZOS
     )
 
+    # بهینه‌سازی سرعت ذخیره‌سازی بدون افت کیفیت تصویری
     final_image.save(
         filename,
         "PNG",
-        compress_level=6,
-        optimize=True
+        compress_level=4,
+        optimize=False
     )
 
     save_time = (
@@ -3765,4 +3752,4 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port,
         threaded=True
-                )
+)
