@@ -1,12 +1,4 @@
-import os
-import random
-import time
-import threading
-import requests
-import uuid
-import io
-import cairosvg
-
+import os, random, time, threading, requests, uuid, io, cairosvg
 from flask import Flask, request
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
@@ -19,109 +11,232 @@ app = Flask(__name__)
 # ==================================
 
 TOKEN = os.environ.get("SOROUSH_TOKEN")
-API = f"https://api.splus.ir/bot{TOKEN}"
 
+if not TOKEN:
+    raise RuntimeError("SOROUSH_TOKEN environment variable is not set.")
+
+API = f"https://api.splus.ir/bot{TOKEN}"
 CHANNEL_URL = "https://splus.ir/life_m23"
 
-CARD_WIDTH = 1080
-CARD_HEIGHT = 1080
-
-RENDER_SCALE = 2
-RENDER_WIDTH = CARD_WIDTH * RENDER_SCALE
-RENDER_HEIGHT = CARD_HEIGHT * RENDER_SCALE
+W = H = 1080
+S = 2
+RW = RH = W * S
 
 POEM_FONT = "Parastoo[wght].ttf"
 TITLE_FONT = "BTitrBd.ttf"
-SUBTITLE_FONT = "Vazirmatn-Regular.ttf"
-FOOTER_FONT = "Vazirmatn-Regular.ttf"
+SUB_FONT = FOOT_FONT = "Vazirmatn-Regular.ttf"
 
-
-# ==================================
-# SVG Background
-# ==================================
-
-BACKGROUND_SVG_URL = (
+BG_URL = (
     "https://raw.githubusercontent.com/"
     "hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/"
     "be5859ec92836a14ef0ef28d82ca6c161959cb26/"
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg"
 )
 
-BACKGROUND_RENDER_SIZE = 4320
+TIMEOUT = 120
 
-PENDING_TIMEOUT = 120
-
-
-# ==================================
-# Line Thickness
-# ==================================
-
-OUTER_FRAME_WIDTH = 3
-INNER_FRAME_WIDTH = 2
-ORNAMENT_LINE_WIDTH = 2
-SIDE_LINE_WIDTH = 2
-PANEL_OUTLINE_WIDTH = 2
-PANEL_INNER_WIDTH = 1
-FOOTER_LINE_WIDTH = 2
+# فاصله خطوط شعر
+LINE_SPACING = 18
+BLANK_LINE_SPACING = 48
 
 
 # ==================================
-# Pending Poems
+# State / Cache
 # ==================================
 
-PENDING_POEMS = {}
-READY_MESSAGES = {}
+PENDING = {}
+READY = {}
+TIMERS = {}
 
-STATE_LOCK = threading.RLock()
-
-PENDING_TIMERS = {}
-
-
-# ==================================
-# Background Cache
-# ==================================
-
-CACHED_BACKGROUND = None
-CACHED_CARD_BACKGROUNDS = {}
-CACHED_TEXTURE = None
-
-BACKGROUND_CACHE_LOCK = threading.Lock()
-
-
-# ==================================
-# Glass Panel Cache
-# ==================================
-
-CACHED_GLASS_PANEL = None
-GLASS_PANEL_LOCK = threading.Lock()
-
-
-# ==================================
-# Font Cache
-# ==================================
-
+LOCK = threading.RLock()
+HTTP = threading.local()
 FONT_CACHE = {}
-FONT_CACHE_LOCK = threading.Lock()
+
+BG = None
+BACKGROUNDS = {}
+TEXTURE = None
+PANEL = None
+
+
+# ==================================
+# Palettes
+# ==================================
+
+PALETTES = [
+    {
+        "name": "بنفش سلطنتی",
+        "top": (55,25,82),
+        "middle": (32,21,53),
+        "bottom": (13,10,25),
+        "glow1": (160,105,200,38),
+        "glow2": (105,70,160,22),
+        "glow3": (100,65,145,10),
+        "frame": (173,137,82),
+        "frame_inner": (205,172,105),
+        "text": (255,255,255),
+        "accent": (244,210,137),
+        "subtitle": (205,191,168),
+        "ornament": (145,112,68),
+        "panel_outline": (205,172,105,38),
+        "side_line": (205,172,105,75),
+        "side_dot": (205,172,105,100)
+    },
+    {
+        "name": "آبی شبانه",
+        "top": (18,39,76),
+        "middle": (16,27,53),
+        "bottom": (7,11,23),
+        "glow1": (75,115,185,32),
+        "glow2": (50,80,150,22),
+        "glow3": (55,85,140,10),
+        "frame": (165,140,83),
+        "frame_inner": (200,170,103),
+        "text": (255,255,255),
+        "accent": (239,210,139),
+        "subtitle": (195,204,211),
+        "ornament": (140,125,82),
+        "panel_outline": (190,170,110,38),
+        "side_line": (200,175,110,75),
+        "side_dot": (215,185,115,100)
+    },
+    {
+        "name": "شرابی",
+        "top": (76,19,37),
+        "middle": (45,14,26),
+        "bottom": (20,6,13),
+        "glow1": (175,70,90,35),
+        "glow2": (135,45,65,20),
+        "glow3": (130,45,60,10),
+        "frame": (174,133,72),
+        "frame_inner": (205,169,98),
+        "text": (255,255,255),
+        "accent": (241,210,139),
+        "subtitle": (211,193,181),
+        "ornament": (145,105,65),
+        "panel_outline": (195,155,95,38),
+        "side_line": (200,160,100,75),
+        "side_dot": (215,175,105,100)
+    },
+    {
+        "name": "فیروزه‌ای تیره",
+        "top": (10,61,67),
+        "middle": (9,39,45),
+        "bottom": (4,17,21),
+        "glow1": (55,155,165,34),
+        "glow2": (35,110,125,20),
+        "glow3": (40,120,130,10),
+        "frame": (172,145,91),
+        "frame_inner": (205,177,112),
+        "text": (255,255,255),
+        "accent": (224,199,132),
+        "subtitle": (188,209,208),
+        "ornament": (130,137,91),
+        "panel_outline": (185,170,110,38),
+        "side_line": (185,175,110,75),
+        "side_dot": (210,190,120,100)
+    },
+    {
+        "name": "سبز زمردی",
+        "top": (12,59,51),
+        "middle": (13,38,35),
+        "bottom": (5,18,17),
+        "glow1": (65,145,120,35),
+        "glow2": (45,110,95,20),
+        "glow3": (40,100,85,10),
+        "frame": (168,139,78),
+        "frame_inner": (200,169,99),
+        "text": (255,255,255),
+        "accent": (239,211,137),
+        "subtitle": (194,207,197),
+        "ornament": (140,118,70),
+        "panel_outline": (190,165,100,38),
+        "side_line": (190,170,105,75),
+        "side_dot": (210,180,110,100)
+    },
+    {
+        "name": "رزگلد",
+        "top": (72,35,48),
+        "middle": (45,23,32),
+        "bottom": (19,9,14),
+        "glow1": (190,105,120,32),
+        "glow2": (150,75,95,20),
+        "glow3": (135,70,85,10),
+        "frame": (181,125,119),
+        "frame_inner": (218,165,154),
+        "text": (255,255,255),
+        "accent": (235,181,163),
+        "subtitle": (216,194,187),
+        "ornament": (164,112,106),
+        "panel_outline": (215,160,150,38),
+        "side_line": (210,155,145,75),
+        "side_dot": (225,170,158,100)
+    },
+    {
+        "name": "کرم",
+        "top": (250,239,210),
+        "middle": (242,226,190),
+        "bottom": (226,205,163),
+        "glow1": (255,252,230,55),
+        "glow2": (255,240,185,28),
+        "glow3": (255,255,255,22),
+        "frame": (91,67,39),
+        "frame_inner": (126,96,58),
+        "text": (49,40,31),
+        "accent": (104,73,38),
+        "subtitle": (77,61,43),
+        "ornament": (113,80,42),
+        "panel_outline": (105,78,43,55),
+        "side_line": (105,78,43,85),
+        "side_dot": (94,67,35,125)
+    },
+    {
+        "name": "آبی روشن",
+        "top": (205,235,248),
+        "middle": (180,220,238),
+        "bottom": (153,201,225),
+        "glow1": (235,249,255,58),
+        "glow2": (145,205,235,28),
+        "glow3": (255,255,255,24),
+        "frame": (43,73,91),
+        "frame_inner": (72,105,124),
+        "text": (31,51,63),
+        "accent": (48,82,101),
+        "subtitle": (54,77,91),
+        "ornament": (59,91,108),
+        "panel_outline": (58,91,110,55),
+        "side_line": (58,91,110,85),
+        "side_dot": (46,79,99,125)
+    },
+    {
+        "name": "مریم‌گلی",
+        "top": (218,231,205),
+        "middle": (201,219,184),
+        "bottom": (179,201,159),
+        "glow1": (242,249,230,58),
+        "glow2": (175,205,145,28),
+        "glow3": (255,255,255,24),
+        "frame": (60,76,52),
+        "frame_inner": (91,108,78),
+        "text": (39,54,35),
+        "accent": (67,88,55),
+        "subtitle": (67,82,59),
+        "ornament": (75,96,62),
+        "panel_outline": (73,96,62,55),
+        "side_line": (73,96,62,85),
+        "side_dot": (62,84,52,125)
+    }
+]
 
 
 # ==================================
 # HTTP Session
 # ==================================
 
-HTTP_LOCAL = threading.local()
+def session():
+    s = getattr(HTTP, "s", None)
 
-
-def get_http_session():
-
-    session = getattr(
-        HTTP_LOCAL,
-        "session",
-        None
-    )
-
-    if session is None:
-
-        session = requests.Session()
+    if s is None:
+        s = requests.Session()
 
         adapter = requests.adapters.HTTPAdapter(
             pool_connections=20,
@@ -129,931 +244,314 @@ def get_http_session():
             max_retries=0
         )
 
-        session.mount(
-            "http://",
-            adapter
-        )
+        s.mount("http://", adapter)
+        s.mount("https://", adapter)
 
-        session.mount(
-            "https://",
-            adapter
-        )
+        HTTP.s = s
 
-        HTTP_LOCAL.session = session
-
-    return session
+    return s
 
 
 # ==================================
-# Monitoring
+# Scaled Drawing
 # ==================================
 
-MONITOR_LOCK = threading.Lock()
+class D:
 
-ACTIVE_REQUESTS = 0
-MAX_ACTIVE_REQUESTS = 0
-
-TOTAL_REQUESTS = 0
-SUCCESSFUL_REQUESTS = 0
-FAILED_REQUESTS = 0
-
-TOTAL_REQUEST_TIME = 0.0
-MAX_REQUEST_TIME = 0.0
-
-
-def monitoring_request_started():
-
-    global ACTIVE_REQUESTS
-    global MAX_ACTIVE_REQUESTS
-    global TOTAL_REQUESTS
-
-    with MONITOR_LOCK:
-
-        ACTIVE_REQUESTS += 1
-        TOTAL_REQUESTS += 1
-
-        if ACTIVE_REQUESTS > MAX_ACTIVE_REQUESTS:
-
-            MAX_ACTIVE_REQUESTS = ACTIVE_REQUESTS
-
-        current_active = ACTIVE_REQUESTS
-        current_max = MAX_ACTIVE_REQUESTS
-        current_total = TOTAL_REQUESTS
-
-    print(
-        f"[MONITOR] Request started | "
-        f"active={current_active} | "
-        f"max_active={current_max} | "
-        f"total={current_total}"
-    )
-
-
-def monitoring_request_finished(
-    elapsed,
-    successful=True
-):
-
-    global ACTIVE_REQUESTS
-    global SUCCESSFUL_REQUESTS
-    global FAILED_REQUESTS
-    global TOTAL_REQUEST_TIME
-    global MAX_REQUEST_TIME
-
-    with MONITOR_LOCK:
-
-        if ACTIVE_REQUESTS > 0:
-
-            ACTIVE_REQUESTS -= 1
-
-        TOTAL_REQUEST_TIME += elapsed
-
-        if elapsed > MAX_REQUEST_TIME:
-
-            MAX_REQUEST_TIME = elapsed
-
-        if successful:
-
-            SUCCESSFUL_REQUESTS += 1
-
-        else:
-
-            FAILED_REQUESTS += 1
-
-        current_active = ACTIVE_REQUESTS
-        successful_count = SUCCESSFUL_REQUESTS
-        failed_count = FAILED_REQUESTS
-        total_request_time = TOTAL_REQUEST_TIME
-        max_request_time = MAX_REQUEST_TIME
-
-        completed_requests = (
-            successful_count
-            + failed_count
-        )
-
-        if completed_requests > 0:
-
-            average_request_time = (
-                total_request_time
-                / completed_requests
-            )
-
-        else:
-
-            average_request_time = 0.0
-
-    print(
-        f"[MONITOR] Request finished | "
-        f"time={elapsed:.4f}s | "
-        f"active={current_active} | "
-        f"success={successful_count} | "
-        f"failed={failed_count} | "
-        f"avg={average_request_time:.4f}s | "
-        f"max_time={max_request_time:.4f}s"
-    )
-
-
-# ==================================
-# High Resolution Drawing Helper
-# ==================================
-
-class ScaledDraw:
-
-    def __init__(
-        self,
-        image,
-        scale=RENDER_SCALE
-    ):
-
+    def __init__(self, image):
         self.image = image
-        self.scale = scale
         self.draw = ImageDraw.Draw(image)
 
-    def _point(
-        self,
-        point
-    ):
-
-        return (
-            int(round(point[0] * self.scale)),
-            int(round(point[1] * self.scale))
+    def p(self, point):
+        return tuple(
+            int(round(v * S))
+            for v in point
         )
 
-    def _box(
-        self,
-        box
-    ):
-
-        return (
-            int(round(box[0] * self.scale)),
-            int(round(box[1] * self.scale)),
-            int(round(box[2] * self.scale)),
-            int(round(box[3] * self.scale))
+    def b(self, box):
+        return tuple(
+            int(round(v * S))
+            for v in box
         )
 
-    def _width(
-        self,
-        width
-    ):
-
-        return max(
-            1,
-            int(round(width * self.scale))
-        )
-
-    def textbbox(
-        self,
-        xy,
-        text,
-        font,
-        *args,
-        **kwargs
-    ):
-
-        actual_bbox = self.draw.textbbox(
-            self._point(xy),
-            text,
-            font=font,
-            *args,
-            **kwargs
-        )
-
-        return (
-            actual_bbox[0] / self.scale,
-            actual_bbox[1] / self.scale,
-            actual_bbox[2] / self.scale,
-            actual_bbox[3] / self.scale
-        )
-
-    def text(
-        self,
-        xy,
-        text,
-        font,
-        *args,
-        **kwargs
-    ):
-
+    def text(self, xy, text, font, **kwargs):
         return self.draw.text(
-            self._point(xy),
+            self.p(xy),
             text,
             font=font,
-            *args,
             **kwargs
         )
 
-    def line(
-        self,
-        xy,
-        *args,
-        **kwargs
-    ):
+    def bbox(self, xy, text, font, **kwargs):
+        b = self.draw.textbbox(
+            self.p(xy),
+            text,
+            font=font,
+            **kwargs
+        )
 
-        scaled_xy = []
+        return tuple(
+            v / S
+            for v in b
+        )
 
-        for point in xy:
-
-            scaled_xy.append(
-                self._point(point)
-            )
-
+    def line(self, xy, **kwargs):
         if "width" in kwargs:
-
-            kwargs["width"] = self._width(
-                kwargs["width"]
+            kwargs["width"] = max(
+                1,
+                int(round(kwargs["width"] * S))
             )
 
         return self.draw.line(
-            scaled_xy,
-            *args,
+            [self.p(x) for x in xy],
             **kwargs
         )
 
-    def rounded_rectangle(
-        self,
-        xy,
-        *args,
-        **kwargs
-    ):
-
+    def rr(self, box, **kwargs):
         if "radius" in kwargs:
-
             kwargs["radius"] = int(
-                round(
-                    kwargs["radius"]
-                    * self.scale
-                )
+                round(kwargs["radius"] * S)
             )
 
         if "width" in kwargs:
-
-            kwargs["width"] = self._width(
-                kwargs["width"]
+            kwargs["width"] = max(
+                1,
+                int(round(kwargs["width"] * S))
             )
 
         return self.draw.rounded_rectangle(
-            self._box(xy),
-            *args,
+            self.b(box),
             **kwargs
         )
 
-    def ellipse(
-        self,
-        xy,
-        *args,
-        **kwargs
-    ):
-
+    def ellipse(self, box, **kwargs):
         return self.draw.ellipse(
-            self._box(xy),
-            *args,
+            self.b(box),
             **kwargs
         )
 
-    def polygon(
-        self,
-        xy,
-        *args,
-        **kwargs
-    ):
-
-        scaled_points = [
-            self._point(point)
-            for point in xy
-        ]
-
+    def polygon(self, points, **kwargs):
         return self.draw.polygon(
-            scaled_points,
-            *args,
+            [self.p(x) for x in points],
             **kwargs
         )
-
-
-# ==================================
-# Load SVG Background
-# ==================================
-
-def load_background_image():
-
-    global CACHED_BACKGROUND
-
-    try:
-
-        print(
-            "Loading SVG background from GitHub..."
-        )
-
-        session = get_http_session()
-
-        response = session.get(
-            BACKGROUND_SVG_URL,
-            timeout=30
-        )
-
-        response.raise_for_status()
-
-        svg_data = response.content
-
-        print(
-            f"SVG downloaded: "
-            f"{len(svg_data) / 1024:.1f} KB"
-        )
-
-        png_data = cairosvg.svg2png(
-            bytestring=svg_data,
-            output_width=BACKGROUND_RENDER_SIZE
-        )
-
-        background = Image.open(
-            io.BytesIO(png_data)
-        ).convert("RGBA")
-
-        print(
-            f"SVG rendered: "
-            f"{background.width}x{background.height}"
-        )
-
-        background_ratio = (
-            background.width
-            / background.height
-        )
-
-        card_ratio = (
-            RENDER_WIDTH
-            / RENDER_HEIGHT
-        )
-
-        if background_ratio > card_ratio:
-
-            new_height = RENDER_HEIGHT
-
-            new_width = int(
-                background.width
-                * RENDER_HEIGHT
-                / background.height
-            )
-
-        else:
-
-            new_width = RENDER_WIDTH
-
-            new_height = int(
-                background.height
-                * RENDER_WIDTH
-                / background.width
-            )
-
-        background = background.resize(
-            (
-                new_width,
-                new_height
-            ),
-            Image.Resampling.LANCZOS
-        )
-
-        left = (
-            new_width
-            - RENDER_WIDTH
-        ) // 2
-
-        top_crop = (
-            new_height
-            - RENDER_HEIGHT
-        ) // 2
-
-        background = background.crop(
-            (
-                left,
-                top_crop,
-                left + RENDER_WIDTH,
-                top_crop + RENDER_HEIGHT
-            )
-        )
-
-        background = ImageEnhance.Brightness(
-            background
-        ).enhance(0.48)
-
-        background = background.filter(
-            ImageFilter.GaussianBlur(
-                4 * RENDER_SCALE
-            )
-        )
-
-        background.putalpha(42)
-
-        CACHED_BACKGROUND = background
-
-        print(
-            "SVG background loaded and cached successfully."
-        )
-
-        return CACHED_BACKGROUND
-
-    except Exception as error:
-
-        print(
-            "SVG background error:",
-            error
-        )
-
-        CACHED_BACKGROUND = None
-
-        return None
-
-
-# ==================================
-# Color Palettes
-# ==================================
-
-PALETTES = [
-
-    {
-        "name": "بنفش سلطنتی",
-        "top": (55, 25, 82),
-        "middle": (32, 21, 53),
-        "bottom": (13, 10, 25),
-        "glow1": (160, 105, 200, 38),
-        "glow2": (105, 70, 160, 22),
-        "glow3": (100, 65, 145, 10),
-        "frame": (173, 137, 82),
-        "frame_inner": (205, 172, 105),
-        "text": (255, 255, 255),
-        "accent": (244, 210, 137),
-        "subtitle": (205, 191, 168),
-        "ornament": (145, 112, 68),
-        "panel_outline": (205, 172, 105, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (205, 172, 105, 75),
-        "side_dot": (205, 172, 105, 100),
-    },
-
-    {
-        "name": "آبی شبانه",
-        "top": (18, 39, 76),
-        "middle": (16, 27, 53),
-        "bottom": (7, 11, 23),
-        "glow1": (75, 115, 185, 32),
-        "glow2": (50, 80, 150, 22),
-        "glow3": (55, 85, 140, 10),
-        "frame": (165, 140, 83),
-        "frame_inner": (200, 170, 103),
-        "text": (255, 255, 255),
-        "accent": (239, 210, 139),
-        "subtitle": (195, 204, 211),
-        "ornament": (140, 125, 82),
-        "panel_outline": (190, 170, 110, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (200, 175, 110, 75),
-        "side_dot": (215, 185, 115, 100),
-    },
-
-    {
-        "name": "شرابی",
-        "top": (76, 19, 37),
-        "middle": (45, 14, 26),
-        "bottom": (20, 6, 13),
-        "glow1": (175, 70, 90, 35),
-        "glow2": (135, 45, 65, 20),
-        "glow3": (130, 45, 60, 10),
-        "frame": (174, 133, 72),
-        "frame_inner": (205, 169, 98),
-        "text": (255, 255, 255),
-        "accent": (241, 210, 139),
-        "subtitle": (211, 193, 181),
-        "ornament": (145, 105, 65),
-        "panel_outline": (195, 155, 95, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (200, 160, 100, 75),
-        "side_dot": (215, 175, 105, 100),
-    },
-
-    {
-        "name": "فیروزه‌ای تیره",
-        "top": (10, 61, 67),
-        "middle": (9, 39, 45),
-        "bottom": (4, 17, 21),
-        "glow1": (55, 155, 165, 34),
-        "glow2": (35, 110, 125, 20),
-        "glow3": (40, 120, 130, 10),
-        "frame": (172, 145, 91),
-        "frame_inner": (205, 177, 112),
-        "text": (255, 255, 255),
-        "accent": (224, 199, 132),
-        "subtitle": (188, 209, 208),
-        "ornament": (130, 137, 91),
-        "panel_outline": (185, 170, 110, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (185, 175, 110, 75),
-        "side_dot": (210, 190, 120, 100),
-    },
-
-    {
-        "name": "سبز زمردی",
-        "top": (12, 59, 51),
-        "middle": (13, 38, 35),
-        "bottom": (5, 18, 17),
-        "glow1": (65, 145, 120, 35),
-        "glow2": (45, 110, 95, 20),
-        "glow3": (40, 100, 85, 10),
-        "frame": (168, 139, 78),
-        "frame_inner": (200, 169, 99),
-        "text": (255, 255, 255),
-        "accent": (239, 211, 137),
-        "subtitle": (194, 207, 197),
-        "ornament": (140, 118, 70),
-        "panel_outline": (190, 165, 100, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (190, 170, 105, 75),
-        "side_dot": (210, 180, 110, 100),
-    },
-
-    {
-        "name": "رزگلد",
-        "top": (72, 35, 48),
-        "middle": (45, 23, 32),
-        "bottom": (19, 9, 14),
-        "glow1": (190, 105, 120, 32),
-        "glow2": (150, 75, 95, 20),
-        "glow3": (135, 70, 85, 10),
-        "frame": (181, 125, 119),
-        "frame_inner": (218, 165, 154),
-        "text": (255, 255, 255),
-        "accent": (235, 181, 163),
-        "subtitle": (216, 194, 187),
-        "ornament": (164, 112, 106),
-        "panel_outline": (215, 160, 150, 38),
-        "panel_inner": (255, 255, 255, 12),
-        "side_line": (210, 155, 145, 75),
-        "side_dot": (225, 170, 158, 100),
-    },
-
-    {
-        "name": "کرم",
-        "top": (250, 239, 210),
-        "middle": (242, 226, 190),
-        "bottom": (226, 205, 163),
-        "glow1": (255, 252, 230, 55),
-        "glow2": (255, 240, 185, 28),
-        "glow3": (255, 255, 255, 22),
-        "frame": (91, 67, 39),
-        "frame_inner": (126, 96, 58),
-        "text": (49, 40, 31),
-        "accent": (104, 73, 38),
-        "subtitle": (77, 61, 43),
-        "ornament": (113, 80, 42),
-        "panel_outline": (105, 78, 43, 55),
-        "panel_inner": (255, 255, 255, 75),
-        "side_line": (105, 78, 43, 85),
-        "side_dot": (94, 67, 35, 125),
-    },
-
-    {
-        "name": "آبی روشن",
-        "top": (205, 235, 248),
-        "middle": (180, 220, 238),
-        "bottom": (153, 201, 225),
-        "glow1": (235, 249, 255, 58),
-        "glow2": (145, 205, 235, 28),
-        "glow3": (255, 255, 255, 24),
-        "frame": (43, 73, 91),
-        "frame_inner": (72, 105, 124),
-        "text": (31, 51, 63),
-        "accent": (48, 82, 101),
-        "subtitle": (54, 77, 91),
-        "ornament": (59, 91, 108),
-        "panel_outline": (58, 91, 110, 55),
-        "panel_inner": (255, 255, 255, 78),
-        "side_line": (58, 91, 110, 85),
-        "side_dot": (46, 79, 99, 125),
-    },
-
-    {
-        "name": "مریم‌گلی",
-        "top": (218, 231, 205),
-        "middle": (201, 219, 184),
-        "bottom": (179, 201, 159),
-        "glow1": (242, 249, 230, 58),
-        "glow2": (175, 205, 145, 28),
-        "glow3": (255, 255, 255, 24),
-        "frame": (60, 76, 52),
-        "frame_inner": (91, 108, 78),
-        "text": (39, 54, 35),
-        "accent": (67, 88, 55),
-        "subtitle": (67, 82, 59),
-        "ornament": (75, 96, 62),
-        "panel_outline": (73, 96, 62, 55),
-        "panel_inner": (255, 255, 255, 78),
-        "side_line": (73, 96, 62, 85),
-        "side_dot": (62, 84, 52, 125),
-    },
-]
 
 
 # ==================================
 # Fonts
 # ==================================
 
-def get_font(
-    font_name,
-    size
-):
-
-    actual_size = int(
-        round(
-            size * RENDER_SCALE
-        )
-    )
-
+def get_font(name, size):
     key = (
-        font_name,
-        actual_size
+        name,
+        int(round(size * S))
     )
 
-    with FONT_CACHE_LOCK:
+    if key in FONT_CACHE:
+        return FONT_CACHE[key]
 
-        if key in FONT_CACHE:
+    f = ImageFont.truetype(
+        name,
+        key[1]
+    )
 
-            return FONT_CACHE[key]
+    if name == POEM_FONT:
+        try:
+            axes = f.get_variation_axes()
 
-        font = ImageFont.truetype(
-            font_name,
-            actual_size
-        )
+            for i, axis in enumerate(axes):
+                if axis.get("name", "").lower() == "weight":
 
-        if font_name == POEM_FONT:
-
-            try:
-
-                axes = font.get_variation_axes()
-
-                weight_index = None
-
-                for index, axis in enumerate(axes):
-
-                    axis_name = axis.get(
-                        "name",
-                        ""
-                    )
-
-                    if axis_name.lower() == "weight":
-
-                        weight_index = index
-
-                        break
-
-                if weight_index is not None:
-
-                    variations = [
-                        axis.get(
+                    values = [
+                        a.get(
                             "default",
-                            axis.get(
-                                "min",
-                                400
-                            )
+                            a.get("min", 400)
                         )
-                        for axis in axes
+                        for a in axes
                     ]
 
-                    variations[
-                        weight_index
-                    ] = 400
+                    values[i] = 400
+                    f.set_variation_by_axes(values)
+                    break
 
-                    font.set_variation_by_axes(
-                        variations
-                    )
+        except Exception:
+            pass
 
-            except Exception as error:
-
-                print(
-                    "Parastoo variable font "
-                    "weight adjustment skipped:",
-                    error
-                )
-
-        FONT_CACHE[key] = font
-
-        return font
-
-
-# ==================================
-# Shared Texture
-# ==================================
-
-def build_shared_texture():
-
-    global CACHED_TEXTURE
-
-    if CACHED_TEXTURE is not None:
-
-        return CACHED_TEXTURE
-
-    with BACKGROUND_CACHE_LOCK:
-
-        if CACHED_TEXTURE is not None:
-
-            return CACHED_TEXTURE
-
-        print(
-            "Building shared background texture..."
-        )
-
-        texture = Image.new(
-            "RGBA",
-            (
-                RENDER_WIDTH,
-                RENDER_HEIGHT
-            ),
-            (0, 0, 0, 0)
-        )
-
-        texture_pixels = texture.load()
-
-        random_generator = random.Random(8)
-
-        for _ in range(56000):
-
-            x = random_generator.randrange(
-                RENDER_WIDTH
-            )
-
-            y = random_generator.randrange(
-                RENDER_HEIGHT
-            )
-
-            value = random_generator.choice(
-                [
-                    (255, 255, 255, 3),
-                    (0, 0, 0, 4)
-                ]
-            )
-
-            texture_pixels[
-                x,
-                y
-            ] = value
-
-        CACHED_TEXTURE = texture
-
-        print(
-            "Shared background texture cached."
-        )
-
-        return CACHED_TEXTURE
+    FONT_CACHE[key] = f
+    return f
 
 
 # ==================================
 # Background
 # ==================================
 
-def create_gradient_background(
-    palette
-):
+def load_background():
+    global BG
 
-    gradient = Image.new(
-        "RGB",
-        (
-            1,
-            RENDER_HEIGHT
-        )
-    )
-
-    pixels = gradient.load()
-
-    top = palette["top"]
-    middle = palette["middle"]
-    bottom = palette["bottom"]
-
-    for y in range(
-        RENDER_HEIGHT
-    ):
-
-        ratio = (
-            y
-            / (RENDER_HEIGHT - 1)
+    try:
+        response = session().get(
+            BG_URL,
+            timeout=30
         )
 
-        if ratio < 0.52:
+        response.raise_for_status()
 
-            t = (
-                ratio
-                / 0.52
+        png = cairosvg.svg2png(
+            bytestring=response.content,
+            output_width=4320
+        )
+
+        image = Image.open(
+            io.BytesIO(png)
+        ).convert("RGBA")
+
+        ratio = image.width / image.height
+        target = RW / RH
+
+        if ratio > target:
+            nh = RH
+            nw = int(
+                image.width * RH / image.height
             )
-
-            r = int(
-                top[0] * (1 - t)
-                + middle[0] * t
-            )
-
-            g = int(
-                top[1] * (1 - t)
-                + middle[1] * t
-            )
-
-            b = int(
-                top[2] * (1 - t)
-                + middle[2] * t
-            )
-
         else:
-
-            t = (
-                ratio - 0.52
-            ) / 0.48
-
-            r = int(
-                middle[0] * (1 - t)
-                + bottom[0] * t
+            nw = RW
+            nh = int(
+                image.height * RW / image.width
             )
 
-            g = int(
-                middle[1] * (1 - t)
-                + bottom[1] * t
-            )
-
-            b = int(
-                middle[2] * (1 - t)
-                + bottom[2] * t
-            )
-
-        pixels[
-            0,
-            y
-        ] = (
-            r,
-            g,
-            b
+        image = image.resize(
+            (nw, nh),
+            Image.Resampling.LANCZOS
         )
 
-    image = gradient.resize(
-        (
-            RENDER_WIDTH,
-            RENDER_HEIGHT
-        ),
-        Image.Resampling.NEAREST
+        x = (nw - RW) // 2
+        y = (nh - RH) // 2
+
+        image = image.crop(
+            (x, y, x + RW, y + RH)
+        )
+
+        image = ImageEnhance.Brightness(
+            image
+        ).enhance(.48)
+
+        image = image.filter(
+            ImageFilter.GaussianBlur(4 * S)
+        )
+
+        image.putalpha(42)
+
+        BG = image
+
+    except Exception as error:
+        print(
+            "Background error:",
+            error
+        )
+
+
+def build_texture():
+    global TEXTURE
+
+    if TEXTURE is not None:
+        return TEXTURE
+
+    with LOCK:
+
+        if TEXTURE is not None:
+            return TEXTURE
+
+        image = Image.new(
+            "RGBA",
+            (RW, RH),
+            (0, 0, 0, 0)
+        )
+
+        pixels = image.load()
+        rng = random.Random(8)
+
+        for _ in range(56000):
+            pixels[
+                rng.randrange(RW),
+                rng.randrange(RH)
+            ] = rng.choice([
+                (255,255,255,3),
+                (0,0,0,4)
+            ])
+
+        TEXTURE = image
+        return image
+
+
+def make_background(p):
+    image = Image.new(
+        "RGB",
+        (1, RH)
     )
 
-    if CACHED_BACKGROUND is not None:
+    pixels = image.load()
 
-        image = Image.alpha_composite(
-            image.convert("RGBA"),
-            CACHED_BACKGROUND
+    for y in range(RH):
+
+        ratio = y / (RH - 1)
+
+        if ratio < .52:
+            a, b, t = (
+                p["top"],
+                p["middle"],
+                ratio / .52
+            )
+        else:
+            a, b, t = (
+                p["middle"],
+                p["bottom"],
+                (ratio - .52) / .48
+            )
+
+        pixels[0, y] = tuple(
+            int(
+                a[i] * (1 - t)
+                + b[i] * t
+            )
+            for i in range(3)
         )
 
-    else:
+    image = image.resize(
+        (RW, RH),
+        Image.Resampling.NEAREST
+    ).convert("RGBA")
 
-        image = gradient.convert(
-            "RGBA"
+    if BG is not None:
+        image = Image.alpha_composite(
+            image,
+            BG
         )
 
     glow = Image.new(
         "RGBA",
-        (
-            RENDER_WIDTH,
-            RENDER_HEIGHT
-        ),
+        (RW, RH),
         (0, 0, 0, 0)
     )
 
-    glow_draw = ImageDraw.Draw(
-        glow
+    d = ImageDraw.Draw(glow)
+
+    d.ellipse(
+        (-260*S, -180*S, 650*S, 560*S),
+        fill=p["glow1"]
     )
 
-    s = RENDER_SCALE
-
-    glow_draw.ellipse(
-        (
-            -260 * s,
-            -180 * s,
-            650 * s,
-            560 * s
-        ),
-        fill=palette["glow1"]
+    d.ellipse(
+        (690*S, 690*S, 1250*S, 1250*S),
+        fill=p["glow2"]
     )
 
-    glow_draw.ellipse(
-        (
-            690 * s,
-            690 * s,
-            1250 * s,
-            1250 * s
-        ),
-        fill=palette["glow2"]
-    )
-
-    glow_draw.ellipse(
-        (
-            250 * s,
-            350 * s,
-            850 * s,
-            950 * s
-        ),
-        fill=palette["glow3"]
+    d.ellipse(
+        (250*S, 350*S, 850*S, 950*S),
+        fill=p["glow3"]
     )
 
     glow = glow.filter(
-        ImageFilter.GaussianBlur(
-            110 * s
-        )
+        ImageFilter.GaussianBlur(110 * S)
     )
 
     image = Image.alpha_composite(
@@ -1061,455 +559,294 @@ def create_gradient_background(
         glow
     )
 
-    texture = build_shared_texture()
-
-    image = Image.alpha_composite(
+    return Image.alpha_composite(
         image,
-        texture
+        build_texture()
+    ).convert("RGB")
+
+
+def build_panel():
+    global PANEL
+
+    panel = Image.new(
+        "RGBA",
+        (RW, RH),
+        (0, 0, 0, 0)
     )
 
-    return image.convert(
-        "RGB"
+    d = D(panel)
+
+    d.rr(
+        (100,164,980,896),
+        radius=45,
+        fill=(0,0,0,45)
     )
 
-
-# ==================================
-# Build All Cached Card Backgrounds
-# ==================================
-
-def build_cached_card_backgrounds():
-
-    global CACHED_CARD_BACKGROUNDS
-
-    print(
-        "Building cached card backgrounds..."
+    d.rr(
+        (100,160,980,890),
+        radius=45,
+        fill=(255,255,255,24)
     )
 
-    start_time = time.perf_counter()
-
-    build_shared_texture()
-
-    CACHED_CARD_BACKGROUNDS = {}
-
-    for palette in PALETTES:
-
-        palette_name = palette["name"]
-
-        print(
-            f"Preparing background: "
-            f"{palette_name}"
-        )
-
-        palette_start = time.perf_counter()
-
-        CACHED_CARD_BACKGROUNDS[
-            palette_name
-        ] = create_gradient_background(
-            palette
-        )
-
-        print(
-            f"[TIMING] Background "
-            f"{palette_name}: "
-            f"{time.perf_counter() - palette_start:.4f}s"
-        )
-
-    elapsed = time.perf_counter() - start_time
-
-    print(
-        "All card backgrounds cached."
+    d.rr(
+        (110,170,970,880),
+        radius=37,
+        outline=(255,255,255,12),
+        width=1
     )
 
-    print(
-        f"Background cache build time: "
-        f"{elapsed:.4f} seconds"
+    PANEL = panel.filter(
+        ImageFilter.GaussianBlur(.35 * S)
     )
 
 
-# ==================================
-# Build Glass Panel Cache
-# ==================================
+def initialize():
+    global BACKGROUNDS
 
-def build_glass_panel():
+    load_background()
+    build_texture()
 
-    global CACHED_GLASS_PANEL
+    BACKGROUNDS = {
+        p["name"]: make_background(p)
+        for p in PALETTES
+    }
 
-    if CACHED_GLASS_PANEL is not None:
-
-        return CACHED_GLASS_PANEL
-
-    with GLASS_PANEL_LOCK:
-
-        if CACHED_GLASS_PANEL is not None:
-
-            return CACHED_GLASS_PANEL
-
-        print(
-            "Building shared glass panel..."
-        )
-
-        panel = Image.new(
-            "RGBA",
-            (
-                RENDER_WIDTH,
-                RENDER_HEIGHT
-            ),
-            (0, 0, 0, 0)
-        )
-
-        panel_draw = ScaledDraw(
-            panel
-        )
-
-        panel_left = 100
-        panel_right = 980
-        panel_top = 160
-        panel_bottom = 890
-
-        # Shadow
-        panel_draw.rounded_rectangle(
-            (
-                panel_left,
-                panel_top + 4,
-                panel_right,
-                panel_bottom + 6
-            ),
-            radius=45,
-            fill=(0, 0, 0, 45)
-        )
-
-        # Glass body
-        panel_draw.rounded_rectangle(
-            (
-                panel_left,
-                panel_top,
-                panel_right,
-                panel_bottom
-            ),
-            radius=45,
-            fill=(255, 255, 255, 24)
-        )
-
-        # Inner glass border
-        panel_draw.rounded_rectangle(
-            (
-                panel_left + 10,
-                panel_top + 10,
-                panel_right - 10,
-                panel_bottom - 10
-            ),
-            radius=37,
-            outline=(255, 255, 255, 12),
-            width=PANEL_INNER_WIDTH
-        )
-
-        # Exactly the same soft glass blur
-        panel = panel.filter(
-            ImageFilter.GaussianBlur(
-                0.35 * RENDER_SCALE
-            )
-        )
-
-        CACHED_GLASS_PANEL = panel
-
-        print(
-            "Shared glass panel cached."
-        )
-
-        return CACHED_GLASS_PANEL
+    build_panel()
 
 
-# ==================================
-# Initialize Caches
-# ==================================
-
-load_background_image()
-
-build_cached_card_backgrounds()
-
-build_glass_panel()
+initialize()
 
 
 # ==================================
 # Text Helpers
 # ==================================
 
-def normalize_text(text):
-
-    return text.replace(
-        "…",
-        "..."
-    )
-
-
-def wrap_text(
-    draw,
-    text,
-    font,
-    max_width
-):
-
+def wrap_text(d, text, font_, max_width):
     words = text.split()
 
     if not words:
-
         return []
 
     lines = []
-
     current = words[0]
 
     for word in words[1:]:
 
-        test = (
+        candidate = (
             current
             + " "
             + word
         )
 
-        bbox = draw.textbbox(
-            (0, 0),
-            test,
-            font=font
+        bbox = d.bbox(
+            (0,0),
+            candidate,
+            font_
         )
 
-        width = (
-            bbox[2]
-            - bbox[0]
-        )
-
-        if width <= max_width:
-
-            current = test
-
+        if bbox[2] - bbox[0] <= max_width:
+            current = candidate
         else:
-
-            lines.append(
-                current
-            )
-
+            lines.append(current)
             current = word
 
-    if current:
-
-        lines.append(
-            current
-        )
+    lines.append(current)
 
     return lines
 
 
-def prepare_poem_lines(
-    draw,
-    text,
-    font,
-    max_width
-):
+def prepare_lines(d, text, font_, max_width):
+    result = []
 
-    text = normalize_text(
-        text
-    )
+    for raw in text.replace(
+        "…",
+        "..."
+    ).splitlines():
 
-    raw_lines = text.splitlines()
-
-    final_lines = []
-
-    for line in raw_lines:
-
-        if not line.strip():
-
-            final_lines.append(None)
-
+        if not raw.strip():
+            result.append(None)
             continue
 
-        wrapped = wrap_text(
-            draw,
-            line.strip(),
-            font,
-            max_width
+        result.extend(
+            wrap_text(
+                d,
+                raw.strip(),
+                font_,
+                max_width
+            )
         )
 
-        final_lines.extend(
-            wrapped
-        )
-
-    return final_lines
+    return result
 
 
-def calculate_text_height(
-    draw,
-    lines,
-    font,
-    line_spacing,
-    blank_line_spacing
-):
-
-    if not lines:
-
-        return 0
-
+def calculate_height(d, lines, font_):
     total = 0
 
     for line in lines:
 
         if line is None:
-
-            total += blank_line_spacing
-
+            total += BLANK_LINE_SPACING
             continue
 
-        bbox = draw.textbbox(
-            (0, 0),
+        bbox = d.bbox(
+            (0,0),
             line,
-            font=font
-        )
-
-        height = (
-            bbox[3]
-            - bbox[1]
+            font_
         )
 
         total += (
-            height
-            + line_spacing
+            bbox[3]
+            - bbox[1]
+            + LINE_SPACING
         )
 
-    if lines[-1] is not None:
-
-        total -= line_spacing
+    if lines and lines[-1] is not None:
+        total -= LINE_SPACING
 
     return total
 
 
 # ==================================
-# Pending Poem Timeout
+# Soroush API
 # ==================================
 
-def expire_pending_poem(
-    chat_id,
-    created_at
-):
-
+def api(method, data=None, files=None, timeout=20):
     try:
-
-        with STATE_LOCK:
-
-            pending = PENDING_POEMS.get(
-                chat_id
-            )
-
-            if not pending:
-
-                PENDING_TIMERS.pop(
-                    chat_id,
-                    None
-                )
-
-                return
-
-            current_created_at = (
-                pending.get(
-                    "created_at"
-                )
-            )
-
-            if current_created_at != created_at:
-
-                return
-
-            if (
-                time.time()
-                - created_at
-                >= PENDING_TIMEOUT
-            ):
-
-                PENDING_POEMS.pop(
-                    chat_id,
-                    None
-                )
-
-                PENDING_TIMERS.pop(
-                    chat_id,
-                    None
-                )
-
-                print(
-                    f"Pending poem expired "
-                    f"for chat {chat_id}"
-                )
+        return session().post(
+            f"{API}/{method}",
+            json=data if files is None else None,
+            data=data if files is not None else None,
+            files=files,
+            timeout=timeout
+        )
 
     except Exception as error:
-
         print(
-            "Pending poem expiration error:",
+            f"{method} error:",
             error
         )
+        return None
 
 
-def cancel_pending_timer(
-    chat_id
-):
+def send_message(chat_id, text, markup=None):
+    data = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML"
+    }
 
-    timer = None
+    if markup is not None:
+        data["reply_markup"] = markup
 
-    with STATE_LOCK:
+    return api(
+        "sendMessage",
+        data
+    )
 
-        timer = PENDING_TIMERS.pop(
-            chat_id,
-            None
+
+def delete_message(chat_id, message_id):
+    return api(
+        "deleteMessage",
+        {
+            "chat_id": chat_id,
+            "message_id": message_id
+        }
+    )
+
+
+def send_photo(chat_id, filename):
+    try:
+        with open(filename, "rb") as photo:
+
+            return api(
+                "sendPhoto",
+                {"chat_id": chat_id},
+                {
+                    "photo": (
+                        "poetry_card.png",
+                        photo,
+                        "image/png"
+                    )
+                },
+                60
+            )
+
+    except Exception as error:
+        print(
+            "sendPhoto error:",
+            error
         )
+        return None
 
-    if timer is not None:
 
-        try:
+def answer_callback(callback_id):
+    return api(
+        "answerCallbackQuery",
+        {
+            "callback_query_id":
+                callback_id
+        }
+    )
 
-            timer.cancel()
 
-        except Exception as error:
+# ==================================
+# Pending Management
+# ==================================
 
-            print(
-                "Pending timer cancel error:",
-                error
+def expire_pending(chat_id, created_at):
+
+    with LOCK:
+
+        pending = PENDING.get(chat_id)
+
+        if not pending:
+            TIMERS.pop(
+                chat_id,
+                None
+            )
+            return
+
+        if pending.get(
+            "created_at"
+        ) != created_at:
+            return
+
+        if time.time() - created_at >= TIMEOUT:
+            PENDING.pop(
+                chat_id,
+                None
+            )
+
+            TIMERS.pop(
+                chat_id,
+                None
             )
 
 
-def store_pending_poem(
-    chat_id,
-    poem
-):
+def store_pending(chat_id, poem):
 
     created_at = time.time()
 
-    with STATE_LOCK:
+    with LOCK:
 
-        old_timer = PENDING_TIMERS.pop(
+        old = TIMERS.pop(
             chat_id,
             None
         )
 
-        if old_timer is not None:
+        if old:
+            old.cancel()
 
-            try:
-
-                old_timer.cancel()
-
-            except Exception as error:
-
-                print(
-                    "Old pending timer cancel error:",
-                    error
-                )
-
-        PENDING_POEMS[chat_id] = {
+        PENDING[chat_id] = {
             "poem": poem,
             "branded": True,
             "created_at": created_at
         }
 
         timer = threading.Timer(
-            PENDING_TIMEOUT,
-            expire_pending_poem,
-            args=(
+            TIMEOUT,
+            expire_pending,
+            (
                 chat_id,
                 created_at
             )
@@ -1517,60 +854,38 @@ def store_pending_poem(
 
         timer.daemon = True
 
-        PENDING_TIMERS[
-            chat_id
-        ] = timer
+        TIMERS[chat_id] = timer
 
         timer.start()
 
-    print(
-        f"Pending poem stored "
-        f"for chat {chat_id}"
-    )
 
+def refresh_timeout(chat_id):
 
-def refresh_pending_timeout(
-    chat_id
-):
+    with LOCK:
 
-    created_at = time.time()
-
-    with STATE_LOCK:
-
-        pending = PENDING_POEMS.get(
+        pending = PENDING.get(
             chat_id
         )
 
         if not pending:
-
             return
 
-        old_timer = PENDING_TIMERS.pop(
+        old = TIMERS.pop(
             chat_id,
             None
         )
 
-        if old_timer is not None:
+        if old:
+            old.cancel()
 
-            try:
-
-                old_timer.cancel()
-
-            except Exception as error:
-
-                print(
-                    "Old pending timer cancel error:",
-                    error
-                )
+        created_at = time.time()
 
         pending["created_at"] = created_at
 
-        PENDING_POEMS[chat_id] = pending
-
         timer = threading.Timer(
-            PENDING_TIMEOUT,
-            expire_pending_poem,
-            args=(
+            TIMEOUT,
+            expire_pending,
+            (
                 chat_id,
                 created_at
             )
@@ -1578,729 +893,287 @@ def refresh_pending_timeout(
 
         timer.daemon = True
 
-        PENDING_TIMERS[
-            chat_id
-        ] = timer
+        TIMERS[chat_id] = timer
 
         timer.start()
 
-    print(
-        f"Pending timeout refreshed "
-        f"for chat {chat_id}"
+
+def remove_previous_ready(chat_id):
+
+    with LOCK:
+
+        message_id = READY.get(
+            chat_id
+        )
+
+    if not message_id:
+        return
+
+    response = delete_message(
+        chat_id,
+        message_id
     )
 
+    if response is not None and response.ok:
 
-# ==================================
-# Delete Previous Ready Message
-# ==================================
+        with LOCK:
 
-def delete_previous_ready_message(
-    chat_id
-):
-
-    try:
-
-        with STATE_LOCK:
-
-            message_id = READY_MESSAGES.get(
+            if READY.get(
                 chat_id
-            )
+            ) == message_id:
 
-        if not message_id:
-
-            return
-
-        print(
-            f"Deleting previous ready message "
-            f"{message_id} for chat {chat_id}"
-        )
-
-        response = delete_message(
-            chat_id,
-            message_id
-        )
-
-        if (
-            response is not None
-            and response.ok
-        ):
-
-            with STATE_LOCK:
-
-                current_message_id = (
-                    READY_MESSAGES.get(
-                        chat_id
-                    )
+                READY.pop(
+                    chat_id,
+                    None
                 )
 
-                if (
-                    current_message_id
-                    == message_id
-                ):
 
-                    READY_MESSAGES.pop(
-                        chat_id,
-                        None
-                    )
+# ==================================
+# Ornament
+# ==================================
 
-            print(
-                f"Previous ready message "
-                f"{message_id} deleted."
-            )
+def draw_ornament(d, p, y):
 
-        else:
+    center = W // 2
+    width = 150
 
-            print(
-                "Previous ready message "
-                "could not be deleted. "
-                "Continuing normally."
-            )
+    d.line(
+        (
+            (center-width, y),
+            (center-12, y)
+        ),
+        fill=p["ornament"],
+        width=2
+    )
 
-    except Exception as error:
+    d.line(
+        (
+            (center+12, y),
+            (center+width, y)
+        ),
+        fill=p["ornament"],
+        width=2
+    )
 
-        print(
-            "Previous ready message deletion "
-            "error:",
-            error
-        )
+    d.polygon(
+        [
+            (center, y-5),
+            (center+5, y),
+            (center, y+5),
+            (center-5, y)
+        ],
+        fill=p["accent"]
+    )
 
 
 # ==================================
-# Create Poetry Card
+# Card Generator
 # ==================================
 
-def create_poetry_card(
-    text,
-    palette,
-    branded=True
-):
+def create_card(text, p, branded=True):
 
-    total_start = time.perf_counter()
+    image = BACKGROUNDS[
+        p["name"]
+    ].copy().convert("RGBA")
 
-    stage_start = time.perf_counter()
+    d = D(image)
 
-    cached_background = CACHED_CARD_BACKGROUNDS.get(
-        palette["name"]
-    )
-
-    if cached_background is not None:
-
-        image = cached_background.copy()
-
-    else:
-
-        image = create_gradient_background(
-            palette
-        )
-
-    image = image.convert(
-        "RGBA"
-    )
-
-    draw = ScaledDraw(
-        image
-    )
-
-    print(
-        f"[TIMING] 01 - Background copy: "
-        f"{time.perf_counter() - stage_start:.4f}s"
-    )
-
-    # ------------------------------
     # Outer frame
-    # ------------------------------
-
-    stage_start = time.perf_counter()
-
-    margin = 40
-
-    draw.rounded_rectangle(
-        (
-            margin,
-            margin,
-            CARD_WIDTH - margin,
-            CARD_HEIGHT - margin
-        ),
+    d.rr(
+        (40,40,1040,1040),
         radius=42,
-        outline=palette["frame"],
-        width=OUTER_FRAME_WIDTH
+        outline=p["frame"],
+        width=3
     )
 
-    print(
-        f"[TIMING] 02 - Outer frame: "
-        f"{time.perf_counter() - stage_start:.4f}s"
-    )
-
-    # ------------------------------
     # Inner frame
-    # ------------------------------
-
-    stage_start = time.perf_counter()
-
-    inner_margin = 49
-
-    draw.rounded_rectangle(
-        (
-            inner_margin,
-            inner_margin,
-            CARD_WIDTH - inner_margin,
-            CARD_HEIGHT - inner_margin
-        ),
+    d.rr(
+        (49,49,1031,1031),
         radius=35,
-        outline=palette["frame_inner"],
-        width=INNER_FRAME_WIDTH
+        outline=p["frame_inner"],
+        width=2
     )
-
-    print(
-        f"[TIMING] 03 - Inner frame: "
-        f"{time.perf_counter() - stage_start:.4f}s"
-    )
-
-    # ------------------------------
-    # Header / Branding
-    # ------------------------------
-
-    stage_start = time.perf_counter()
 
     title_font = get_font(
         TITLE_FONT,
         50
     )
 
-    title = "شعرکده"
-
-    title_bbox = draw.textbbox(
-        (0, 0),
-        title,
-        font=title_font
-    )
-
-    title_width = (
-        title_bbox[2]
-        - title_bbox[0]
-    )
-
-    title_height = (
-        title_bbox[3]
-        - title_bbox[1]
-    )
-
     subtitle_font = get_font(
-        SUBTITLE_FONT,
+        SUB_FONT,
         23
-    )
-
-    subtitle = "( سروش پلاس )"
-
-    subtitle_bbox = draw.textbbox(
-        (0, 0),
-        subtitle,
-        font=subtitle_font
-    )
-
-    subtitle_width = (
-        subtitle_bbox[2]
-        - subtitle_bbox[0]
-    )
-
-    subtitle_height = (
-        subtitle_bbox[3]
-        - subtitle_bbox[1]
     )
 
     footer_font = get_font(
-        FOOTER_FONT,
+        FOOT_FONT,
         23
     )
 
+    title = "شعرکده"
+    subtitle = "( سروش پلاس )"
     footer = "کارت شعر"
 
-    footer_bbox = draw.textbbox(
-        (0, 0),
+    def size(value, f):
+
+        b = d.bbox(
+            (0,0),
+            value,
+            f
+        )
+
+        return (
+            b[2]-b[0],
+            b[3]-b[1]
+        )
+
+    tw, th = size(
+        title,
+        title_font
+    )
+
+    sw, sh = size(
+        subtitle,
+        subtitle_font
+    )
+
+    fw, fh = size(
         footer,
-        font=footer_font
+        footer_font
     )
 
-    footer_width = (
-        footer_bbox[2]
-        - footer_bbox[0]
-    )
-
-    footer_height = (
-        footer_bbox[3]
-        - footer_bbox[1]
-    )
-
-    footer_x = (
-        CARD_WIDTH
-        - footer_width
-    ) // 2
+    center = W // 2
 
     footer_y = 78
+    footer_x = (W-fw) // 2
 
-    title_y = (
-        CARD_HEIGHT
-        - 78
-        - title_height
-    )
-
-    header_center = CARD_WIDTH // 2
-
-    gap = 20
-
-    title_x = (
-        header_center
-        + 10
-    )
+    title_y = H - 78 - th
+    title_x = center + 10
 
     subtitle_x = (
         title_x
-        - subtitle_width
-        - gap
+        - sw
+        - 20
     )
 
     subtitle_y = (
         title_y
-        + (
-            title_height
-            - subtitle_height
-        ) // 2
+        + (th-sh)//2
         - 3
+    )
+
+    # Footer shadow
+    d.text(
+        (footer_x+1, footer_y+2),
+        footer,
+        font=footer_font,
+        fill=(0,0,0,60)
+    )
+
+    # Footer
+    d.text(
+        (footer_x, footer_y),
+        footer,
+        font=footer_font,
+        fill=p["accent"]
+    )
+
+    draw_ornament(
+        d,
+        p,
+        footer_y + fh + 25
     )
 
     if branded:
 
-        draw.text(
-            (
-                footer_x + 1,
-                footer_y + 2
-            ),
-            footer,
-            font=footer_font,
-            fill=(0, 0, 0, 60)
-        )
-
-        draw.text(
-            (
-                footer_x,
-                footer_y
-            ),
-            footer,
-            font=footer_font,
-            fill=palette["accent"]
-        )
-
-        line_y = (
-            footer_y
-            + footer_height
-            + 25
-        )
-
-        line_width = 150
-
-        center_x = CARD_WIDTH // 2
-
-        draw.line(
-            (
-                (center_x - line_width, line_y),
-                (center_x - 12, line_y)
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        draw.line(
-            (
-                (center_x + 12, line_y),
-                (center_x + line_width, line_y)
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        diamond_size = 5
-
-        draw.polygon(
-            [
-                (
-                    center_x,
-                    line_y - diamond_size
-                ),
-                (
-                    center_x + diamond_size,
-                    line_y
-                ),
-                (
-                    center_x,
-                    line_y + diamond_size
-                ),
-                (
-                    center_x - diamond_size,
-                    line_y
-                )
-            ],
-            fill=palette["accent"]
-        )
-
-        draw.text(
-            (
-                title_x + 2,
-                title_y + 3
-            ),
+        # Title shadow
+        d.text(
+            (title_x+2, title_y+3),
             title,
             font=title_font,
-            fill=(0, 0, 0, 80)
+            fill=(0,0,0,80)
         )
 
-        draw.text(
-            (
-                title_x,
-                title_y
-            ),
+        # Title
+        d.text(
+            (title_x, title_y),
             title,
             font=title_font,
-            fill=palette["accent"]
+            fill=p["accent"]
         )
 
-        draw.text(
-            (
-                subtitle_x,
-                subtitle_y
-            ),
+        # Subtitle
+        d.text(
+            (subtitle_x, subtitle_y),
             subtitle,
             font=subtitle_font,
-            fill=palette["subtitle"]
+            fill=p["subtitle"]
         )
 
-        line_y = (
-            title_y
-            - 25
-        )
-
-        draw.line(
-            (
-                (center_x - line_width, line_y),
-                (center_x - 12, line_y)
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        draw.line(
-            (
-                (center_x + 12, line_y),
-                (center_x + line_width, line_y)
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        draw.polygon(
-            [
-                (
-                    center_x,
-                    line_y - diamond_size
-                ),
-                (
-                    center_x + diamond_size,
-                    line_y
-                ),
-                (
-                    center_x,
-                    line_y + diamond_size
-                ),
-                (
-                    center_x - diamond_size,
-                    line_y
-                )
-            ],
-            fill=palette["accent"]
+        draw_ornament(
+            d,
+            p,
+            title_y - 25
         )
 
     else:
 
-        draw.text(
-            (
-                footer_x + 1,
-                footer_y + 2
-            ),
-            footer,
-            font=footer_font,
-            fill=(0, 0, 0, 60)
+        draw_ornament(
+            d,
+            p,
+            H - 112
         )
 
-        draw.text(
-            (
-                footer_x,
-                footer_y
-            ),
-            footer,
-            font=footer_font,
-            fill=palette["accent"]
-        )
-
-        ornament_y = (
-            footer_y
-            + footer_height
-            + 25
-        )
-
-        ornament_width = 150
-
-        center_x = CARD_WIDTH // 2
-
-        draw.line(
-            (
-                (center_x - ornament_width, ornament_y),
-                (center_x - 12, ornament_y)
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        draw.line(
-            (
-                (center_x + 12, ornament_y),
-                (center_x + ornament_width, ornament_y)
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        diamond_size = 5
-
-        draw.polygon(
-            [
-                (
-                    center_x,
-                    ornament_y - diamond_size
-                ),
-                (
-                    center_x + diamond_size,
-                    ornament_y
-                ),
-                (
-                    center_x,
-                    ornament_y + diamond_size
-                ),
-                (
-                    center_x - diamond_size,
-                    ornament_y
-                )
-            ],
-            fill=palette["accent"]
-        )
-
-        bottom_ornament_y = (
-            CARD_HEIGHT
-            - 112
-        )
-
-        draw.line(
-            (
-                (center_x - ornament_width, bottom_ornament_y),
-                (center_x - 12, bottom_ornament_y)
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        draw.line(
-            (
-                (center_x + 12, bottom_ornament_y),
-                (center_x + ornament_width, bottom_ornament_y)
-            ),
-            fill=palette["ornament"],
-            width=ORNAMENT_LINE_WIDTH
-        )
-
-        draw.polygon(
-            [
-                (
-                    center_x,
-                    bottom_ornament_y - diamond_size
-                ),
-                (
-                    center_x + diamond_size,
-                    bottom_ornament_y
-                ),
-                (
-                    center_x,
-                    bottom_ornament_y + diamond_size
-                ),
-                (
-                    center_x - diamond_size,
-                    bottom_ornament_y
-                )
-            ],
-            fill=palette["accent"]
-        )
-
-    print(
-        f"[TIMING] 04 - Header: "
-        f"{time.perf_counter() - stage_start:.4f}s"
-    )
-
-    # ------------------------------
     # Glass panel
-    # ------------------------------
+    panel = PANEL.copy()
+    pd = D(panel)
 
-    stage_start = time.perf_counter()
-
-    panel = CACHED_GLASS_PANEL
-
-    if panel is not None:
-
-        # Shared panel is immutable during rendering.
-        # copy() gives this card its own layer.
-        panel = panel.copy()
-
-        # Palette-specific outlines are applied separately
-        # so the cached glass itself stays reusable.
-        panel_draw = ScaledDraw(
-            panel
-        )
-
-        panel_draw.rounded_rectangle(
-            (
-                100,
-                160,
-                980,
-                890
-            ),
-            radius=45,
-            outline=palette["panel_outline"],
-            width=PANEL_OUTLINE_WIDTH
-        )
-
-    else:
-
-        panel = Image.new(
-            "RGBA",
-            (
-                RENDER_WIDTH,
-                RENDER_HEIGHT
-            ),
-            (0, 0, 0, 0)
-        )
-
-        panel_draw = ScaledDraw(
-            panel
-        )
-
-        panel_draw.rounded_rectangle(
-            (
-                100,
-                164,
-                980,
-                896
-            ),
-            radius=45,
-            fill=(0, 0, 0, 45)
-        )
-
-        panel_draw.rounded_rectangle(
-            (
-                100,
-                160,
-                980,
-                890
-            ),
-            radius=45,
-            fill=(255, 255, 255, 24),
-            outline=palette["panel_outline"],
-            width=PANEL_OUTLINE_WIDTH
-        )
-
-        panel_draw.rounded_rectangle(
-            (
-                110,
-                170,
-                970,
-                880
-            ),
-            radius=37,
-            outline=palette["panel_inner"],
-            width=PANEL_INNER_WIDTH
-        )
-
-        panel = panel.filter(
-            ImageFilter.GaussianBlur(
-                0.35 * RENDER_SCALE
-            )
-        )
+    pd.rr(
+        (100,160,980,890),
+        radius=45,
+        outline=p["panel_outline"],
+        width=2
+    )
 
     image = Image.alpha_composite(
         image,
         panel
     )
 
-    draw = ScaledDraw(
-        image
-    )
+    d = D(image)
 
-    print(
-        f"[TIMING] 05 - Glass panel: "
-        f"{time.perf_counter() - stage_start:.4f}s"
-    )
-
-    # ------------------------------
     # Poem safe area
-    # ------------------------------
+    left = 145
+    right = 935
+    top = 205
+    bottom = 845
 
-    stage_start = time.perf_counter()
+    max_width = right - left
+    available_height = bottom - top
 
-    poem_left = 145
-    poem_right = 935
-    poem_top = 205
-    poem_bottom = 845
-
-    max_width = (
-        poem_right
-        - poem_left
-    )
-
-    available_height = (
-        poem_bottom
-        - poem_top
-    )
-
+    # Font fitting
     font_size = 66
-    min_font_size = 28
 
-    line_spacing = 9
-    blank_line_spacing = 42
-
-    lines = []
-
-    font_iterations = 0
-
-    while font_size >= min_font_size:
-
-        font_iterations += 1
+    while font_size >= 28:
 
         poem_font = get_font(
             POEM_FONT,
             font_size
         )
 
-        lines = prepare_poem_lines(
-            draw,
+        lines = prepare_lines(
+            d,
             text,
             poem_font,
             max_width
         )
 
-        total_height = calculate_text_height(
-            draw,
+        height = calculate_height(
+            d,
             lines,
-            poem_font,
-            line_spacing,
-            blank_line_spacing
+            poem_font
         )
 
-        if total_height <= available_height:
-
+        if height <= available_height:
             break
 
         font_size -= 2
@@ -2316,1057 +1189,265 @@ def create_poetry_card(
             "متن خالی است"
         ]
 
-    total_height = calculate_text_height(
-        draw,
-        lines,
-        poem_font,
-        line_spacing,
-        blank_line_spacing
-    )
-
-    print(
-        f"[TIMING] 06 - Text preparation: "
-        f"{time.perf_counter() - stage_start:.4f}s "
-        f"| font={font_size} "
-        f"| iterations={font_iterations} "
-        f"| lines={len(lines)}"
-    )
-
-    # ------------------------------
-    # Side ornaments
-    # ------------------------------
-
-    stage_start = time.perf_counter()
-
-    deco_y = (
-        poem_top
-        + available_height // 2
-    )
-
-    draw.line(
-        (
-            (65, deco_y - 30),
-            (65, deco_y + 30)
-        ),
-        fill=palette["side_line"],
-        width=SIDE_LINE_WIDTH
-    )
-
-    draw.ellipse(
-        (
-            62,
-            deco_y - 3,
-            68,
-            deco_y + 3
-        ),
-        fill=palette["side_dot"]
-    )
-
-    draw.line(
-        (
-            (1015, deco_y - 30),
-            (1015, deco_y + 30)
-        ),
-        fill=palette["side_line"],
-        width=SIDE_LINE_WIDTH
-    )
-
-    draw.ellipse(
-        (
-            1012,
-            deco_y - 3,
-            1018,
-            deco_y + 3
-        ),
-        fill=palette["side_dot"]
-    )
-
-    print(
-        f"[TIMING] 07 - Side ornaments: "
-        f"{time.perf_counter() - stage_start:.4f}s"
-    )
-
-    # ------------------------------
-    # Poem drawing
-    # ------------------------------
-
-    stage_start = time.perf_counter()
-
-    visual_items = []
-
-    visual_height = 0
+    # Calculate exact poem layout
+    items = []
+    total_height = 0
 
     for index, line in enumerate(lines):
 
         if line is None:
 
-            visual_items.append(
-                {
-                    "line": None,
-                    "bbox": None,
-                    "height": blank_line_spacing
-                }
+            items.append(
+                (
+                    None,
+                    None,
+                    BLANK_LINE_SPACING
+                )
             )
 
-            visual_height += blank_line_spacing
-
+            total_height += BLANK_LINE_SPACING
             continue
 
-        bbox = draw.textbbox(
-            (0, 0),
+        bbox = d.bbox(
+            (0,0),
             line,
-            font=poem_font
+            poem_font
         )
 
-        height = (
-            bbox[3]
-            - bbox[1]
+        height = bbox[3] - bbox[1]
+
+        items.append(
+            (
+                line,
+                bbox,
+                height
+            )
         )
 
-        visual_items.append(
-            {
-                "line": line,
-                "bbox": bbox,
-                "height": height
-            }
-        )
+        total_height += height
 
-        visual_height += height
+        if index != len(lines)-1:
+            total_height += LINE_SPACING
 
-        if index != len(lines) - 1:
+    y = top + (
+        available_height - total_height
+    ) / 2
 
-            visual_height += line_spacing
-
-    visual_y = (
-        poem_top
-        + (
-            available_height
-            - visual_height
-        ) / 2
+    y = max(
+        top,
+        y
     )
 
-    if visual_y < poem_top:
+    if y + total_height > bottom:
+        y = bottom - total_height
 
-        visual_y = poem_top
-
-    if (
-        visual_y
-        + visual_height
-        > poem_bottom
-    ):
-
-        visual_y = (
-            poem_bottom
-            - visual_height
-        )
-
-    current_visual_y = visual_y
-
-    for item in visual_items:
-
-        line = item["line"]
+    # Draw poem
+    for line, bbox, height in items:
 
         if line is None:
-
-            current_visual_y += (
-                blank_line_spacing
-            )
-
+            y += BLANK_LINE_SPACING
             continue
 
-        bbox = item["bbox"]
+        width = bbox[2] - bbox[0]
 
-        width = (
-            bbox[2]
-            - bbox[0]
-        )
+        x = left + (
+            max_width - width
+        ) / 2
 
-        height = (
-            bbox[3]
-            - bbox[1]
-        )
-
-        x = (
-            poem_left
-            + (
-                max_width
-                - width
-            ) / 2
-        )
-
-        draw_y = (
-            current_visual_y
-            - bbox[1]
-        )
-
-        actual_top = (
-            draw_y
-            + bbox[1]
-        )
-
-        if actual_top < poem_top:
-
-            draw_y += (
-                poem_top
-                - actual_top
-            )
-
-        actual_bottom = (
-            draw_y
-            + bbox[3]
-        )
-
-        if actual_bottom > poem_bottom:
-
-            draw_y -= (
-                actual_bottom
-                - poem_bottom
-            )
-
-        actual_left = (
-            x
-            + bbox[0]
-        )
-
-        actual_right = (
-            x
-            + bbox[2]
-        )
-
-        if actual_left < poem_left:
-
-            x += (
-                poem_left
-                - actual_left
-            )
-
-        if actual_right > poem_right:
-
-            x -= (
-                actual_right
-                - poem_right
-            )
-
-        draw.text(
+        d.text(
             (
                 x,
-                draw_y
+                y - bbox[1]
             ),
             line,
             font=poem_font,
-            fill=palette["text"]
+            fill=p["text"]
         )
 
-        current_visual_y += (
+        y += (
             height
-            + line_spacing
+            + LINE_SPACING
         )
 
-    print(
-        f"[TIMING] 08 - Poem drawing: "
-        f"{time.perf_counter() - stage_start:.4f}s"
+    # Side ornaments
+    center_y = top + (
+        available_height // 2
     )
 
-    # ------------------------------
-    # Footer
-    # ------------------------------
+    for x in (65, 1015):
 
-    stage_start = time.perf_counter()
+        d.line(
+            (
+                (x, center_y-30),
+                (x, center_y+30)
+            ),
+            fill=p["side_line"],
+            width=2
+        )
 
-    print(
-        f"[TIMING] 09 - Footer: "
-        f"{time.perf_counter() - stage_start:.4f}s"
-    )
+        d.ellipse(
+            (
+                x-3,
+                center_y-3,
+                x+3,
+                center_y+3
+            ),
+            fill=p["side_dot"]
+        )
 
-    # ------------------------------
-    # Downsample + PNG save
-    # ------------------------------
-
-    stage_start = time.perf_counter()
-
+    # Save
     filename = (
         "/tmp/poetry_card_"
         + uuid.uuid4().hex
         + ".png"
     )
 
-    final_image = image.resize(
-        (
-            CARD_WIDTH,
-            CARD_HEIGHT
-        ),
+    image.resize(
+        (W,H),
         Image.Resampling.LANCZOS
-    ).convert(
-        "RGB"
-    )
-
-    # Compression level 2:
-    # visually identical output,
-    # faster PNG encoding than level 4.
-    final_image.save(
+    ).convert("RGB").save(
         filename,
         "PNG",
         compress_level=2,
         optimize=False
     )
 
-    save_time = (
-        time.perf_counter()
-        - stage_start
-    )
-
-    file_size = 0
-
-    try:
-
-        file_size = (
-            os.path.getsize(filename)
-            / 1024
-        )
-
-    except Exception:
-
-        pass
-
-    print(
-        f"[TIMING] 10 - Downsample + PNG save: "
-        f"{save_time:.4f}s "
-        f"| size={file_size:.1f} KB"
-    )
-
-    print(
-        f"[TIMING] Render resolution: "
-        f"{RENDER_WIDTH}x{RENDER_HEIGHT}"
-    )
-
-    print(
-        f"[TIMING] Final resolution: "
-        f"{CARD_WIDTH}x{CARD_HEIGHT}"
-    )
-
-    total_time = (
-        time.perf_counter()
-        - total_start
-    )
-
-    print("")
-    print("========== CARD TIMING ==========")
-    print(
-        f"[TIMING] CREATE CARD TOTAL: "
-        f"{total_time:.4f}s"
-    )
-    print(
-        f"[TIMING] Palette: "
-        f"{palette['name']}"
-    )
-    print(
-        f"[TIMING] Branded: "
-        f"{branded}"
-    )
-    print(
-        f"[TIMING] Supersampling: "
-        f"{RENDER_SCALE}X"
-    )
-    print("=================================")
-    print("")
-
     return filename
 
 
 # ==================================
-# Send Message
+# Keyboards
 # ==================================
 
-def send_message(
-    chat_id,
-    text,
-    reply_markup=None
-):
+def type_keyboard():
 
-    try:
-
-        data = {
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "HTML"
-        }
-
-        if reply_markup is not None:
-
-            data["reply_markup"] = (
-                reply_markup
-            )
-
-        session = get_http_session()
-
-        response = session.post(
-            f"{API}/sendMessage",
-            json=data,
-            timeout=20
-        )
-
-        print(
-            "sendMessage:",
-            response.status_code,
-            response.text
-        )
-
-        return response
-
-    except Exception as error:
-
-        print(
-            "sendMessage error:",
-            error
-        )
-
-        return None
+    return {
+        "inline_keyboard": [
+            [{
+                "text": "🖋️ با امضای شعرکده",
+                "callback_data": "type_branded"
+            }],
+            [{
+                "text": "◻️ کارت عمومی، بدون امضا",
+                "callback_data": "type_public"
+            }]
+        ]
+    }
 
 
-# ==================================
-# Delete Message
-# ==================================
+def color_keyboard():
 
-def delete_message(
-    chat_id,
-    message_id
-):
-
-    try:
-
-        session = get_http_session()
-
-        response = session.post(
-            f"{API}/deleteMessage",
-            json={
-                "chat_id": chat_id,
-                "message_id": message_id
-            },
-            timeout=20
-        )
-
-        print(
-            "deleteMessage:",
-            response.status_code,
-            response.text
-        )
-
-        return response
-
-    except Exception as error:
-
-        print(
-            "deleteMessage error:",
-            error
-        )
-
-        return None
-
-
-# ==================================
-# Send Photo
-# ==================================
-
-def send_photo(
-    chat_id,
-    filename
-):
-
-    try:
-
-        session = get_http_session()
-
-        with open(
-            filename,
-            "rb"
-        ) as photo:
-
-            response = session.post(
-                f"{API}/sendPhoto",
-                data={
-                    "chat_id": chat_id
-                },
-                files={
-                    "photo": (
-                        "poetry_card.png",
-                        photo,
-                        "image/png"
-                    )
-                },
-                timeout=60
-            )
-
-        print(
-            "sendPhoto:",
-            response.status_code,
-            response.text
-        )
-
-        return response
-
-    except Exception as error:
-
-        print(
-            "sendPhoto error:",
-            error
-        )
-
-        return None
-
-
-# ==================================
-# Answer Callback Query
-# ==================================
-
-def answer_callback_query(
-    callback_query_id
-):
-
-    try:
-
-        session = get_http_session()
-
-        response = session.post(
-            f"{API}/answerCallbackQuery",
-            json={
-                "callback_query_id":
-                    callback_query_id
-            },
-            timeout=20
-        )
-
-        print(
-            "answerCallbackQuery:",
-            response.status_code,
-            response.text
-        )
-
-        return response
-
-    except Exception as error:
-
-        print(
-            "answerCallbackQuery error:",
-            error
-        )
-
-        return None
-
-
-# ==================================
-# Card Type Keyboard
-# ==================================
-
-def get_card_type_keyboard():
+    labels = [
+        "🟣 سلطنتی",
+        "🔵 آبی شبانه",
+        "🔴 شرابی",
+        "🩵 فیروزه‌ای تیره",
+        "🟢 سبز زمردی",
+        "🩷 رزگلد",
+        "🟡 کرم",
+        "🔵 آبی روشن",
+        "🌿 مریم‌گلی"
+    ]
 
     return {
         "inline_keyboard": [
             [
                 {
-                    "text": "🖋️ با امضای شعرکده",
-                    "callback_data":
-                        "type_branded"
+                    "text": labels[i],
+                    "callback_data": f"color_{i}"
                 }
-            ],
-            [
-                {
-                    "text": "◻️ کارت عمومی، بدون امضا",
-                    "callback_data":
-                        "type_public"
-                }
+                for i in range(
+                    row,
+                    min(row+3, 9)
+                )
             ]
+            for row in range(0, 9, 3)
         ]
     }
 
 
 # ==================================
-# Send Card Type Selection
+# Worker
 # ==================================
 
-def send_card_type_selection(
-    chat_id
-):
+def worker(chat_id, poem, p, branded):
 
-    text = (
-        "🖼️ <b>نوع کارت شعر را انتخاب کن:</b>\n\n"
-        "🖋️ با امضای شعرکده\n"
-        "کارت با عنوان و امضای شعرکده ساخته می‌شود.\n\n"
-        "◻️ کارت عمومی\n"
-        "کارت بدون نام و امضای شعرکده ساخته می‌شود."
-    )
-
-    return send_message(
-        chat_id,
-        text,
-        reply_markup=get_card_type_keyboard()
-    )
-
-
-# ==================================
-# Color Keyboard
-# ==================================
-
-def get_color_keyboard():
-
-    return {
-        "inline_keyboard": [
-
-            [
-                {
-                    "text": "🟣 سلطنتی",
-                    "callback_data": "color_0"
-                },
-                {
-                    "text": "🔵 آبی شبانه",
-                    "callback_data": "color_1"
-                },
-                {
-                    "text": "🔴 شرابی",
-                    "callback_data": "color_2"
-                }
-            ],
-
-            [
-                {
-                    "text": "🩵 فیروزه‌ای تیره",
-                    "callback_data": "color_3"
-                },
-                {
-                    "text": "🟢 سبز زمردی",
-                    "callback_data": "color_4"
-                },
-                {
-                    "text": "🩷 رزگلد",
-                    "callback_data": "color_5"
-                }
-            ],
-
-            [
-                {
-                    "text": "🟡 کرم",
-                    "callback_data": "color_6"
-                },
-                {
-                    "text": "🔵 آبی روشن",
-                    "callback_data": "color_7"
-                },
-                {
-                    "text": "🌿 مریم‌گلی",
-                    "callback_data": "color_8"
-                }
-            ]
-
-        ]
-    }
-
-
-# ==================================
-# Send Color Selection
-# ==================================
-
-def send_color_selection(
-    chat_id
-):
-
-    text = (
-        "🎨 <b>حالا رنگ کارت شعر را انتخاب کن:</b>"
-    )
-
-    return send_message(
-        chat_id,
-        text,
-        reply_markup=get_color_keyboard()
-    )
-
-
-# ==================================
-# Start Message
-# ==================================
-
-def send_start_message(
-    chat_id
-):
-
-    text = (
-        "سلام 👋\n\n"
-        "🖼️ به بات کارت شعر خوش آمدی.\n\n"
-        "شعرت را همین‌جا بفرست تا برایت "
-        "کارت شعر بسازم. ✨\n\n"
-        "📖 برای دیدن شعرهای بیشتر، "
-        f'<a href="{CHANNEL_URL}">شعرکده</a> '
-        "در سروش پلاس را دنبال کن."
-    )
-
-    return send_message(
-        chat_id,
-        text
-    )
-
-
-# ==================================
-# After Card Message
-# ==================================
-
-def send_after_card_message(
-    chat_id
-):
-
-    text = (
-        "✨ کارت شعر شما آماده شد.\n\n"
-        "اگر باز هم شعری دارید، همین‌جا ارسال کنید "
-        "تا آن را هم به کارت شعر تبدیل کنیم. 🖼️\n\n"
-        "📖 برای شعرهای بیشتر، سری به "
-        f'<a href="{CHANNEL_URL}">«شعرکده»</a> '
-        "در سروش پلاس بزنید."
-    )
-
-    return send_message(
-        chat_id,
-        text
-    )
-
-
-# ==================================
-# Process Card Type Selection
-# ==================================
-
-def process_card_type_selection(
-    update
-):
-
-    callback_query = (
-        update.get("callback_query")
-        or {}
-    )
-
-    callback_query_id = (
-        callback_query.get("id")
-    )
-
-    if callback_query_id:
-
-        answer_callback_query(
-            callback_query_id
-        )
-
-    data = callback_query.get(
-        "data"
-    )
-
-    if data not in (
-        "type_branded",
-        "type_public"
-    ):
-
-        return "OK", 200
-
-    callback_message = (
-        callback_query.get("message")
-        or {}
-    )
-
-    chat = (
-        callback_message.get("chat")
-        or {}
-    )
-
-    chat_id = chat.get("id")
-
-    type_message_id = (
-        callback_message.get(
-            "message_id"
-        )
-    )
-
-    if chat_id and type_message_id:
-
-        delete_message(
-            chat_id,
-            type_message_id
-        )
-
-    if not chat_id:
-
-        return "OK", 200
-
-    with STATE_LOCK:
-
-        pending = PENDING_POEMS.get(
-            chat_id
-        )
-
-        if pending:
-
-            pending = dict(
-                pending
-            )
-
-    if not pending:
-
-        send_message(
-            chat_id,
-            "⚠️ شعر در انتظار انتخاب پیدا نشد.\n\n"
-            "لطفاً دوباره شعرت را ارسال کن."
-        )
-
-        return "OK", 200
-
-    if data == "type_branded":
-
-        pending["branded"] = True
-
-    else:
-
-        pending["branded"] = False
-
-    with STATE_LOCK:
-
-        current_pending = (
-            PENDING_POEMS.get(
-                chat_id
-            )
-        )
-
-        if current_pending:
-
-            current_pending["branded"] = (
-                pending["branded"]
-            )
-
-            PENDING_POEMS[
-                chat_id
-            ] = current_pending
-
-        else:
-
-            return "OK", 200
-
-    refresh_pending_timeout(
-        chat_id
-    )
-
-    print(
-        f"Card type selected: "
-        f"{'branded' if pending['branded'] else 'public'}"
-    )
-
-    send_color_selection(
-        chat_id
-    )
-
-    return "OK", 200
-
-
-# ==================================
-# Actual Card Generation Worker
-# ==================================
-
-def generate_and_send_card(
-    chat_id,
-    poem,
-    palette,
-    branded
-):
-
-    overall_start = time.perf_counter()
-
-    building_message_id = None
     filename = None
+    building_id = None
 
     try:
 
-        # ------------------------------
-        # Send building message
-        # ------------------------------
-
-        stage_start = time.perf_counter()
-
-        building_response = send_message(
+        response = send_message(
             chat_id,
             "⏳ <b>کارت شعر در حال ساخت است...</b>"
         )
 
-        print(
-            f"[TIMING] Send building message: "
-            f"{time.perf_counter() - stage_start:.4f}s"
-        )
-
-        if (
-            building_response is not None
-            and building_response.ok
-        ):
+        if response is not None and response.ok:
 
             try:
 
-                building_result = (
-                    building_response.json()
+                building_id = (
+                    response.json()
+                    .get("result", {})
+                    .get("message_id")
                 )
 
-                result = (
-                    building_result.get("result")
-                    or {}
-                )
+            except Exception:
+                pass
 
-                building_message_id = (
-                    result.get("message_id")
-                )
-
-            except Exception as error:
-
-                print(
-                    "Building message parse error:",
-                    error
-                )
-
-        # ------------------------------
-        # Create card
-        # ------------------------------
-
-        filename = create_poetry_card(
+        filename = create_card(
             poem,
-            palette,
-            branded=branded
+            p,
+            branded
         )
 
-        print(
-            f"Poetry card created: "
-            f"{filename}"
-        )
-
-        # ------------------------------
-        # Send photo
-        # ------------------------------
-
-        stage_start = time.perf_counter()
-
-        photo_response = send_photo(
+        response = send_photo(
             chat_id,
             filename
         )
 
-        photo_time = (
-            time.perf_counter()
-            - stage_start
-        )
+        if response is not None and response.ok:
 
-        print(
-            f"[TIMING] sendPhoto: "
-            f"{photo_time:.4f}s"
-        )
-
-        if (
-            photo_response is not None
-            and photo_response.ok
-        ):
-
-            print(
-                "Poetry card sent successfully."
-            )
-
-            # --------------------------
-            # Delete building message
-            # --------------------------
-
-            if building_message_id:
-
-                stage_start = (
-                    time.perf_counter()
-                )
-
+            if building_id:
                 delete_message(
                     chat_id,
-                    building_message_id
+                    building_id
                 )
 
-                print(
-                    f"[TIMING] Delete building message: "
-                    f"{time.perf_counter() - stage_start:.4f}s"
-                )
-
-            # --------------------------
-            # Send after-card message
-            # --------------------------
-
-            stage_start = (
-                time.perf_counter()
+            response = send_message(
+                chat_id,
+                "✨ کارت شعر شما آماده شد.\n\n"
+                "اگر باز هم شعری دارید، همین‌جا ارسال کنید "
+                "تا آن را هم به کارت شعر تبدیل کنیم. 🖼️\n\n"
+                "📖 برای شعرهای بیشتر، سری به "
+                f'<a href="{CHANNEL_URL}">«شعرکده»</a> '
+                "در سروش پلاس بزنید."
             )
 
-            after_card_response = (
-                send_after_card_message(
-                    chat_id
-                )
-            )
-
-            print(
-                f"[TIMING] Send after-card message: "
-                f"{time.perf_counter() - stage_start:.4f}s"
-            )
-
-            if (
-                after_card_response is not None
-                and after_card_response.ok
-            ):
+            if response is not None and response.ok:
 
                 try:
 
-                    after_card_result = (
-                        after_card_response.json()
+                    ready_id = (
+                        response.json()
+                        .get("result", {})
+                        .get("message_id")
                     )
 
-                    result = (
-                        after_card_result.get(
-                            "result"
-                        )
-                        or {}
-                    )
+                    if ready_id:
 
-                    ready_message_id = (
-                        result.get(
-                            "message_id"
-                        )
-                    )
+                        with LOCK:
+                            READY[chat_id] = ready_id
 
-                    if ready_message_id:
-
-                        with STATE_LOCK:
-
-                            READY_MESSAGES[
-                                chat_id
-                            ] = ready_message_id
-
-                        print(
-                            f"Ready message saved: "
-                            f"{ready_message_id} "
-                            f"for chat {chat_id}"
-                        )
-
-                except Exception as error:
-
-                    print(
-                        "Ready message parse error:",
-                        error
-                    )
+                except Exception:
+                    pass
 
         else:
 
-            print(
-                "Photo sending failed."
-            )
-
-            if building_message_id:
-
-                stage_start = (
-                    time.perf_counter()
-                )
-
+            if building_id:
                 delete_message(
                     chat_id,
-                    building_message_id
-                )
-
-                print(
-                    f"[TIMING] Delete building message: "
-                    f"{time.perf_counter() - stage_start:.4f}s"
+                    building_id
                 )
 
             send_message(
@@ -3378,24 +1459,14 @@ def generate_and_send_card(
     except Exception as error:
 
         print(
-            "Card creation/send error:",
+            "Card worker error:",
             error
         )
 
-        if building_message_id:
-
-            stage_start = (
-                time.perf_counter()
-            )
-
+        if building_id:
             delete_message(
                 chat_id,
-                building_message_id
-            )
-
-            print(
-                f"[TIMING] Delete building message: "
-                f"{time.perf_counter() - stage_start:.4f}s"
+                building_id
             )
 
         send_message(
@@ -3405,138 +1476,149 @@ def generate_and_send_card(
 
     finally:
 
-        if filename:
+        if filename and os.path.exists(filename):
 
             try:
-
-                if os.path.exists(filename):
-
-                    os.remove(
-                        filename
-                    )
-
-                    print(
-                        f"Temporary card file removed: "
-                        f"{filename}"
-                    )
-
-            except Exception as error:
-
-                print(
-                    "Temporary card file cleanup error:",
-                    error
-                )
-
-    overall_time = (
-        time.perf_counter()
-        - overall_start
-    )
-
-    print("")
-    print("======= CARD WORKER TOTAL =======")
-    print(
-        f"[TIMING] Card worker total: "
-        f"{overall_time:.4f}s"
-    )
-    print(
-        f"[TIMING] Palette: "
-        f"{palette['name']}"
-    )
-    print(
-        f"[TIMING] Branded: "
-        f"{branded}"
-    )
-    print("=================================")
-    print("")
+                os.remove(filename)
+            except Exception:
+                pass
 
 
 # ==================================
-# Process Color Selection
+# Callback: Card Type
 # ==================================
 
-def process_color_selection(
-    update
-):
+def process_type(update):
 
-    overall_start = time.perf_counter()
+    q = update.get(
+        "callback_query"
+    ) or {}
 
-    callback_query = (
-        update.get("callback_query")
-        or {}
-    )
-
-    callback_query_id = (
-        callback_query.get("id")
-    )
-
-    if callback_query_id:
-
-        stage_start = time.perf_counter()
-
-        answer_callback_query(
-            callback_query_id
+    if q.get("id"):
+        answer_callback(
+            q["id"]
         )
 
-        print(
-            f"[TIMING] answerCallbackQuery: "
-            f"{time.perf_counter() - stage_start:.4f}s"
-        )
+    data = q.get("data")
 
-    data = callback_query.get(
-        "data"
-    )
-
-    if not data:
-
+    if data not in (
+        "type_branded",
+        "type_public"
+    ):
         return "OK", 200
 
-    if not data.startswith("color_"):
+    message = q.get(
+        "message"
+    ) or {}
 
-        return "OK", 200
-
-    callback_message = (
-        callback_query.get("message")
-        or {}
-    )
-
-    chat = (
-        callback_message.get("chat")
-        or {}
-    )
+    chat = message.get(
+        "chat"
+    ) or {}
 
     chat_id = chat.get("id")
 
-    color_message_id = (
-        callback_message.get(
-            "message_id"
-        )
+    message_id = message.get(
+        "message_id"
     )
 
-    if chat_id and color_message_id:
-
-        stage_start = time.perf_counter()
-
+    if chat_id and message_id:
         delete_message(
             chat_id,
-            color_message_id
-        )
-
-        print(
-            f"[TIMING] Delete color message: "
-            f"{time.perf_counter() - stage_start:.4f}s"
+            message_id
         )
 
     if not chat_id:
+        return "OK", 200
 
+    with LOCK:
+        pending = PENDING.get(
+            chat_id
+        )
+
+    if not pending:
+
+        send_message(
+            chat_id,
+            "⚠️ شعر در انتظار انتخاب پیدا نشد.\n\n"
+            "لطفاً دوباره شعرت را ارسال کن."
+        )
+
+        return "OK", 200
+
+    with LOCK:
+
+        if chat_id in PENDING:
+
+            PENDING[chat_id][
+                "branded"
+            ] = data == "type_branded"
+
+    refresh_timeout(
+        chat_id
+    )
+
+    send_message(
+        chat_id,
+        "🎨 <b>حالا رنگ کارت شعر را انتخاب کن:</b>",
+        color_keyboard()
+    )
+
+    return "OK", 200
+
+
+# ==================================
+# Callback: Color
+# ==================================
+
+def process_color(update):
+
+    q = update.get(
+        "callback_query"
+    ) or {}
+
+    if q.get("id"):
+        answer_callback(
+            q["id"]
+        )
+
+    data = q.get(
+        "data",
+        ""
+    )
+
+    if not data.startswith("color_"):
+        return "OK", 200
+
+    message = q.get(
+        "message"
+    ) or {}
+
+    chat = message.get(
+        "chat"
+    ) or {}
+
+    chat_id = chat.get(
+        "id"
+    )
+
+    message_id = message.get(
+        "message_id"
+    )
+
+    if chat_id and message_id:
+
+        delete_message(
+            chat_id,
+            message_id
+        )
+
+    if not chat_id:
         return "OK", 200
 
     try:
 
-        palette_index = int(
-            data.replace(
-                "color_",
-                ""
-            )
+        index = int(
+            data[6:]
         )
 
     except ValueError:
@@ -3548,10 +1630,7 @@ def process_color_selection(
 
         return "OK", 200
 
-    if (
-        palette_index < 0
-        or palette_index >= len(PALETTES)
-    ):
+    if not 0 <= index < len(PALETTES):
 
         send_message(
             chat_id,
@@ -3560,34 +1639,24 @@ def process_color_selection(
 
         return "OK", 200
 
-    # --------------------------------
-    # Atomically take pending poem
-    # --------------------------------
+    with LOCK:
 
-    with STATE_LOCK:
-
-        pending = PENDING_POEMS.pop(
+        pending = PENDING.pop(
             chat_id,
             None
         )
 
-        pending_timer = PENDING_TIMERS.pop(
+        timer = TIMERS.pop(
             chat_id,
             None
         )
 
-    if pending_timer is not None:
+    if timer:
 
         try:
-
-            pending_timer.cancel()
-
-        except Exception as error:
-
-            print(
-                "Pending timer cancel error:",
-                error
-            )
+            timer.cancel()
+        except Exception:
+            pass
 
     if not pending:
 
@@ -3603,11 +1672,6 @@ def process_color_selection(
         "poem"
     )
 
-    branded = pending.get(
-        "branded",
-        True
-    )
-
     if not poem:
 
         send_message(
@@ -3618,60 +1682,25 @@ def process_color_selection(
 
         return "OK", 200
 
-    palette = PALETTES[
-        palette_index
-    ]
-
-    print(
-        f"Selected palette: "
-        f"{palette['name']}"
-    )
-
-    print(
-        f"Branded card: "
-        f"{branded}"
-    )
-
-    # --------------------------------
-    # Start worker
-    # --------------------------------
-
-    worker = threading.Thread(
-        target=generate_and_send_card,
+    threading.Thread(
+        target=worker,
         args=(
             chat_id,
             poem,
-            palette,
-            branded
+            PALETTES[index],
+            pending.get(
+                "branded",
+                True
+            )
         ),
         daemon=True
-    )
-
-    worker.start()
-
-    overall_time = (
-        time.perf_counter()
-        - overall_start
-    )
-
-    print("")
-    print("======= COLOR SELECTION =======")
-    print(
-        f"[TIMING] Color callback accepted: "
-        f"{overall_time:.4f}s"
-    )
-    print(
-        "[TIMING] Card generation moved "
-        "to background worker."
-    )
-    print("================================")
-    print("")
+    ).start()
 
     return "OK", 200
 
 
 # ==================================
-# Home
+# Routes
 # ==================================
 
 @app.route("/")
@@ -3683,21 +1712,11 @@ def home():
     )
 
 
-# ==================================
-# Webhook
-# ==================================
-
 @app.route(
     "/webhook",
     methods=["POST"]
 )
 def webhook():
-
-    request_start = time.perf_counter()
-
-    monitoring_request_started()
-
-    request_successful = True
 
     try:
 
@@ -3705,161 +1724,123 @@ def webhook():
             silent=True
         ) or {}
 
-        print(
-            "UPDATE:",
-            update
-        )
-
-        # =================================
-        # Callback Query
-        # =================================
-
+        # Callback
         if update.get(
             "callback_query"
         ):
 
-            callback_query = (
-                update.get("callback_query")
-                or {}
-            )
-
-            data = callback_query.get(
-                "data"
+            data = (
+                update["callback_query"]
+                .get("data", "")
             )
 
             if data in (
                 "type_branded",
                 "type_public"
             ):
-
-                return process_card_type_selection(
+                return process_type(
                     update
                 )
 
-            if (
-                data
-                and data.startswith("color_")
+            if data.startswith(
+                "color_"
             ):
-
-                return process_color_selection(
+                return process_color(
                     update
                 )
 
             return "OK", 200
 
-        # =================================
-        # Normal Message
-        # =================================
-
-        message = (
-            update.get("message")
-            or {}
-        )
+        # Message
+        message = update.get(
+            "message"
+        ) or {}
 
         text = message.get(
             "text"
         )
 
-        chat = (
-            message.get("chat")
-            or {}
-        )
+        chat = message.get(
+            "chat"
+        ) or {}
 
         chat_id = chat.get(
             "id"
         )
 
-        if not chat_id:
-
+        if not chat_id or not text:
             return "OK", 200
 
-        if not text:
-
-            return "OK", 200
-
-        # =================================
-        # /start
-        # =================================
-
+        # Start
         if text == "/start":
 
-            with STATE_LOCK:
+            with LOCK:
 
-                old_timer = PENDING_TIMERS.pop(
+                timer = TIMERS.pop(
                     chat_id,
                     None
                 )
 
-                PENDING_POEMS.pop(
+                PENDING.pop(
                     chat_id,
                     None
                 )
 
-                READY_MESSAGES.pop(
+                READY.pop(
                     chat_id,
                     None
                 )
 
-            if old_timer is not None:
+            if timer:
 
                 try:
+                    timer.cancel()
+                except Exception:
+                    pass
 
-                    old_timer.cancel()
-
-                except Exception as error:
-
-                    print(
-                        "Start timer cancel error:",
-                        error
-                    )
-
-            send_start_message(
-                chat_id
+            send_message(
+                chat_id,
+                "سلام 👋\n\n"
+                "🖼️ به بات کارت شعر خوش آمدی.\n\n"
+                "شعرت را همین‌جا بفرست تا برایت "
+                "کارت شعر بسازم. ✨\n\n"
+                "📖 برای دیدن شعرهای بیشتر، "
+                f'<a href="{CHANNEL_URL}">شعرکده</a> '
+                "در سروش پلاس را دنبال کن."
             )
 
             return "OK", 200
 
-        # =================================
         # New poem
-        # =================================
-
-        delete_previous_ready_message(
+        remove_previous_ready(
             chat_id
         )
 
-        store_pending_poem(
+        store_pending(
             chat_id,
             text
         )
 
-        send_card_type_selection(
-            chat_id
+        send_message(
+            chat_id,
+            "🖼️ <b>نوع کارت شعر را انتخاب کن:</b>\n\n"
+            "🖋️ با امضای شعرکده\n"
+            "کارت با عنوان و امضای شعرکده ساخته می‌شود.\n\n"
+            "◻️ کارت عمومی\n"
+            "کارت بدون نام و امضای شعرکده ساخته می‌شود.",
+            type_keyboard()
         )
 
         return "OK", 200
 
     except Exception as error:
 
-        request_successful = False
-
         print(
-            "[MONITOR] Webhook unhandled error:",
+            "Webhook error:",
             error
         )
 
         raise
-
-    finally:
-
-        request_time = (
-            time.perf_counter()
-            - request_start
-        )
-
-        monitoring_request_finished(
-            request_time,
-            successful=request_successful
-        )
 
 
 # ==================================
@@ -3868,15 +1849,13 @@ def webhook():
 
 if __name__ == "__main__":
 
-    port = int(
-        os.environ.get(
-            "PORT",
-            10000
-        )
-    )
-
     app.run(
         host="0.0.0.0",
-        port=port,
+        port=int(
+            os.environ.get(
+                "PORT",
+                10000
+            )
+        ),
         threaded=True
-        )
+    )
