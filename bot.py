@@ -2,13 +2,7 @@ import os, random, time, threading, requests, uuid, io, cairosvg
 from flask import Flask, request
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
-
 app = Flask(__name__)
-
-
-# ==================================
-# Configuration
-# ==================================
 
 TOKEN = os.environ.get("SOROUSH_TOKEN")
 
@@ -36,13 +30,8 @@ BG_URL = (
 TIMEOUT = 120
 
 # فاصله خطوط شعر
-LINE_SPACING = 18
+LINE_SPACING = 32
 BLANK_LINE_SPACING = 48
-
-
-# ==================================
-# State / Cache
-# ==================================
 
 PENDING = {}
 READY = {}
@@ -58,179 +47,72 @@ TEXTURE = None
 PANEL = None
 
 
-# ==================================
-# Palettes
-# ==================================
-
 PALETTES = [
     {
-        "name": "بنفش سلطنتی",
-        "top": (55,25,82),
-        "middle": (32,21,53),
-        "bottom": (13,10,25),
-        "glow1": (160,105,200,38),
-        "glow2": (105,70,160,22),
-        "glow3": (100,65,145,10),
-        "frame": (173,137,82),
-        "frame_inner": (205,172,105),
-        "text": (255,255,255),
-        "accent": (244,210,137),
-        "subtitle": (205,191,168),
-        "ornament": (145,112,68),
-        "panel_outline": (205,172,105,38),
-        "side_line": (205,172,105,75),
-        "side_dot": (205,172,105,100)
+        "name":"بنفش سلطنتی","top":(55,25,82),"middle":(32,21,53),"bottom":(13,10,25),
+        "glow1":(160,105,200,38),"glow2":(105,70,160,22),"glow3":(100,65,145,10),
+        "frame":(173,137,82),"frame_inner":(205,172,105),"text":(255,255,255),
+        "accent":(244,210,137),"subtitle":(205,191,168),"ornament":(145,112,68),
+        "panel_outline":(205,172,105,38),"side_line":(205,172,105,75),"side_dot":(205,172,105,100)
     },
     {
-        "name": "آبی شبانه",
-        "top": (18,39,76),
-        "middle": (16,27,53),
-        "bottom": (7,11,23),
-        "glow1": (75,115,185,32),
-        "glow2": (50,80,150,22),
-        "glow3": (55,85,140,10),
-        "frame": (165,140,83),
-        "frame_inner": (200,170,103),
-        "text": (255,255,255),
-        "accent": (239,210,139),
-        "subtitle": (195,204,211),
-        "ornament": (140,125,82),
-        "panel_outline": (190,170,110,38),
-        "side_line": (200,175,110,75),
-        "side_dot": (215,185,115,100)
+        "name":"آبی شبانه","top":(18,39,76),"middle":(16,27,53),"bottom":(7,11,23),
+        "glow1":(75,115,185,32),"glow2":(50,80,150,22),"glow3":(55,85,140,10),
+        "frame":(165,140,83),"frame_inner":(200,170,103),"text":(255,255,255),
+        "accent":(239,210,139),"subtitle":(195,204,211),"ornament":(140,125,82),
+        "panel_outline":(190,170,110,38),"side_line":(200,175,110,75),"side_dot":(215,185,115,100)
     },
     {
-        "name": "شرابی",
-        "top": (76,19,37),
-        "middle": (45,14,26),
-        "bottom": (20,6,13),
-        "glow1": (175,70,90,35),
-        "glow2": (135,45,65,20),
-        "glow3": (130,45,60,10),
-        "frame": (174,133,72),
-        "frame_inner": (205,169,98),
-        "text": (255,255,255),
-        "accent": (241,210,139),
-        "subtitle": (211,193,181),
-        "ornament": (145,105,65),
-        "panel_outline": (195,155,95,38),
-        "side_line": (200,160,100,75),
-        "side_dot": (215,175,105,100)
+        "name":"شرابی","top":(76,19,37),"middle":(45,14,26),"bottom":(20,6,13),
+        "glow1":(175,70,90,35),"glow2":(135,45,65,20),"glow3":(130,45,60,10),
+        "frame":(174,133,72),"frame_inner":(205,169,98),"text":(255,255,255),
+        "accent":(241,210,139),"subtitle":(211,193,181),"ornament":(145,105,65),
+        "panel_outline":(195,155,95,38),"side_line":(200,160,100,75),"side_dot":(215,175,105,100)
     },
     {
-        "name": "فیروزه‌ای تیره",
-        "top": (10,61,67),
-        "middle": (9,39,45),
-        "bottom": (4,17,21),
-        "glow1": (55,155,165,34),
-        "glow2": (35,110,125,20),
-        "glow3": (40,120,130,10),
-        "frame": (172,145,91),
-        "frame_inner": (205,177,112),
-        "text": (255,255,255),
-        "accent": (224,199,132),
-        "subtitle": (188,209,208),
-        "ornament": (130,137,91),
-        "panel_outline": (185,170,110,38),
-        "side_line": (185,175,110,75),
-        "side_dot": (210,190,120,100)
+        "name":"فیروزه‌ای تیره","top":(10,61,67),"middle":(9,39,45),"bottom":(4,17,21),
+        "glow1":(55,155,165,34),"glow2":(35,110,125,20),"glow3":(40,120,130,10),
+        "frame":(172,145,91),"frame_inner":(205,177,112),"text":(255,255,255),
+        "accent":(224,199,132),"subtitle":(188,209,208),"ornament":(130,137,91),
+        "panel_outline":(185,170,110,38),"side_line":(185,175,110,75),"side_dot":(210,190,120,100)
     },
     {
-        "name": "سبز زمردی",
-        "top": (12,59,51),
-        "middle": (13,38,35),
-        "bottom": (5,18,17),
-        "glow1": (65,145,120,35),
-        "glow2": (45,110,95,20),
-        "glow3": (40,100,85,10),
-        "frame": (168,139,78),
-        "frame_inner": (200,169,99),
-        "text": (255,255,255),
-        "accent": (239,211,137),
-        "subtitle": (194,207,197),
-        "ornament": (140,118,70),
-        "panel_outline": (190,165,100,38),
-        "side_line": (190,170,105,75),
-        "side_dot": (210,180,110,100)
+        "name":"سبز زمردی","top":(12,59,51),"middle":(13,38,35),"bottom":(5,18,17),
+        "glow1":(65,145,120,35),"glow2":(45,110,95,20),"glow3":(40,100,85,10),
+        "frame":(168,139,78),"frame_inner":(200,169,99),"text":(255,255,255),
+        "accent":(239,211,137),"subtitle":(194,207,197),"ornament":(140,118,70),
+        "panel_outline":(190,165,100,38),"side_line":(190,170,105,75),"side_dot":(210,180,110,100)
     },
     {
-        "name": "رزگلد",
-        "top": (72,35,48),
-        "middle": (45,23,32),
-        "bottom": (19,9,14),
-        "glow1": (190,105,120,32),
-        "glow2": (150,75,95,20),
-        "glow3": (135,70,85,10),
-        "frame": (181,125,119),
-        "frame_inner": (218,165,154),
-        "text": (255,255,255),
-        "accent": (235,181,163),
-        "subtitle": (216,194,187),
-        "ornament": (164,112,106),
-        "panel_outline": (215,160,150,38),
-        "side_line": (210,155,145,75),
-        "side_dot": (225,170,158,100)
+        "name":"رزگلد","top":(72,35,48),"middle":(45,23,32),"bottom":(19,9,14),
+        "glow1":(190,105,120,32),"glow2":(150,75,95,20),"glow3":(135,70,85,10),
+        "frame":(181,125,119),"frame_inner":(218,165,154),"text":(255,255,255),
+        "accent":(235,181,163),"subtitle":(216,194,187),"ornament":(164,112,106),
+        "panel_outline":(215,160,150,38),"side_line":(210,155,145,75),"side_dot":(225,170,158,100)
     },
     {
-        "name": "کرم",
-        "top": (250,239,210),
-        "middle": (242,226,190),
-        "bottom": (226,205,163),
-        "glow1": (255,252,230,55),
-        "glow2": (255,240,185,28),
-        "glow3": (255,255,255,22),
-        "frame": (91,67,39),
-        "frame_inner": (126,96,58),
-        "text": (49,40,31),
-        "accent": (104,73,38),
-        "subtitle": (77,61,43),
-        "ornament": (113,80,42),
-        "panel_outline": (105,78,43,55),
-        "side_line": (105,78,43,85),
-        "side_dot": (94,67,35,125)
+        "name":"کرم","top":(250,239,210),"middle":(242,226,190),"bottom":(226,205,163),
+        "glow1":(255,252,230,55),"glow2":(255,240,185,28),"glow3":(255,255,255,22),
+        "frame":(91,67,39),"frame_inner":(126,96,58),"text":(49,40,31),
+        "accent":(104,73,38),"subtitle":(77,61,43),"ornament":(113,80,42),
+        "panel_outline":(105,78,43,55),"side_line":(105,78,43,85),"side_dot":(94,67,35,125)
     },
     {
-        "name": "آبی روشن",
-        "top": (205,235,248),
-        "middle": (180,220,238),
-        "bottom": (153,201,225),
-        "glow1": (235,249,255,58),
-        "glow2": (145,205,235,28),
-        "glow3": (255,255,255,24),
-        "frame": (43,73,91),
-        "frame_inner": (72,105,124),
-        "text": (31,51,63),
-        "accent": (48,82,101),
-        "subtitle": (54,77,91),
-        "ornament": (59,91,108),
-        "panel_outline": (58,91,110,55),
-        "side_line": (58,91,110,85),
-        "side_dot": (46,79,99,125)
+        "name":"آبی روشن","top":(205,235,248),"middle":(180,220,238),"bottom":(153,201,225),
+        "glow1":(235,249,255,58),"glow2":(145,205,235,28),"glow3":(255,255,255,24),
+        "frame":(43,73,91),"frame_inner":(72,105,124),"text":(31,51,63),
+        "accent":(48,82,101),"subtitle":(54,77,91),"ornament":(59,91,108),
+        "panel_outline":(58,91,110,55),"side_line":(58,91,110,85),"side_dot":(46,79,99,125)
     },
     {
-        "name": "مریم‌گلی",
-        "top": (218,231,205),
-        "middle": (201,219,184),
-        "bottom": (179,201,159),
-        "glow1": (242,249,230,58),
-        "glow2": (175,205,145,28),
-        "glow3": (255,255,255,24),
-        "frame": (60,76,52),
-        "frame_inner": (91,108,78),
-        "text": (39,54,35),
-        "accent": (67,88,55),
-        "subtitle": (67,82,59),
-        "ornament": (75,96,62),
-        "panel_outline": (73,96,62,55),
-        "side_line": (73,96,62,85),
-        "side_dot": (62,84,52,125)
+        "name":"مریم‌گلی","top":(218,231,205),"middle":(201,219,184),"bottom":(179,201,159),
+        "glow1":(242,249,230,58),"glow2":(175,205,145,28),"glow3":(255,255,255,24),
+        "frame":(60,76,52),"frame_inner":(91,108,78),"text":(39,54,35),
+        "accent":(67,88,55),"subtitle":(67,82,59),"ornament":(75,96,62),
+        "panel_outline":(73,96,62,55),"side_line":(73,96,62,85),"side_dot":(62,84,52,125)
     }
 ]
 
-
-# ==================================
-# HTTP Session
-# ==================================
 
 def session():
     s = getattr(HTTP, "s", None)
@@ -252,10 +134,6 @@ def session():
     return s
 
 
-# ==================================
-# Scaled Drawing
-# ==================================
-
 class D:
 
     def __init__(self, image):
@@ -263,16 +141,10 @@ class D:
         self.draw = ImageDraw.Draw(image)
 
     def p(self, point):
-        return tuple(
-            int(round(v * S))
-            for v in point
-        )
+        return tuple(int(round(v * S)) for v in point)
 
     def b(self, box):
-        return tuple(
-            int(round(v * S))
-            for v in box
-        )
+        return tuple(int(round(v * S)) for v in box)
 
     def text(self, xy, text, font, **kwargs):
         return self.draw.text(
@@ -290,10 +162,7 @@ class D:
             **kwargs
         )
 
-        return tuple(
-            v / S
-            for v in b
-        )
+        return tuple(v / S for v in b)
 
     def line(self, xy, **kwargs):
         if "width" in kwargs:
@@ -337,10 +206,6 @@ class D:
         )
 
 
-# ==================================
-# Fonts
-# ==================================
-
 def get_font(name, size):
     key = (
         name,
@@ -360,7 +225,11 @@ def get_font(name, size):
             axes = f.get_variation_axes()
 
             for i, axis in enumerate(axes):
-                if axis.get("name", "").lower() == "weight":
+
+                if axis.get(
+                    "name",
+                    ""
+                ).lower() == "weight":
 
                     values = [
                         a.get(
@@ -380,10 +249,6 @@ def get_font(name, size):
     FONT_CACHE[key] = f
     return f
 
-
-# ==================================
-# Background
-# ==================================
 
 def load_background():
     global BG
@@ -409,11 +274,14 @@ def load_background():
         target = RW / RH
 
         if ratio > target:
+
             nh = RH
             nw = int(
                 image.width * RH / image.height
             )
+
         else:
+
             nw = RW
             nh = int(
                 image.height * RW / image.width
@@ -471,6 +339,7 @@ def build_texture():
         rng = random.Random(8)
 
         for _ in range(56000):
+
             pixels[
                 rng.randrange(RW),
                 rng.randrange(RH)
@@ -484,6 +353,7 @@ def build_texture():
 
 
 def make_background(p):
+
     image = Image.new(
         "RGB",
         (1, RH)
@@ -496,12 +366,15 @@ def make_background(p):
         ratio = y / (RH - 1)
 
         if ratio < .52:
+
             a, b, t = (
                 p["top"],
                 p["middle"],
                 ratio / .52
             )
+
         else:
+
             a, b, t = (
                 p["middle"],
                 p["bottom"],
@@ -566,6 +439,7 @@ def make_background(p):
 
 
 def build_panel():
+
     global PANEL
 
     panel = Image.new(
@@ -601,6 +475,7 @@ def build_panel():
 
 
 def initialize():
+
     global BACKGROUNDS
 
     load_background()
@@ -617,11 +492,8 @@ def initialize():
 initialize()
 
 
-# ==================================
-# Text Helpers
-# ==================================
-
 def wrap_text(d, text, font_, max_width):
+
     words = text.split()
 
     if not words:
@@ -645,8 +517,11 @@ def wrap_text(d, text, font_, max_width):
         )
 
         if bbox[2] - bbox[0] <= max_width:
+
             current = candidate
+
         else:
+
             lines.append(current)
             current = word
 
@@ -656,6 +531,7 @@ def wrap_text(d, text, font_, max_width):
 
 
 def prepare_lines(d, text, font_, max_width):
+
     result = []
 
     for raw in text.replace(
@@ -664,6 +540,7 @@ def prepare_lines(d, text, font_, max_width):
     ).splitlines():
 
         if not raw.strip():
+
             result.append(None)
             continue
 
@@ -680,11 +557,13 @@ def prepare_lines(d, text, font_, max_width):
 
 
 def calculate_height(d, lines, font_):
+
     total = 0
 
     for line in lines:
 
         if line is None:
+
             total += BLANK_LINE_SPACING
             continue
 
@@ -706,12 +585,10 @@ def calculate_height(d, lines, font_):
     return total
 
 
-# ==================================
-# Soroush API
-# ==================================
-
 def api(method, data=None, files=None, timeout=20):
+
     try:
+
         return session().post(
             f"{API}/{method}",
             json=data if files is None else None,
@@ -721,14 +598,17 @@ def api(method, data=None, files=None, timeout=20):
         )
 
     except Exception as error:
+
         print(
             f"{method} error:",
             error
         )
+
         return None
 
 
 def send_message(chat_id, text, markup=None):
+
     data = {
         "chat_id": chat_id,
         "text": text,
@@ -745,6 +625,7 @@ def send_message(chat_id, text, markup=None):
 
 
 def delete_message(chat_id, message_id):
+
     return api(
         "deleteMessage",
         {
@@ -755,7 +636,9 @@ def delete_message(chat_id, message_id):
 
 
 def send_photo(chat_id, filename):
+
     try:
+
         with open(filename, "rb") as photo:
 
             return api(
@@ -772,14 +655,17 @@ def send_photo(chat_id, filename):
             )
 
     except Exception as error:
+
         print(
             "sendPhoto error:",
             error
         )
+
         return None
 
 
 def answer_callback(callback_id):
+
     return api(
         "answerCallbackQuery",
         {
@@ -789,10 +675,6 @@ def answer_callback(callback_id):
     )
 
 
-# ==================================
-# Pending Management
-# ==================================
-
 def expire_pending(chat_id, created_at):
 
     with LOCK:
@@ -800,18 +682,22 @@ def expire_pending(chat_id, created_at):
         pending = PENDING.get(chat_id)
 
         if not pending:
+
             TIMERS.pop(
                 chat_id,
                 None
             )
+
             return
 
         if pending.get(
             "created_at"
         ) != created_at:
+
             return
 
         if time.time() - created_at >= TIMEOUT:
+
             PENDING.pop(
                 chat_id,
                 None
@@ -928,10 +814,6 @@ def remove_previous_ready(chat_id):
                 )
 
 
-# ==================================
-# Ornament
-# ==================================
-
 def draw_ornament(d, p, y):
 
     center = W // 2
@@ -966,10 +848,6 @@ def draw_ornament(d, p, y):
     )
 
 
-# ==================================
-# Card Generator
-# ==================================
-
 def create_card(text, p, branded=True):
 
     image = BACKGROUNDS[
@@ -978,7 +856,6 @@ def create_card(text, p, branded=True):
 
     d = D(image)
 
-    # Outer frame
     d.rr(
         (40,40,1040,1040),
         radius=42,
@@ -986,7 +863,6 @@ def create_card(text, p, branded=True):
         width=3
     )
 
-    # Inner frame
     d.rr(
         (49,49,1031,1031),
         radius=35,
@@ -1061,7 +937,6 @@ def create_card(text, p, branded=True):
         - 3
     )
 
-    # Footer shadow
     d.text(
         (footer_x+1, footer_y+2),
         footer,
@@ -1069,7 +944,6 @@ def create_card(text, p, branded=True):
         fill=(0,0,0,60)
     )
 
-    # Footer
     d.text(
         (footer_x, footer_y),
         footer,
@@ -1085,7 +959,6 @@ def create_card(text, p, branded=True):
 
     if branded:
 
-        # Title shadow
         d.text(
             (title_x+2, title_y+3),
             title,
@@ -1093,7 +966,6 @@ def create_card(text, p, branded=True):
             fill=(0,0,0,80)
         )
 
-        # Title
         d.text(
             (title_x, title_y),
             title,
@@ -1101,7 +973,6 @@ def create_card(text, p, branded=True):
             fill=p["accent"]
         )
 
-        # Subtitle
         d.text(
             (subtitle_x, subtitle_y),
             subtitle,
@@ -1123,7 +994,6 @@ def create_card(text, p, branded=True):
             H - 112
         )
 
-    # Glass panel
     panel = PANEL.copy()
     pd = D(panel)
 
@@ -1141,7 +1011,6 @@ def create_card(text, p, branded=True):
 
     d = D(image)
 
-    # Poem safe area
     left = 145
     right = 935
     top = 205
@@ -1150,7 +1019,6 @@ def create_card(text, p, branded=True):
     max_width = right - left
     available_height = bottom - top
 
-    # Font fitting
     font_size = 66
 
     while font_size >= 28:
@@ -1189,7 +1057,6 @@ def create_card(text, p, branded=True):
             "متن خالی است"
         ]
 
-    # Calculate exact poem layout
     items = []
     total_height = 0
 
@@ -1241,10 +1108,10 @@ def create_card(text, p, branded=True):
     if y + total_height > bottom:
         y = bottom - total_height
 
-    # Draw poem
     for line, bbox, height in items:
 
         if line is None:
+
             y += BLANK_LINE_SPACING
             continue
 
@@ -1269,7 +1136,6 @@ def create_card(text, p, branded=True):
             + LINE_SPACING
         )
 
-    # Side ornaments
     center_y = top + (
         available_height // 2
     )
@@ -1295,7 +1161,6 @@ def create_card(text, p, branded=True):
             fill=p["side_dot"]
         )
 
-    # Save
     filename = (
         "/tmp/poetry_card_"
         + uuid.uuid4().hex
@@ -1315,21 +1180,17 @@ def create_card(text, p, branded=True):
     return filename
 
 
-# ==================================
-# Keyboards
-# ==================================
-
 def type_keyboard():
 
     return {
         "inline_keyboard": [
             [{
-                "text": "🖋️ با امضای شعرکده",
-                "callback_data": "type_branded"
+                "text":"🖋️ با امضای شعرکده",
+                "callback_data":"type_branded"
             }],
             [{
-                "text": "◻️ کارت عمومی، بدون امضا",
-                "callback_data": "type_public"
+                "text":"◻️ کارت عمومی، بدون امضا",
+                "callback_data":"type_public"
             }]
         ]
     }
@@ -1353,22 +1214,18 @@ def color_keyboard():
         "inline_keyboard": [
             [
                 {
-                    "text": labels[i],
-                    "callback_data": f"color_{i}"
+                    "text":labels[i],
+                    "callback_data":f"color_{i}"
                 }
                 for i in range(
                     row,
-                    min(row+3, 9)
+                    min(row+3,9)
                 )
             ]
-            for row in range(0, 9, 3)
+            for row in range(0,9,3)
         ]
     }
 
-
-# ==================================
-# Worker
-# ==================================
 
 def worker(chat_id, poem, p, branded):
 
@@ -1484,10 +1341,6 @@ def worker(chat_id, poem, p, branded):
                 pass
 
 
-# ==================================
-# Callback: Card Type
-# ==================================
-
 def process_type(update):
 
     q = update.get(
@@ -1566,10 +1419,6 @@ def process_type(update):
     return "OK", 200
 
 
-# ==================================
-# Callback: Color
-# ==================================
-
 def process_color(update):
 
     q = update.get(
@@ -1606,7 +1455,6 @@ def process_color(update):
     )
 
     if chat_id and message_id:
-
         delete_message(
             chat_id,
             message_id
@@ -1699,10 +1547,6 @@ def process_color(update):
     return "OK", 200
 
 
-# ==================================
-# Routes
-# ==================================
-
 @app.route("/")
 def home():
 
@@ -1724,7 +1568,6 @@ def webhook():
             silent=True
         ) or {}
 
-        # Callback
         if update.get(
             "callback_query"
         ):
@@ -1751,7 +1594,6 @@ def webhook():
 
             return "OK", 200
 
-        # Message
         message = update.get(
             "message"
         ) or {}
@@ -1771,7 +1613,6 @@ def webhook():
         if not chat_id or not text:
             return "OK", 200
 
-        # Start
         if text == "/start":
 
             with LOCK:
@@ -1811,7 +1652,6 @@ def webhook():
 
             return "OK", 200
 
-        # New poem
         remove_previous_ready(
             chat_id
         )
@@ -1843,10 +1683,6 @@ def webhook():
         raise
 
 
-# ==================================
-# Run
-# ==================================
-
 if __name__ == "__main__":
 
     app.run(
@@ -1858,4 +1694,4 @@ if __name__ == "__main__":
             )
         ),
         threaded=True
-    )
+        )
