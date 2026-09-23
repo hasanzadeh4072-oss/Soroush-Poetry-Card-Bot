@@ -31,18 +31,20 @@ const BG_URL =
 
 
 /* =========================================================
-   پالت‌های دقیق کد بات
+   پالت‌ها
+   ۶ رنگ تیره برای نمایش وب کمی روشن‌تر شده‌اند.
+   ۳ رنگ روشن بدون تغییر هستند.
 ========================================================= */
 
 const PALETTES = [
     {
         name: "بنفش سلطنتی",
-        top: [76, 43, 105],
-        middle: [50, 34, 73],
-        bottom: [25, 18, 40],
-        glow1: [175, 120, 215, 42],
-        glow2: [120, 85, 175, 25],
-        glow3: [115, 80, 160, 12],
+        top: [92, 55, 123],
+        middle: [63, 45, 88],
+        bottom: [34, 25, 52],
+        glow1: [185, 135, 225, 48],
+        glow2: [135, 100, 190, 30],
+        glow3: [125, 90, 175, 16],
         frame: [173, 137, 82],
         frame_inner: [205, 172, 105],
         text: [255, 255, 255],
@@ -53,14 +55,15 @@ const PALETTES = [
         side_line: [205, 172, 105, 82],
         side_dot: [205, 172, 105, 105]
     },
+
     {
         name: "آبی شبانه",
-        top: [30, 58, 100],
-        middle: [25, 43, 76],
-        bottom: [12, 20, 38],
-        glow1: [85, 130, 205, 40],
-        glow2: [60, 100, 175, 25],
-        glow3: [65, 105, 165, 12],
+        top: [42, 75, 120],
+        middle: [34, 58, 94],
+        bottom: [20, 32, 55],
+        glow1: [100, 150, 220, 48],
+        glow2: [75, 120, 190, 30],
+        glow3: [75, 120, 180, 16],
         frame: [165, 140, 83],
         frame_inner: [200, 170, 103],
         text: [255, 255, 255],
@@ -71,14 +74,15 @@ const PALETTES = [
         side_line: [200, 175, 110, 82],
         side_dot: [215, 185, 115, 105]
     },
+
     {
         name: "شرابی",
-        top: [103, 31, 52],
-        middle: [65, 21, 36],
-        bottom: [31, 10, 19],
-        glow1: [195, 82, 105, 42],
-        glow2: [155, 55, 78, 25],
-        glow3: [145, 55, 70, 12],
+        top: [120, 42, 63],
+        middle: [79, 29, 45],
+        bottom: [40, 15, 25],
+        glow1: [210, 95, 120, 48],
+        glow2: [170, 65, 90, 30],
+        glow3: [155, 65, 80, 16],
         frame: [174, 133, 72],
         frame_inner: [205, 169, 98],
         text: [255, 255, 255],
@@ -89,14 +93,15 @@ const PALETTES = [
         side_line: [200, 160, 100, 82],
         side_dot: [215, 175, 105, 105]
     },
+
     {
         name: "فیروزه‌ای تیره",
-        top: [16, 80, 88],
-        middle: [13, 53, 61],
-        bottom: [6, 24, 29],
-        glow1: [65, 170, 180, 42],
-        glow2: [45, 125, 140, 25],
-        glow3: [45, 135, 145, 12],
+        top: [24, 98, 106],
+        middle: [19, 68, 77],
+        bottom: [10, 34, 40],
+        glow1: [75, 185, 195, 48],
+        glow2: [55, 140, 155, 30],
+        glow3: [55, 145, 155, 16],
         frame: [172, 145, 91],
         frame_inner: [205, 177, 112],
         text: [255, 255, 255],
@@ -107,14 +112,15 @@ const PALETTES = [
         side_line: [185, 175, 110, 82],
         side_dot: [210, 190, 120, 105]
     },
+
     {
         name: "سبز زمردی",
-        top: [18, 76, 64],
-        middle: [17, 51, 46],
-        bottom: [7, 24, 22],
-        glow1: [75, 160, 130, 42],
-        glow2: [55, 125, 105, 25],
-        glow3: [50, 115, 95, 12],
+        top: [28, 92, 77],
+        middle: [25, 64, 57],
+        bottom: [12, 32, 30],
+        glow1: [85, 175, 145, 48],
+        glow2: [65, 140, 115, 30],
+        glow3: [60, 130, 105, 16],
         frame: [168, 139, 78],
         frame_inner: [200, 169, 99],
         text: [255, 255, 255],
@@ -125,14 +131,15 @@ const PALETTES = [
         side_line: [190, 170, 105, 82],
         side_dot: [210, 180, 110, 105]
     },
+
     {
         name: "رزگلد",
-        top: [94, 48, 62],
-        middle: [60, 31, 43],
-        bottom: [27, 13, 20],
-        glow1: [205, 120, 135, 40],
-        glow2: [165, 85, 105, 25],
-        glow3: [150, 80, 95, 12],
+        top: [110, 62, 77],
+        middle: [72, 42, 55],
+        bottom: [36, 20, 30],
+        glow1: [215, 135, 150, 46],
+        glow2: [175, 100, 120, 30],
+        glow3: [160, 90, 105, 16],
         frame: [181, 125, 119],
         frame_inner: [218, 165, 154],
         text: [255, 255, 255],
@@ -143,6 +150,7 @@ const PALETTES = [
         side_line: [210, 155, 145, 82],
         side_dot: [225, 170, 158, 105]
     },
+
     {
         name: "کرم",
         top: [250, 239, 210],
@@ -161,6 +169,7 @@ const PALETTES = [
         side_line: [105, 78, 43, 85],
         side_dot: [94, 67, 35, 125]
     },
+
     {
         name: "آبی روشن",
         top: [205, 235, 248],
@@ -179,6 +188,7 @@ const PALETTES = [
         side_line: [58, 91, 110, 85],
         side_dot: [46, 79, 99, 125]
     },
+
     {
         name: "مریم‌گلی",
         top: [218, 231, 205],
@@ -206,12 +216,11 @@ const PALETTES = [
 
 let selectedPalette = 0;
 let branded = true;
-let fontsReady = false;
 let backgroundImage = null;
 
 
 /* =========================================================
-   ابزار رنگ
+   رنگ
 ========================================================= */
 
 function rgba(c) {
@@ -224,7 +233,7 @@ function rgba(c) {
 
 
 /* =========================================================
-   بارگذاری فونت‌ها
+   فونت‌ها
 ========================================================= */
 
 async function loadFonts() {
@@ -244,24 +253,24 @@ async function loadFonts() {
             `url("${FONT_URLS.sub}")`
         );
 
-        await Promise.all([
+        const fonts = await Promise.all([
             poemFont.load(),
             titleFont.load(),
             subFont.load()
-        ]).then(fonts => {
-            fonts.forEach(font => document.fonts.add(font));
+        ]);
+
+        fonts.forEach(font => {
+            document.fonts.add(font);
         });
 
-        fontsReady = true;
     } catch (error) {
         console.error("Font loading failed:", error);
-        fontsReady = false;
     }
 }
 
 
 /* =========================================================
-   بارگذاری پس‌زمینه تذهیب
+   پس‌زمینه
 ========================================================= */
 
 function loadBackground() {
@@ -276,7 +285,6 @@ function loadBackground() {
         };
 
         img.onerror = () => {
-            console.warn("Background image could not be loaded.");
             backgroundImage = null;
             resolve();
         };
@@ -300,19 +308,15 @@ function makePaletteButtons() {
         button.className = "palette-btn";
         button.textContent = palette.name;
 
-        const gradient =
-            `linear-gradient(135deg, ` +
-            `${rgba(palette.top)}, ` +
-            `${rgba(palette.middle)} 55%, ` +
-            `${rgba(palette.bottom)})`;
+        button.style.background =
+            `linear-gradient(135deg,
+                ${rgba(palette.top)},
+                ${rgba(palette.middle)} 52%,
+                ${rgba(palette.bottom)}
+            )`;
 
-        button.style.background = gradient;
-
-        if (index < 6) {
-            button.style.color = "#ffffff";
-        } else {
-            button.style.color = "#27313a";
-        }
+        button.style.color =
+            index < 6 ? "#ffffff" : "#27313a";
 
         if (index === selectedPalette) {
             button.classList.add("active");
@@ -323,7 +327,9 @@ function makePaletteButtons() {
 
             document
                 .querySelectorAll(".palette-btn")
-                .forEach(btn => btn.classList.remove("active"));
+                .forEach(btn =>
+                    btn.classList.remove("active")
+                );
 
             button.classList.add("active");
 
@@ -336,15 +342,19 @@ function makePaletteButtons() {
 
 
 /* =========================================================
-   نوع کارت
+   انتخاب نوع کارت
 ========================================================= */
 
 optionButtons.forEach(button => {
     button.addEventListener("click", () => {
-        optionButtons.forEach(btn => btn.classList.remove("active"));
+        optionButtons.forEach(btn =>
+            btn.classList.remove("active")
+        );
+
         button.classList.add("active");
 
-        branded = button.dataset.branded === "true";
+        branded =
+            button.dataset.branded === "true";
 
         render();
     });
@@ -352,7 +362,7 @@ optionButtons.forEach(button => {
 
 
 /* =========================================================
-   تبدیل متن
+   متن
 ========================================================= */
 
 function normalizeText(text) {
@@ -365,21 +375,16 @@ function normalizeText(text) {
 
 
 /* =========================================================
-   اندازه‌گیری متن
+   فونت شعر
 ========================================================= */
 
 function getPoemFont(size) {
     return `${size * S}px "PoetryParastoo", "Parastoo", serif`;
 }
 
-function measureTextWidth(text, font) {
-    ctx.font = font;
-    return ctx.measureText(text).width;
-}
-
 
 /* =========================================================
-   شکستن خطوط
+   اندازه متن
 ========================================================= */
 
 function prepareLines(text, fontSize, maxWidth) {
@@ -400,11 +405,15 @@ function prepareLines(text, fontSize, maxWidth) {
         let current = "";
 
         for (const word of words) {
-            const candidate = current
-                ? `${current} ${word}`
-                : word;
+            const candidate =
+                current
+                    ? `${current} ${word}`
+                    : word;
 
-            if (measureTextWidth(candidate, ctx.font) <= maxWidth) {
+            if (
+                ctx.measureText(candidate).width <=
+                maxWidth
+            ) {
                 current = candidate;
             } else {
                 if (current) {
@@ -424,18 +433,9 @@ function prepareLines(text, fontSize, maxWidth) {
 }
 
 
-/* =========================================================
-   اندازه فونت
-========================================================= */
-
 function getFontSize(text) {
-    const left = 145 * S;
-    const right = 935 * S;
-    const top = 205 * S;
-    const bottom = 845 * S;
-
-    const maxWidth = right - left;
-    const availableHeight = bottom - top;
+    const maxWidth = 790 * S;
+    const availableHeight = 640 * S;
 
     let fontSize = 66;
 
@@ -454,14 +454,16 @@ function getFontSize(text) {
                 continue;
             }
 
-            ctx.font = getPoemFont(fontSize);
+            ctx.font =
+                getPoemFont(fontSize);
 
-            const bbox = ctx.measureText(lines[i]);
+            const metrics =
+                ctx.measureText(lines[i]);
 
             const lineHeight =
                 Math.max(
-                    bbox.actualBoundingBoxAscent +
-                    bbox.actualBoundingBoxDescent,
+                    metrics.actualBoundingBoxAscent +
+                    metrics.actualBoundingBoxDescent,
                     fontSize * S
                 );
 
@@ -484,28 +486,47 @@ function getFontSize(text) {
 
 
 /* =========================================================
-   پس‌زمینه گرادیانی
+   گرادیان
 ========================================================= */
 
 function drawGradientBackground(palette) {
-    const gradient = ctx.createLinearGradient(
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            RH
+        );
+
+    gradient.addColorStop(
         0,
-        0,
-        0,
-        RH
+        rgba(palette.top)
     );
 
-    gradient.addColorStop(0, rgba(palette.top));
-    gradient.addColorStop(0.52, rgba(palette.middle));
-    gradient.addColorStop(1, rgba(palette.bottom));
+    gradient.addColorStop(
+        0.52,
+        rgba(palette.middle)
+    );
+
+    gradient.addColorStop(
+        1,
+        rgba(palette.bottom)
+    );
 
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, RW, RH);
+
+    ctx.fillRect(
+        0,
+        0,
+        RW,
+        RH
+    );
 }
 
 
 /* =========================================================
-   تذهیب پس‌زمینه
+   تذهیب
+   در نسخه وب، brightness بسیار کمتر شده تا کارت تیره نشود.
 ========================================================= */
 
 function drawBackgroundImage() {
@@ -515,31 +536,33 @@ function drawBackgroundImage() {
 
     ctx.save();
 
-    ctx.globalAlpha = 42 / 255;
-
     /*
-     * نزدیک‌ترین معادل مرورگر برای:
-     * brightness(.48) + blur(4*S)
+     * در بات brightness=.48 بود،
+     * اما روی Canvas باعث تیرگی شدید می‌شد.
+     * مقدار جدید عمداً ملایم‌تر است.
      */
-    ctx.filter = "brightness(0.48) blur(8px)";
+    ctx.globalAlpha = 0.15;
 
-    const size = Math.max(
-        RW,
-        RH,
-        backgroundImage.width,
-        backgroundImage.height
-    );
+    ctx.filter =
+        "brightness(0.82) blur(5px)";
 
-    const scale = Math.max(
-        RW / backgroundImage.width,
-        RH / backgroundImage.height
-    );
+    const scale =
+        Math.max(
+            RW / backgroundImage.width,
+            RH / backgroundImage.height
+        );
 
-    const dw = backgroundImage.width * scale;
-    const dh = backgroundImage.height * scale;
+    const dw =
+        backgroundImage.width * scale;
 
-    const dx = (RW - dw) / 2;
-    const dy = (RH - dh) / 2;
+    const dh =
+        backgroundImage.height * scale;
+
+    const dx =
+        (RW - dw) / 2;
+
+    const dy =
+        (RH - dh) / 2;
 
     ctx.drawImage(
         backgroundImage,
@@ -554,80 +577,71 @@ function drawBackgroundImage() {
 
 
 /* =========================================================
-   نورهای پس‌زمینه
+   نورها
 ========================================================= */
 
 function drawGlows(palette) {
-    const glowCanvas = document.createElement("canvas");
+    const glowCanvas =
+        document.createElement("canvas");
 
     glowCanvas.width = RW;
     glowCanvas.height = RH;
 
-    const glowCtx = glowCanvas.getContext("2d");
+    const glowCtx =
+        glowCanvas.getContext("2d");
 
     glowCtx.save();
 
-    glowCtx.filter = "blur(220px)";
+    glowCtx.filter = "blur(150px)";
 
-    /*
-     * glow1
-     * (-260*S, -180*S, 650*S, 560*S)
-     */
-    glowCtx.fillStyle = rgba(palette.glow1);
+    function ellipse(
+        x1,
+        y1,
+        x2,
+        y2,
+        color
+    ) {
+        glowCtx.fillStyle =
+            rgba(color);
 
-    glowCtx.beginPath();
+        glowCtx.beginPath();
 
-    glowCtx.ellipse(
-        ((-260 + 650) / 2) * S,
-        ((-180 + 560) / 2) * S,
-        ((650 - (-260)) / 2) * S,
-        ((560 - (-180)) / 2) * S,
-        0,
-        0,
-        Math.PI * 2
+        glowCtx.ellipse(
+            ((x1 + x2) / 2) * S,
+            ((y1 + y2) / 2) * S,
+            ((x2 - x1) / 2) * S,
+            ((y2 - y1) / 2) * S,
+            0,
+            0,
+            Math.PI * 2
+        );
+
+        glowCtx.fill();
+    }
+
+    ellipse(
+        -260,
+        -180,
+        650,
+        560,
+        palette.glow1
     );
 
-    glowCtx.fill();
-
-    /*
-     * glow2
-     * (690*S, 690*S, 1250*S, 1250*S)
-     */
-    glowCtx.fillStyle = rgba(palette.glow2);
-
-    glowCtx.beginPath();
-
-    glowCtx.ellipse(
-        ((690 + 1250) / 2) * S,
-        ((690 + 1250) / 2) * S,
-        ((1250 - 690) / 2) * S,
-        ((1250 - 690) / 2) * S,
-        0,
-        0,
-        Math.PI * 2
+    ellipse(
+        690,
+        690,
+        1250,
+        1250,
+        palette.glow2
     );
 
-    glowCtx.fill();
-
-    /*
-     * glow3
-     * (250*S, 350*S, 850*S, 950*S)
-     */
-    glowCtx.fillStyle = rgba(palette.glow3);
-
-    glowCtx.beginPath();
-
-    glowCtx.ellipse(
-        ((250 + 850) / 2) * S,
-        ((350 + 950) / 2) * S,
-        ((850 - 250) / 2) * S,
-        ((950 - 350) / 2) * S,
-        0,
-        0,
-        Math.PI * 2
+    ellipse(
+        250,
+        350,
+        850,
+        950,
+        palette.glow3
     );
-
-    glowCtx.fill();
 
     glowCtx.restore();
 
@@ -651,29 +665,41 @@ function seededRandom(seed) {
         x ^= x >>> 17;
         x ^= x << 5;
 
-        return (x >>> 0) / 4294967296;
+        return (
+            (x >>> 0) /
+            4294967296
+        );
     };
 }
 
+
 function drawTexture() {
-    const textureCanvas = document.createElement("canvas");
+    const texture =
+        document.createElement("canvas");
 
-    textureCanvas.width = RW;
-    textureCanvas.height = RH;
+    texture.width = RW;
+    texture.height = RH;
 
-    const textureCtx = textureCanvas.getContext("2d");
+    const textureCtx =
+        texture.getContext("2d");
 
-    const random = seededRandom(8);
+    const random =
+        seededRandom(8);
 
     for (let i = 0; i < 56000; i++) {
-        const x = Math.floor(random() * RW);
-        const y = Math.floor(random() * RH);
+        const x =
+            Math.floor(random() * RW);
 
-        const isWhite = random() < 0.5;
+        const y =
+            Math.floor(random() * RH);
 
-        textureCtx.fillStyle = isWhite
-            ? "rgba(255,255,255,0.0118)"
-            : "rgba(0,0,0,0.0157)";
+        if (random() < 0.5) {
+            textureCtx.fillStyle =
+                "rgba(255,255,255,0.012)";
+        } else {
+            textureCtx.fillStyle =
+                "rgba(0,0,0,0.016)";
+        }
 
         textureCtx.fillRect(
             x,
@@ -684,114 +710,10 @@ function drawTexture() {
     }
 
     ctx.drawImage(
-        textureCanvas,
+        texture,
         0,
         0
     );
-}
-
-
-/* =========================================================
-   پنل وسط کارت
-========================================================= */
-
-function drawPanel(palette) {
-    const panelCanvas = document.createElement("canvas");
-
-    panelCanvas.width = RW;
-    panelCanvas.height = RH;
-
-    const panelCtx = panelCanvas.getContext("2d");
-
-    panelCtx.save();
-
-    /*
-     * لایه مشکی
-     */
-    panelCtx.fillStyle = "rgba(0,0,0,0.1765)";
-
-    roundedRect(
-        panelCtx,
-        100 * S,
-        164 * S,
-        980 * S,
-        896 * S,
-        45 * S
-    );
-
-    panelCtx.fill();
-
-    /*
-     * لایه سفید
-     */
-    panelCtx.fillStyle = "rgba(255,255,255,0.0941)";
-
-    roundedRect(
-        panelCtx,
-        100 * S,
-        160 * S,
-        980 * S,
-        890 * S,
-        45 * S
-    );
-
-    panelCtx.fill();
-
-    /*
-     * خط داخلی
-     */
-    panelCtx.strokeStyle = "rgba(255,255,255,0.0471)";
-    panelCtx.lineWidth = 1 * S;
-
-    roundedRect(
-        panelCtx,
-        110 * S,
-        170 * S,
-        970 * S,
-        880 * S,
-        37 * S
-    );
-
-    panelCtx.stroke();
-
-    panelCtx.restore();
-
-    /*
-     * GaussianBlur(0.35*S)
-     * نزدیک‌ترین معادل
-     */
-    ctx.save();
-
-    ctx.filter = "blur(0.7px)";
-
-    ctx.drawImage(
-        panelCanvas,
-        0,
-        0
-    );
-
-    ctx.restore();
-
-    /*
-     * outline مخصوص پالت
-     */
-    ctx.save();
-
-    ctx.strokeStyle = rgba(palette.panel_outline);
-    ctx.lineWidth = 2 * S;
-
-    roundedRect(
-        ctx,
-        100 * S,
-        160 * S,
-        980 * S,
-        890 * S,
-        45 * S
-    );
-
-    ctx.stroke();
-
-    ctx.restore();
 }
 
 
@@ -799,57 +721,67 @@ function drawPanel(palette) {
    مستطیل گوشه‌گرد
 ========================================================= */
 
-function roundedRect(context, x1, y1, x2, y2, radius) {
-    const width = x2 - x1;
-    const height = y2 - y1;
-
+function roundedRect(
+    context,
+    x,
+    y,
+    width,
+    height,
+    radius
+) {
     context.beginPath();
 
-    context.moveTo(x1 + radius, y1);
-
-    context.lineTo(x1 + width - radius, y1);
-
-    context.quadraticCurveTo(
-        x1 + width,
-        y1,
-        x1 + width,
-        y1 + radius
+    context.moveTo(
+        x + radius,
+        y
     );
 
     context.lineTo(
-        x1 + width,
-        y1 + height - radius
+        x + width - radius,
+        y
     );
 
     context.quadraticCurveTo(
-        x1 + width,
-        y1 + height,
-        x1 + width - radius,
-        y1 + height
+        x + width,
+        y,
+        x + width,
+        y + radius
     );
 
     context.lineTo(
-        x1 + radius,
-        y1 + height
+        x + width,
+        y + height - radius
     );
 
     context.quadraticCurveTo(
-        x1,
-        y1 + height,
-        x1,
-        y1 + height - radius
+        x + width,
+        y + height,
+        x + width - radius,
+        y + height
     );
 
     context.lineTo(
-        x1,
-        y1 + radius
+        x + radius,
+        y + height
     );
 
     context.quadraticCurveTo(
-        x1,
-        y1,
-        x1 + radius,
-        y1
+        x,
+        y + height,
+        x,
+        y + height - radius
+    );
+
+    context.lineTo(
+        x,
+        y + radius
+    );
+
+    context.quadraticCurveTo(
+        x,
+        y,
+        x + radius,
+        y
     );
 
     context.closePath();
@@ -857,35 +789,112 @@ function roundedRect(context, x1, y1, x2, y2, radius) {
 
 
 /* =========================================================
-   قاب اصلی
+   پنل
+========================================================= */
+
+function drawPanel(palette) {
+    ctx.save();
+
+    ctx.fillStyle =
+        "rgba(0,0,0,0.10)";
+
+    roundedRect(
+        ctx,
+        100 * S,
+        164 * S,
+        880 * S,
+        732 * S,
+        45 * S
+    );
+
+    ctx.fill();
+
+    ctx.fillStyle =
+        "rgba(255,255,255,0.065)";
+
+    roundedRect(
+        ctx,
+        100 * S,
+        160 * S,
+        880 * S,
+        730 * S,
+        45 * S
+    );
+
+    ctx.fill();
+
+    ctx.strokeStyle =
+        "rgba(255,255,255,0.045)";
+
+    ctx.lineWidth = S;
+
+    roundedRect(
+        ctx,
+        110 * S,
+        170 * S,
+        860 * S,
+        710 * S,
+        37 * S
+    );
+
+    ctx.stroke();
+
+    ctx.strokeStyle =
+        rgba(palette.panel_outline);
+
+    ctx.lineWidth = 2 * S;
+
+    roundedRect(
+        ctx,
+        100 * S,
+        160 * S,
+        880 * S,
+        730 * S,
+        45 * S
+    );
+
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   قاب
 ========================================================= */
 
 function drawFrame(palette) {
     ctx.save();
 
-    ctx.strokeStyle = rgba(palette.frame);
-    ctx.lineWidth = 3 * S;
+    ctx.strokeStyle =
+        rgba(palette.frame);
+
+    ctx.lineWidth =
+        3 * S;
 
     roundedRect(
         ctx,
         40 * S,
         40 * S,
-        1040 * S,
-        1040 * S,
+        1000 * S,
+        1000 * S,
         42 * S
     );
 
     ctx.stroke();
 
-    ctx.strokeStyle = rgba(palette.frame_inner);
-    ctx.lineWidth = 2 * S;
+    ctx.strokeStyle =
+        rgba(palette.frame_inner);
+
+    ctx.lineWidth =
+        2 * S;
 
     roundedRect(
         ctx,
         49 * S,
         49 * S,
-        1031 * S,
-        1031 * S,
+        982 * S,
+        982 * S,
         35 * S
     );
 
@@ -896,17 +905,23 @@ function drawFrame(palette) {
 
 
 /* =========================================================
-   تزئین وسط
+   تزئین
 ========================================================= */
 
 function drawOrnament(palette, y) {
-    const center = (W / 2) * S;
-    const width = 150 * S;
+    const center =
+        (W / 2) * S;
+
+    const width =
+        150 * S;
 
     ctx.save();
 
-    ctx.strokeStyle = rgba(palette.ornament);
-    ctx.lineWidth = 2 * S;
+    ctx.strokeStyle =
+        rgba(palette.ornament);
+
+    ctx.lineWidth =
+        2 * S;
 
     ctx.beginPath();
 
@@ -932,7 +947,8 @@ function drawOrnament(palette, y) {
 
     ctx.stroke();
 
-    ctx.fillStyle = rgba(palette.accent);
+    ctx.fillStyle =
+        rgba(palette.accent);
 
     ctx.beginPath();
 
@@ -965,11 +981,11 @@ function drawOrnament(palette, y) {
 
 
 /* =========================================================
-   متن بالای کارت
+   عنوان بالای کارت
 ========================================================= */
 
 function drawHeader(palette) {
-    const footerText = "کارت شعر";
+    const text = "کارت شعر";
 
     ctx.save();
 
@@ -979,35 +995,29 @@ function drawHeader(palette) {
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
 
-    const metrics = ctx.measureText(footerText);
+    const y = 78;
 
-    const footerY = 78;
-
-    ctx.fillStyle = "rgba(0,0,0,0.2353)";
+    ctx.fillStyle =
+        "rgba(0,0,0,0.20)";
 
     ctx.fillText(
-        footerText,
-        (W / 2) * S + 1 * S,
-        footerY * S + 2 * S
+        text,
+        (W / 2 + 1) * S,
+        y * S + 2 * S
     );
 
-    ctx.fillStyle = rgba(palette.accent);
+    ctx.fillStyle =
+        rgba(palette.accent);
 
     ctx.fillText(
-        footerText,
+        text,
         (W / 2) * S,
-        footerY * S
+        y * S
     );
-
-    const textHeight =
-        (metrics.actualBoundingBoxAscent ||
-            23 * S);
 
     drawOrnament(
         palette,
-        footerY +
-        textHeight / S +
-        25
+        126
     );
 
     ctx.restore();
@@ -1033,15 +1043,14 @@ function drawBrand(palette) {
     const title = "شعرکده";
     const subtitle = "( سروش پلاس )";
 
-    const titleSize = 50;
-    const subtitleSize = 23;
-
     ctx.font =
-        `${titleSize * S}px "PoetryBTitr", "BTitrBd", sans-serif`;
+        `${50 * S}px "PoetryBTitr", "BTitrBd", sans-serif`;
 
-    const titleMetrics = ctx.measureText(title);
+    const titleMetrics =
+        ctx.measureText(title);
 
-    const titleWidth = titleMetrics.width;
+    const titleWidth =
+        titleMetrics.width;
 
     const titleHeight =
         titleMetrics.actualBoundingBoxAscent +
@@ -1055,13 +1064,11 @@ function drawBrand(palette) {
     const titleX =
         W / 2 + 10;
 
-    /*
-     * عنوان
-     */
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
 
-    ctx.fillStyle = "rgba(0,0,0,0.3137)";
+    ctx.fillStyle =
+        "rgba(0,0,0,0.24)";
 
     ctx.fillText(
         title,
@@ -1069,7 +1076,8 @@ function drawBrand(palette) {
         titleY * S + 2 * S
     );
 
-    ctx.fillStyle = rgba(palette.accent);
+    ctx.fillStyle =
+        rgba(palette.accent);
 
     ctx.fillText(
         title,
@@ -1077,29 +1085,24 @@ function drawBrand(palette) {
         titleY * S
     );
 
-    /*
-     * زیرعنوان
-     */
     ctx.font =
-        `${subtitleSize * S}px "PoetryVazirmatn", "Vazirmatn", sans-serif`;
+        `${23 * S}px "PoetryVazirmatn", "Vazirmatn", sans-serif`;
 
-    const subMetrics = ctx.measureText(subtitle);
-    const subtitleWidth = subMetrics.width;
-
-    const subtitleY =
-        titleY +
-        (
-            titleHeight / S -
-            subtitleSize
-        ) / 2 -
-        3;
+    const subWidth =
+        ctx.measureText(subtitle).width;
 
     const subtitleX =
         titleX -
-        subtitleWidth / S -
+        subWidth / S -
         20;
 
-    ctx.fillStyle = rgba(palette.subtitle);
+    const subtitleY =
+        titleY +
+        (titleHeight / S - 23) / 2 -
+        3;
+
+    ctx.fillStyle =
+        rgba(palette.subtitle);
 
     ctx.fillText(
         subtitle,
@@ -1107,9 +1110,6 @@ function drawBrand(palette) {
         subtitleY * S
     );
 
-    /*
-     * تزئین بالای عنوان
-     */
     drawOrnament(
         palette,
         titleY - 25
@@ -1123,68 +1123,75 @@ function drawBrand(palette) {
    شعر
 ========================================================= */
 
-function drawPoem(palette, text) {
+function drawPoem(
+    palette,
+    text
+) {
     const left = 145 * S;
     const right = 935 * S;
 
     const top = 205 * S;
     const bottom = 845 * S;
 
-    const maxWidth = right - left;
-    const availableHeight = bottom - top;
+    const maxWidth =
+        right - left;
 
-    const fontSize = getFontSize(text);
+    const availableHeight =
+        bottom - top;
 
-    const lines = prepareLines(
-        text,
-        fontSize,
-        maxWidth
-    );
+    const fontSize =
+        getFontSize(text);
+
+    const lines =
+        prepareLines(
+            text,
+            fontSize,
+            maxWidth
+        );
 
     ctx.save();
 
-    ctx.font = getPoemFont(fontSize);
+    ctx.font =
+        getPoemFont(fontSize);
+
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
 
+    const items = [];
     let totalHeight = 0;
-
-    const measurements = [];
 
     for (const line of lines) {
         if (line === null) {
-            totalHeight += 48 * S;
-
-            measurements.push({
+            items.push({
                 line: null,
-                height: 48 * S,
-                bbox: null
+                height: 48 * S
             });
+
+            totalHeight +=
+                48 * S;
 
             continue;
         }
 
-        const bbox = ctx.measureText(line);
+        const metrics =
+            ctx.measureText(line);
 
         const height =
             Math.max(
-                bbox.actualBoundingBoxAscent +
-                bbox.actualBoundingBoxDescent,
+                metrics.actualBoundingBoxAscent +
+                metrics.actualBoundingBoxDescent,
                 fontSize * S
             );
 
-        measurements.push({
+        items.push({
             line,
             height,
-            bbox
+            metrics
         });
 
         totalHeight += height;
     }
 
-    /*
-     * فاصله بین خطوط
-     */
     if (lines.length > 1) {
         totalHeight +=
             (lines.length - 1) *
@@ -1192,46 +1199,45 @@ function drawPoem(palette, text) {
             S;
     }
 
-    /*
-     * مرکز عمودی
-     */
     let y =
         top +
         (availableHeight - totalHeight) / 2;
 
-    for (const item of measurements) {
+    for (const item of items) {
         if (item.line === null) {
             y += 48 * S;
             continue;
         }
 
-        const bbox = item.bbox;
+        const ascent =
+            item.metrics.actualBoundingBoxAscent;
 
-        const centerX =
-            ((left + right) / 2);
+        const descent =
+            item.metrics.actualBoundingBoxDescent;
 
         const drawY =
             y +
             item.height / 2 +
-            (
-                bbox.actualBoundingBoxAscent -
-                bbox.actualBoundingBoxDescent
-            ) / 2;
+            (ascent - descent) / 2;
 
-        ctx.fillStyle = rgba(palette.text);
-        ctx.strokeStyle = rgba(palette.text);
+        ctx.fillStyle =
+            rgba(palette.text);
 
-        ctx.lineWidth = 1 * S;
+        ctx.strokeStyle =
+            rgba(palette.text);
+
+        ctx.lineWidth =
+            S;
 
         ctx.fillText(
             item.line,
-            centerX,
+            (left + right) / 2,
             drawY
         );
 
         ctx.strokeText(
             item.line,
-            centerX,
+            (left + right) / 2,
             drawY
         );
 
@@ -1244,99 +1250,67 @@ function drawPoem(palette, text) {
 
 
 /* =========================================================
-   خطوط کناری
+   جزئیات کناری
 ========================================================= */
 
 function drawSideDetails(palette) {
-    const top = 205;
-    const availableHeight = 640;
-
     const centerY =
-        top +
-        availableHeight / 2;
+        205 + 640 / 2;
 
     ctx.save();
 
-    ctx.strokeStyle = rgba(palette.side_line);
-    ctx.lineWidth = 2 * S;
+    ctx.strokeStyle =
+        rgba(palette.side_line);
 
-    /*
-     * سمت راست
-     */
-    ctx.beginPath();
+    ctx.lineWidth =
+        2 * S;
 
-    ctx.moveTo(
-        65 * S,
-        (centerY - 30) * S
-    );
+    [65, 1015].forEach(x => {
+        ctx.beginPath();
 
-    ctx.lineTo(
-        65 * S,
-        (centerY + 30) * S
-    );
+        ctx.moveTo(
+            x * S,
+            (centerY - 30) * S
+        );
 
-    ctx.stroke();
+        ctx.lineTo(
+            x * S,
+            (centerY + 30) * S
+        );
 
-    /*
-     * سمت چپ
-     */
-    ctx.beginPath();
+        ctx.stroke();
+    });
 
-    ctx.moveTo(
-        1015 * S,
-        (centerY - 30) * S
-    );
+    ctx.fillStyle =
+        rgba(palette.side_dot);
 
-    ctx.lineTo(
-        1015 * S,
-        (centerY + 30) * S
-    );
+    [65, 1015].forEach(x => {
+        ctx.beginPath();
 
-    ctx.stroke();
+        ctx.arc(
+            x * S,
+            centerY * S,
+            3 * S,
+            0,
+            Math.PI * 2
+        );
 
-    /*
-     * نقطه‌ها
-     */
-    ctx.fillStyle = rgba(palette.side_dot);
-
-    ctx.beginPath();
-
-    ctx.ellipse(
-        65 * S,
-        centerY * S,
-        3 * S,
-        3 * S,
-        0,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    ctx.beginPath();
-
-    ctx.ellipse(
-        1015 * S,
-        centerY * S,
-        3 * S,
-        3 * S,
-        0,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
+        ctx.fill();
+    });
 
     ctx.restore();
 }
 
 
 /* =========================================================
-   رندر اصلی
+   رندر
 ========================================================= */
 
 function render() {
-    const text = normalizeText(poemInput.value);
+    const text =
+        normalizeText(
+            poemInput.value
+        );
 
     if (!text) {
         canvas.style.display = "none";
@@ -1354,11 +1328,9 @@ function render() {
     downloadBtn.disabled = false;
     shareBtn.disabled = false;
 
-    const palette = PALETTES[selectedPalette];
+    const palette =
+        PALETTES[selectedPalette];
 
-    /*
-     * پاک‌سازی کامل
-     */
     ctx.clearRect(
         0,
         0,
@@ -1366,72 +1338,58 @@ function render() {
         RH
     );
 
-    /*
-     * 1. گرادیان
-     */
-    drawGradientBackground(palette);
+    drawGradientBackground(
+        palette
+    );
 
-    /*
-     * 2. تذهیب
-     */
     drawBackgroundImage();
 
-    /*
-     * 3. نورها
-     */
-    drawGlows(palette);
+    drawGlows(
+        palette
+    );
 
-    /*
-     * 4. بافت
-     */
     drawTexture();
 
-    /*
-     * 5. پنل
-     */
-    drawPanel(palette);
+    drawPanel(
+        palette
+    );
 
-    /*
-     * 6. قاب
-     */
-    drawFrame(palette);
+    drawFrame(
+        palette
+    );
 
-    /*
-     * 7. عنوان بالایی
-     */
-    drawHeader(palette);
+    drawHeader(
+        palette
+    );
 
-    /*
-     * 8. شعر
-     */
     drawPoem(
         palette,
         text
     );
 
-    /*
-     * 9. جزئیات کناری
-     */
-    drawSideDetails(palette);
+    drawSideDetails(
+        palette
+    );
 
-    /*
-     * 10. برند
-     */
-    drawBrand(palette);
+    drawBrand(
+        palette
+    );
 }
 
 
 /* =========================================================
-   دانلود
+   خروجی 1080×1080
 ========================================================= */
 
 function createDownloadCanvas() {
-    const output = document.createElement("canvas");
+    const output =
+        document.createElement("canvas");
 
     output.width = 1080;
     output.height = 1080;
 
-    const outputCtx = output.getContext("2d");
+    const outputCtx =
+        output.getContext("2d");
 
     outputCtx.imageSmoothingEnabled = true;
     outputCtx.imageSmoothingQuality = "high";
@@ -1451,101 +1409,124 @@ function createDownloadCanvas() {
     return output;
 }
 
-downloadBtn.addEventListener("click", () => {
-    if (!poemInput.value.trim()) {
-        return;
-    }
 
-    const output = createDownloadCanvas();
+/* =========================================================
+   دانلود
+========================================================= */
 
-    output.toBlob(blob => {
-        if (!blob) {
+downloadBtn.addEventListener(
+    "click",
+    () => {
+        if (!poemInput.value.trim()) {
             return;
         }
 
-        const url =
-            URL.createObjectURL(blob);
+        const output =
+            createDownloadCanvas();
 
-        const a =
-            document.createElement("a");
+        output.toBlob(blob => {
+            if (!blob) {
+                return;
+            }
 
-        a.href = url;
-        a.download = "kart-sh-er.png";
+            const url =
+                URL.createObjectURL(blob);
 
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+            const a =
+                document.createElement("a");
 
-        setTimeout(() => {
-            URL.revokeObjectURL(url);
-        }, 1000);
-    }, "image/png");
-});
+            a.href = url;
+            a.download =
+                "kart-sh-er.png";
+
+            document.body.appendChild(a);
+
+            a.click();
+
+            a.remove();
+
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 1000);
+
+        }, "image/png");
+    }
+);
 
 
 /* =========================================================
    اشتراک‌گذاری
 ========================================================= */
 
-shareBtn.addEventListener("click", async () => {
-    if (!poemInput.value.trim()) {
-        return;
-    }
-
-    const output = createDownloadCanvas();
-
-    output.toBlob(async blob => {
-        if (!blob) {
+shareBtn.addEventListener(
+    "click",
+    async () => {
+        if (!poemInput.value.trim()) {
             return;
         }
 
-        const file =
-            new File(
-                [blob],
-                "kart-sh-er.png",
-                {
-                    type: "image/png"
+        const output =
+            createDownloadCanvas();
+
+        output.toBlob(
+            async blob => {
+                if (!blob) {
+                    return;
                 }
-            );
 
-        try {
-            if (
-                navigator.share &&
-                navigator.canShare &&
-                navigator.canShare({
-                    files: [file]
-                })
-            ) {
-                await navigator.share({
-                    title: "کارت شعر",
-                    files: [file]
-                });
+                const file =
+                    new File(
+                        [blob],
+                        "kart-sh-er.png",
+                        {
+                            type: "image/png"
+                        }
+                    );
 
-                return;
-            }
+                try {
+                    if (
+                        navigator.share &&
+                        navigator.canShare &&
+                        navigator.canShare({
+                            files: [file]
+                        })
+                    ) {
+                        await navigator.share({
+                            title: "کارت شعر",
+                            files: [file]
+                        });
 
-            if (navigator.share) {
-                await navigator.share({
-                    title: "کارت شعر"
-                });
+                        return;
+                    }
 
-                return;
-            }
+                    if (navigator.share) {
+                        await navigator.share({
+                            title: "کارت شعر"
+                        });
 
-            alert(
-                "اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود."
-            );
+                        return;
+                    }
 
-        } catch (error) {
-            if (error.name !== "AbortError") {
-                console.error(
-                    "Share failed:",
-                    error
-                );
-            }
-        }
-    }, "image/png");
-});
+                    alert(
+                        "اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود."
+                    );
+
+                } catch (error) {
+                    if (
+                        error.name !==
+                        "AbortError"
+                    ) {
+                        console.error(
+                            "Share failed:",
+                            error
+                        );
+                    }
+                }
+            },
+            "image/png"
+        );
+    }
+);
 
 
 /* =========================================================
