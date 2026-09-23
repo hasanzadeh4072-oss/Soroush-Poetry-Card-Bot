@@ -16,166 +16,120 @@ const BG_URL =
 
 const PALETTES = [
     {
-        name: "بنفش سلطنتی",
-        top: [76, 43, 105],
-        middle: [50, 34, 73],
-        bottom: [25, 18, 40],
-        glow1: [175, 120, 215, 42],
-        glow2: [120, 85, 175, 25],
-        glow3: [115, 80, 160, 12],
-        frame: [173, 137, 82],
-        frame_inner: [205, 172, 105],
-        text: [255, 255, 255],
-        accent: [244, 210, 137],
-        subtitle: [215, 201, 184],
-        ornament: [155, 120, 75],
-        panel_outline: [205, 172, 105, 42],
-        side_line: [205, 172, 105, 82],
-        side_dot: [205, 172, 105, 105]
+        name:"بنفش سلطنتی",
+        top:[76,43,105], middle:[50,34,73], bottom:[25,18,40],
+        glow1:[175,120,215,42], glow2:[120,85,175,25], glow3:[115,80,160,12],
+        frame:[173,137,82], frame_inner:[205,172,105],
+        text:[255,255,255], accent:[244,210,137],
+        subtitle:[215,201,184], ornament:[155,120,75],
+        panel_outline:[205,172,105,42],
+        side_line:[205,172,105,82], side_dot:[205,172,105,105]
     },
     {
-        name: "آبی شبانه",
-        top: [30, 58, 100],
-        middle: [25, 43, 76],
-        bottom: [12, 20, 38],
-        glow1: [85, 130, 205, 40],
-        glow2: [60, 100, 175, 25],
-        glow3: [65, 105, 165, 12],
-        frame: [165, 140, 83],
-        frame_inner: [200, 170, 103],
-        text: [255, 255, 255],
-        accent: [239, 210, 139],
-        subtitle: [205, 213, 220],
-        ornament: [145, 130, 88],
-        panel_outline: [190, 170, 110, 42],
-        side_line: [200, 175, 110, 82],
-        side_dot: [215, 185, 115, 105]
+        name:"آبی شبانه",
+        top:[30,58,100], middle:[25,43,76], bottom:[12,20,38],
+        glow1:[85,130,205,40], glow2:[60,100,175,25], glow3:[65,105,165,12],
+        frame:[165,140,83], frame_inner:[200,170,103],
+        text:[255,255,255], accent:[239,210,139],
+        subtitle:[205,213,220], ornament:[145,130,88],
+        panel_outline:[190,170,110,42],
+        side_line:[200,175,110,82], side_dot:[215,185,115,105]
     },
     {
-        name: "شرابی",
-        top: [103, 31, 52],
-        middle: [65, 21, 36],
-        bottom: [31, 10, 19],
-        glow1: [195, 82, 105, 42],
-        glow2: [155, 55, 78, 25],
-        glow3: [145, 55, 70, 12],
-        frame: [174, 133, 72],
-        frame_inner: [205, 169, 98],
-        text: [255, 255, 255],
-        accent: [241, 210, 139],
-        subtitle: [220, 201, 190],
-        ornament: [155, 112, 70],
-        panel_outline: [195, 155, 95, 42],
-        side_line: [200, 160, 100, 82],
-        side_dot: [215, 175, 105, 105]
+        name:"شرابی",
+        top:[103,31,52], middle:[65,21,36], bottom:[31,10,19],
+        glow1:[195,82,105,42], glow2:[155,55,78,25], glow3:[145,55,70,12],
+        frame:[174,133,72], frame_inner:[205,169,98],
+        text:[255,255,255], accent:[241,210,139],
+        subtitle:[220,201,190], ornament:[155,112,70],
+        panel_outline:[195,155,95,42],
+        side_line:[200,160,100,82], side_dot:[215,175,105,105]
     },
     {
-        name: "فیروزه‌ای تیره",
-        top: [16, 80, 88],
-        middle: [13, 53, 61],
-        bottom: [6, 24, 29],
-        glow1: [65, 170, 180, 42],
-        glow2: [45, 125, 140, 25],
-        glow3: [45, 135, 145, 12],
-        frame: [172, 145, 91],
-        frame_inner: [205, 177, 112],
-        text: [255, 255, 255],
-        accent: [224, 199, 132],
-        subtitle: [201, 218, 217],
-        ornament: [140, 147, 98],
-        panel_outline: [185, 170, 110, 42],
-        side_line: [185, 175, 110, 82],
-        side_dot: [210, 190, 120, 105]
+        name:"فیروزه‌ای تیره",
+        top:[16,80,88], middle:[13,53,61], bottom:[6,24,29],
+        glow1:[65,170,180,42], glow2:[45,125,140,25], glow3:[45,135,145,12],
+        frame:[172,145,91], frame_inner:[205,177,112],
+        text:[255,255,255], accent:[224,199,132],
+        subtitle:[201,218,217], ornament:[140,147,98],
+        panel_outline:[185,170,110,42],
+        side_line:[185,175,110,82], side_dot:[210,190,120,105]
     },
     {
-        name: "سبز زمردی",
-        top: [18, 76, 64],
-        middle: [17, 51, 46],
-        bottom: [7, 24, 22],
-        glow1: [75, 160, 130, 42],
-        glow2: [55, 125, 105, 25],
-        glow3: [50, 115, 95, 12],
-        frame: [168, 139, 78],
-        frame_inner: [200, 169, 99],
-        text: [255, 255, 255],
-        accent: [239, 211, 137],
-        subtitle: [205, 218, 207],
-        ornament: [150, 128, 77],
-        panel_outline: [190, 165, 100, 42],
-        side_line: [190, 170, 105, 82],
-        side_dot: [210, 180, 110, 105]
+        name:"سبز زمردی",
+        top:[18,76,64], middle:[17,51,46], bottom:[7,24,22],
+        glow1:[75,160,130,42], glow2:[55,125,105,25], glow3:[50,115,95,12],
+        frame:[168,139,78], frame_inner:[200,169,99],
+        text:[255,255,255], accent:[239,211,137],
+        subtitle:[205,218,207], ornament:[150,128,77],
+        panel_outline:[190,165,100,42],
+        side_line:[190,170,105,82], side_dot:[210,180,110,105]
     },
     {
-        name: "رزگلد",
-        top: [94, 48, 62],
-        middle: [60, 31, 43],
-        bottom: [27, 13, 20],
-        glow1: [205, 120, 135, 40],
-        glow2: [165, 85, 105, 25],
-        glow3: [150, 80, 95, 12],
-        frame: [181, 125, 119],
-        frame_inner: [218, 165, 154],
-        text: [255, 255, 255],
-        accent: [235, 181, 163],
-        subtitle: [224, 204, 197],
-        ornament: [174, 120, 114],
-        panel_outline: [215, 160, 150, 42],
-        side_line: [210, 155, 145, 82],
-        side_dot: [225, 170, 158, 105]
+        name:"رزگلد",
+        top:[94,48,62], middle:[60,31,43], bottom:[27,13,20],
+        glow1:[205,120,135,40], glow2:[165,85,105,25], glow3:[150,80,95,12],
+        frame:[181,125,119], frame_inner:[218,165,154],
+        text:[255,255,255], accent:[235,181,163],
+        subtitle:[224,204,197], ornament:[174,120,114],
+        panel_outline:[215,160,150,42],
+        side_line:[210,155,145,82], side_dot:[225,170,158,105]
+    },
+
+    /* سه رنگ روشن اصلاح‌شده */
+    {
+        name:"کرم",
+        top:[232,218,187],
+        middle:[218,202,168],
+        bottom:[198,180,142],
+        glow1:[255,248,220,38],
+        glow2:[245,225,175,20],
+        glow3:[255,250,220,15],
+        frame:[91,67,39],
+        frame_inner:[126,96,58],
+        text:[49,40,31],
+        accent:[104,73,38],
+        subtitle:[77,61,43],
+        ornament:[113,80,42],
+        panel_outline:[105,78,43,38],
+        side_line:[105,78,43,70],
+        side_dot:[94,67,35,100]
     },
     {
-        name: "کرم",
-        top: [250, 239, 210],
-        middle: [242, 226, 190],
-        bottom: [226, 205, 163],
-        glow1: [255, 252, 230, 55],
-        glow2: [255, 240, 185, 28],
-        glow3: [255, 255, 255, 22],
-        frame: [91, 67, 39],
-        frame_inner: [126, 96, 58],
-        text: [49, 40, 31],
-        accent: [104, 73, 38],
-        subtitle: [77, 61, 43],
-        ornament: [113, 80, 42],
-        panel_outline: [105, 78, 43, 55],
-        side_line: [105, 78, 43, 85],
-        side_dot: [94, 67, 35, 125]
+        name:"آبی روشن",
+        top:[188,218,234],
+        middle:[164,202,222],
+        bottom:[139,181,207],
+        glow1:[225,245,252,40],
+        glow2:[140,195,225,20],
+        glow3:[240,250,255,16],
+        frame:[43,73,91],
+        frame_inner:[72,105,124],
+        text:[31,51,63],
+        accent:[48,82,101],
+        subtitle:[54,77,91],
+        ornament:[59,91,108],
+        panel_outline:[58,91,110,38],
+        side_line:[58,91,110,70],
+        side_dot:[46,79,99,100]
     },
     {
-        name: "آبی روشن",
-        top: [205, 235, 248],
-        middle: [180, 220, 238],
-        bottom: [153, 201, 225],
-        glow1: [235, 249, 255, 58],
-        glow2: [145, 205, 235, 28],
-        glow3: [255, 255, 255, 24],
-        frame: [43, 73, 91],
-        frame_inner: [72, 105, 124],
-        text: [31, 51, 63],
-        accent: [48, 82, 101],
-        subtitle: [54, 77, 91],
-        ornament: [59, 91, 108],
-        panel_outline: [58, 91, 110, 55],
-        side_line: [58, 91, 110, 85],
-        side_dot: [46, 79, 99, 125]
-    },
-    {
-        name: "مریم‌گلی",
-        top: [218, 231, 205],
-        middle: [201, 219, 184],
-        bottom: [179, 201, 159],
-        glow1: [242, 249, 230, 58],
-        glow2: [175, 205, 145, 28],
-        glow3: [255, 255, 255, 24],
-        frame: [60, 76, 52],
-        frame_inner: [91, 108, 78],
-        text: [39, 54, 35],
-        accent: [67, 88, 55],
-        subtitle: [67, 82, 59],
-        ornament: [75, 96, 62],
-        panel_outline: [73, 96, 62, 55],
-        side_line: [73, 96, 62, 85],
-        side_dot: [62, 84, 52, 125]
+        name:"مریم‌گلی",
+        top:[200,216,188],
+        middle:[183,201,165],
+        bottom:[161,181,140],
+        glow1:[235,245,220,40],
+        glow2:[165,195,140,20],
+        glow3:[245,250,230,16],
+        frame:[60,76,52],
+        frame_inner:[91,108,78],
+        text:[39,54,35],
+        accent:[67,88,55],
+        subtitle:[67,82,59],
+        ornament:[75,96,62],
+        panel_outline:[73,96,62,38],
+        side_line:[73,96,62,70],
+        side_dot:[62,84,52,100]
     }
 ];
 
@@ -203,15 +157,6 @@ function rgba(c) {
     }
 
     return `rgba(${c[0]},${c[1]},${c[2]},${c[3] / 255})`;
-}
-
-function scaleRect(x, y, w, h) {
-    return {
-        x: x * S,
-        y: y * S,
-        w: w * S,
-        h: h * S
-    };
 }
 
 function roundedRect(x, y, w, h, r) {
@@ -263,7 +208,6 @@ function drawTextTop(text, x, y, font, color, align = "left") {
     ctx.textAlign = align;
     ctx.textBaseline = "top";
     ctx.direction = "rtl";
-
     ctx.fillStyle = color;
     ctx.fillText(text, x * S, y * S);
 }
@@ -285,9 +229,7 @@ function textMetrics(text, font) {
 
     return {
         width: m.width / S,
-        height: (ascent + descent) / S,
-        ascent: ascent / S,
-        descent: descent / S
+        height: (ascent + descent) / S
     };
 }
 
@@ -314,6 +256,7 @@ function drawOrnament(p, y) {
     );
 
     ctx.fillStyle = rgba(p.accent);
+
     ctx.beginPath();
     ctx.moveTo(center * S, (y - 5) * S);
     ctx.lineTo((center + 5) * S, y * S);
@@ -351,38 +294,41 @@ function buildGradient(p) {
 }
 
 function drawGlow(x1, y1, x2, y2, color) {
-    const g = ctx.createRadialGradient(
-        ((x1 + x2) / 2) * S,
-        ((y1 + y2) / 2) * S,
+    const cx = ((x1 + x2) / 2) * S;
+    const cy = ((y1 + y2) / 2) * S;
+
+    const rx = ((x2 - x1) / 2) * S;
+    const ry = ((y2 - y1) / 2) * S;
+
+    const radius = Math.max(rx, ry);
+
+    const gradient = ctx.createRadialGradient(
+        cx,
+        cy,
         0,
-        ((x1 + x2) / 2) * S,
-        ((y1 + y2) / 2) * S,
-        Math.max(
-            (x2 - x1) * S,
-            (y2 - y1) * S
-        ) / 2
+        cx,
+        cy,
+        radius
     );
 
-    const alpha = color[3] / 255;
-
-    g.addColorStop(
+    gradient.addColorStop(
         0,
-        `rgba(${color[0]},${color[1]},${color[2]},${alpha})`
+        rgba(color)
     );
 
-    g.addColorStop(
+    gradient.addColorStop(
         1,
         `rgba(${color[0]},${color[1]},${color[2]},0)`
     );
 
-    ctx.fillStyle = g;
+    ctx.fillStyle = gradient;
 
     ctx.beginPath();
     ctx.ellipse(
-        ((x1 + x2) / 2) * S,
-        ((y1 + y2) / 2) * S,
-        ((x2 - x1) / 2) * S,
-        ((y2 - y1) / 2) * S,
+        cx,
+        cy,
+        rx,
+        ry,
         0,
         0,
         Math.PI * 2
@@ -396,9 +342,10 @@ async function loadTazhib() {
     }
 
     try {
-        const response = await fetch(BG_URL, {
-            mode: "cors"
-        });
+        const response = await fetch(
+            BG_URL,
+            { mode: "cors" }
+        );
 
         if (!response.ok) {
             throw new Error("Background fetch failed");
@@ -406,28 +353,34 @@ async function loadTazhib() {
 
         const svgText = await response.text();
 
-        const svgBlob = new Blob(
+        const blob = new Blob(
             [svgText],
             { type: "image/svg+xml" }
         );
 
-        const url = URL.createObjectURL(svgBlob);
+        const url =
+            URL.createObjectURL(blob);
 
         const img = new Image();
 
-        await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = url;
-        });
+        await new Promise(
+            (resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = url;
+            }
+        );
 
         URL.revokeObjectURL(url);
 
-        const c = document.createElement("canvas");
+        const c =
+            document.createElement("canvas");
+
         c.width = RW;
         c.height = RH;
 
-        const cctx = c.getContext("2d");
+        const cctx =
+            c.getContext("2d");
 
         const scale = Math.max(
             RW / img.width,
@@ -448,43 +401,52 @@ async function loadTazhib() {
             ih
         );
 
-        const imageData = cctx.getImageData(
-            0,
-            0,
-            RW,
-            RH
-        );
-
-        const data = imageData.data;
-
-        /*
-         * معادل تقریبی:
-         * Brightness(.48)
-         * سپس alpha = 42
-         */
-        for (let i = 0; i < data.length; i += 4) {
-            data[i] = Math.min(
-                255,
-                data[i] * 0.48
+        const imageData =
+            cctx.getImageData(
+                0,
+                0,
+                RW,
+                RH
             );
 
-            data[i + 1] = Math.min(
-                255,
-                data[i + 1] * 0.48
-            );
+        const data =
+            imageData.data;
 
-            data[i + 2] = Math.min(
-                255,
-                data[i + 2] * 0.48
-            );
+        for (
+            let i = 0;
+            i < data.length;
+            i += 4
+        ) {
+            data[i] =
+                Math.min(
+                    255,
+                    data[i] * 0.48
+                );
+
+            data[i + 1] =
+                Math.min(
+                    255,
+                    data[i + 1] * 0.48
+                );
+
+            data[i + 2] =
+                Math.min(
+                    255,
+                    data[i + 2] * 0.48
+                );
 
             data[i + 3] =
                 Math.round(
-                    data[i + 3] * (42 / 255)
+                    data[i + 3] *
+                    (42 / 255)
                 );
         }
 
-        cctx.putImageData(imageData, 0, 0);
+        cctx.putImageData(
+            imageData,
+            0,
+            0
+        );
 
         backgroundCache.set(
             "tazhib",
@@ -509,22 +471,21 @@ async function loadTazhib() {
 }
 
 function buildTexture() {
-    const texture = document.createElement("canvas");
+    const texture =
+        document.createElement("canvas");
 
     texture.width = RW;
     texture.height = RH;
 
-    const tctx = texture.getContext("2d");
+    const tctx =
+        texture.getContext("2d");
 
-    const image = tctx.createImageData(
-        RW,
-        RH
-    );
+    const image =
+        tctx.createImageData(
+            RW,
+            RH
+        );
 
-    /*
-     * بافت بسیار ظریف، مشابه نسخه بات.
-     * عمداً کم‌رنگ نگه داشته شده است.
-     */
     let seed = 8;
 
     function random() {
@@ -535,12 +496,20 @@ function buildTexture() {
         return seed / 4294967296;
     }
 
-    for (let i = 0; i < 56000; i++) {
+    for (
+        let i = 0;
+        i < 56000;
+        i++
+    ) {
         const x =
-            Math.floor(random() * RW);
+            Math.floor(
+                random() * RW
+            );
 
         const y =
-            Math.floor(random() * RH);
+            Math.floor(
+                random() * RH
+            );
 
         const index =
             (y * RW + x) * 4;
@@ -558,12 +527,17 @@ function buildTexture() {
         }
     }
 
-    tctx.putImageData(image, 0, 0);
+    tctx.putImageData(
+        image,
+        0,
+        0
+    );
 
     return texture;
 }
 
-const textureCanvas = buildTexture();
+const textureCanvas =
+    buildTexture();
 
 async function buildBackground(p) {
     buildGradient(p);
@@ -593,16 +567,29 @@ async function buildBackground(p) {
     );
 
     /*
-     * تیره‌سازی کنترل‌شده‌ی بسیار ملایم برای جلوگیری
-     * از روشن شدن بیش از حد پالت‌ها در Canvas.
+     * فقط برای سه رنگ روشن:
+     * زمینه کمی تیره‌تر می‌شود.
      */
-    ctx.fillStyle = "rgba(0,0,0,0.08)";
-    ctx.fillRect(0, 0, RW, RH);
+    if (
+        p.name === "کرم" ||
+        p.name === "آبی روشن" ||
+        p.name === "مریم‌گلی"
+    ) {
+        ctx.fillStyle =
+            "rgba(0,0,0,0.055)";
 
-    const tazhib = await loadTazhib();
+        ctx.fillRect(
+            0,
+            0,
+            RW,
+            RH
+        );
+    }
+
+    const tazhib =
+        await loadTazhib();
 
     if (tazhib) {
-        ctx.globalAlpha = 1;
         ctx.drawImage(
             tazhib,
             0,
@@ -646,6 +633,52 @@ function drawFrame(p) {
 }
 
 function drawPanel(p) {
+    const isLight =
+        p.name === "کرم" ||
+        p.name === "آبی روشن" ||
+        p.name === "مریم‌گلی";
+
+    if (isLight) {
+
+        /*
+         * در رنگ‌های روشن:
+         * هیچ لایه تیره‌ای داخل کادر نداریم.
+         * فقط یک شفافیت بسیار ملایم برای حس شیشه‌ای.
+         */
+        drawRoundedRect(
+            100,
+            164,
+            880,
+            732,
+            45,
+            "rgba(255,255,255,0.075)"
+        );
+
+        drawRoundedRect(
+            110,
+            170,
+            860,
+            710,
+            37,
+            null,
+            "rgba(255,255,255,0.16)",
+            1
+        );
+
+        drawRoundedRect(
+            100,
+            160,
+            880,
+            730,
+            45,
+            null,
+            rgba(p.panel_outline),
+            1.2
+        );
+
+        return;
+    }
+
     drawRoundedRect(
         100,
         164,
@@ -661,8 +694,21 @@ function drawPanel(p) {
         880,
         730,
         45,
-        "rgba(255,255,255,0.0941176471)"
+        0
     );
+
+    ctx.fillStyle =
+        "rgba(255,255,255,0.0941176471)";
+
+    roundedRect(
+        100,
+        160,
+        880,
+        730,
+        45
+    );
+
+    ctx.fill();
 
     drawRoundedRect(
         110,
@@ -697,7 +743,8 @@ function drawBranding(p) {
     const footerFont =
         `400 ${23 * S}px "Vazirmatn", sans-serif`;
 
-    const footer = "کارت شعر";
+    const footer =
+        "کارت شعر";
 
     const footerM =
         textMetrics(
@@ -706,14 +753,16 @@ function drawBranding(p) {
         );
 
     const footerY = 78;
+
     const footerX =
         (W - footerM.width) / 2;
 
     ctx.shadowColor =
-        "rgba(0,0,0,0.2352941176)";
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 1 * S;
+        "rgba(0,0,0,0.235)";
+
+    ctx.shadowOffsetX = S;
     ctx.shadowOffsetY = 2 * S;
+    ctx.shadowBlur = 0;
 
     drawTextTop(
         footer,
@@ -724,13 +773,17 @@ function drawBranding(p) {
         "left"
     );
 
-    ctx.shadowColor = "transparent";
+    ctx.shadowColor =
+        "transparent";
+
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
     drawOrnament(
         p,
-        footerY + footerM.height + 25
+        footerY +
+        footerM.height +
+        25
     );
 
     if (!branded) {
@@ -742,8 +795,11 @@ function drawBranding(p) {
         return;
     }
 
-    const title = "شعرکده";
-    const subtitle = "( سروش پلاس )";
+    const title =
+        "شعرکده";
+
+    const subtitle =
+        "( سروش پلاس )";
 
     const titleM =
         textMetrics(
@@ -757,34 +813,35 @@ function drawBranding(p) {
             subFont
         );
 
-    /*
-     * دقیقاً بر اساس منطق بات:
-     *
-     * title_x = center + 10
-     * subtitle_x = title_x - sw - 20
-     *
-     * بنابراین شعرکده سمت راست
-     * و سروش پلاس دقیقاً روبه‌روی آن قرار می‌گیرد.
-     */
     const titleX =
         W / 2 + 10;
 
     const subtitleX =
-        titleX - subM.width - 20;
+        titleX -
+        subM.width -
+        20;
 
     const titleY =
-        H - 78 - titleM.height;
+        H -
+        78 -
+        titleM.height;
 
     const subtitleY =
         titleY +
-        (titleM.height - subM.height) / 2 -
+        (titleM.height -
+            subM.height) / 2 -
         3;
 
     ctx.shadowColor =
-        "rgba(0,0,0,0.3137254902)";
+        "rgba(0,0,0,0.3137)";
+
+    ctx.shadowOffsetX =
+        2 * S;
+
+    ctx.shadowOffsetY =
+        3 * S;
+
     ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 2 * S;
-    ctx.shadowOffsetY = 3 * S;
 
     drawTextTop(
         title,
@@ -795,7 +852,9 @@ function drawBranding(p) {
         "left"
     );
 
-    ctx.shadowColor = "transparent";
+    ctx.shadowColor =
+        "transparent";
+
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
@@ -822,9 +881,12 @@ function prepareLines(text, fontSize) {
     const lines = [];
 
     const rawLines =
-        text.replace(/…/g, "...").split("\n");
+        text
+            .replace(/…/g, "...")
+            .split("\n");
 
     for (const raw of rawLines) {
+
         if (!raw.trim()) {
             lines.push(null);
             continue;
@@ -836,13 +898,15 @@ function prepareLines(text, fontSize) {
         let current = "";
 
         for (const word of words) {
+
             const test =
                 current
                     ? `${current} ${word}`
                     : word;
 
             const width =
-                ctx.measureText(test).width / S;
+                ctx.measureText(test)
+                    .width / S;
 
             if (
                 width <= maxWidth ||
@@ -863,7 +927,10 @@ function prepareLines(text, fontSize) {
     return lines;
 }
 
-function calculateLineHeight(line, fontSize) {
+function calculateLineHeight(
+    line,
+    fontSize
+) {
     if (line === null) {
         return BLANK_LINE_SPACING;
     }
@@ -875,26 +942,39 @@ function calculateLineHeight(line, fontSize) {
         ctx.measureText(line);
 
     const ascent =
-        Number.isFinite(m.actualBoundingBoxAscent)
+        Number.isFinite(
+            m.actualBoundingBoxAscent
+        )
             ? m.actualBoundingBoxAscent / S
             : fontSize * 0.8;
 
     const descent =
-        Number.isFinite(m.actualBoundingBoxDescent)
+        Number.isFinite(
+            m.actualBoundingBoxDescent
+        )
             ? m.actualBoundingBoxDescent / S
             : fontSize * 0.2;
 
     return ascent + descent;
 }
 
-function calculateTotalHeight(lines, fontSize) {
+function calculateTotalHeight(
+    lines,
+    fontSize
+) {
     let total = 0;
 
-    for (let i = 0; i < lines.length; i++) {
+    for (
+        let i = 0;
+        i < lines.length;
+        i++
+    ) {
         const line = lines[i];
 
         if (line === null) {
-            total += BLANK_LINE_SPACING;
+            total +=
+                BLANK_LINE_SPACING;
+
             continue;
         }
 
@@ -904,8 +984,13 @@ function calculateTotalHeight(lines, fontSize) {
                 fontSize
             );
 
-        if (i < lines.length - 1) {
-            total += h + LINE_SPACING;
+        if (
+            i <
+            lines.length - 1
+        ) {
+            total +=
+                h +
+                LINE_SPACING;
         } else {
             total += h;
         }
@@ -916,7 +1001,6 @@ function calculateTotalHeight(lines, fontSize) {
 
 function drawPoem(p, text) {
     const left = 145;
-    const right = 935;
     const top = 205;
     const bottom = 845;
 
@@ -927,6 +1011,7 @@ function drawPoem(p, text) {
     let lines = [];
 
     while (fontSize >= 28) {
+
         lines =
             prepareLines(
                 text,
@@ -939,7 +1024,10 @@ function drawPoem(p, text) {
                 fontSize
             );
 
-        if (total <= availableHeight) {
+        if (
+            total <=
+            availableHeight
+        ) {
             break;
         }
 
@@ -951,9 +1039,6 @@ function drawPoem(p, text) {
         lines = ["متن خالی است"];
     }
 
-    ctx.font =
-        `400 ${fontSize * S}px "Parastoo", sans-serif`;
-
     const totalHeight =
         calculateTotalHeight(
             lines,
@@ -962,7 +1047,8 @@ function drawPoem(p, text) {
 
     let y =
         top +
-        (availableHeight - totalHeight) / 2;
+        (availableHeight -
+            totalHeight) / 2;
 
     if (y < top) {
         y = top;
@@ -978,28 +1064,28 @@ function drawPoem(p, text) {
     }
 
     for (const line of lines) {
+
         if (line === null) {
-            y += BLANK_LINE_SPACING;
+            y +=
+                BLANK_LINE_SPACING;
+
             continue;
         }
 
         ctx.font =
             `400 ${fontSize * S}px "Parastoo", sans-serif`;
 
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        ctx.direction = "rtl";
-
         const width =
-            ctx.measureText(line).width / S;
+            ctx.measureText(line)
+                .width / S;
 
         let x =
             left +
             (maxWidth - width) / 2;
 
-        if (x < left) {
-            x = left;
-        }
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.direction = "rtl";
 
         ctx.fillStyle =
             rgba(p.text);
@@ -1008,7 +1094,7 @@ function drawPoem(p, text) {
             rgba(p.text);
 
         ctx.lineWidth =
-            1 * S;
+            S;
 
         ctx.fillText(
             line,
@@ -1022,20 +1108,14 @@ function drawPoem(p, text) {
             y * S
         );
 
-        const h =
+        y +=
             calculateLineHeight(
                 line,
                 fontSize
-            );
-
-        y += h + LINE_SPACING;
+            ) +
+            LINE_SPACING;
     }
 
-    /*
-     * خطوط کناری دقیقاً مطابق بات:
-     * x = 65 و 1015
-     * y = 495 تا 555
-     */
     const centerY =
         top +
         Math.floor(
@@ -1063,7 +1143,9 @@ function drawPoem(p, text) {
     ctx.fillStyle =
         rgba(p.side_dot);
 
-    for (const x of [65, 1015]) {
+    for (
+        const x of [65, 1015]
+    ) {
         for (
             const yy of [
                 centerY - 30,
@@ -1071,6 +1153,7 @@ function drawPoem(p, text) {
             ]
         ) {
             ctx.beginPath();
+
             ctx.arc(
                 x * S,
                 yy * S,
@@ -1078,6 +1161,7 @@ function drawPoem(p, text) {
                 0,
                 Math.PI * 2
             );
+
             ctx.fill();
         }
     }
@@ -1112,7 +1196,8 @@ async function createCard() {
         );
     }
 
-    hasText = Boolean(text);
+    hasText =
+        Boolean(text);
 
     canvas.style.display =
         "block";
@@ -1125,12 +1210,6 @@ async function createCard() {
 
     shareBtn.disabled =
         !hasText;
-}
-
-function renderWhenReady() {
-    createCard().catch(
-        console.error
-    );
 }
 
 async function loadFonts() {
@@ -1162,10 +1241,14 @@ function createPaletteButtons() {
 
     PALETTES.forEach(
         (palette, index) => {
+
             const button =
-                document.createElement("button");
+                document.createElement(
+                    "button"
+                );
 
             button.type = "button";
+
             button.className =
                 "palette-btn";
 
@@ -1173,15 +1256,30 @@ function createPaletteButtons() {
                 palette.name;
 
             button.style.background =
-                `linear-gradient(135deg,
+                `linear-gradient(
+                    135deg,
                     rgb(${palette.top.join(",")}),
                     rgb(${palette.bottom.join(",")})
                 )`;
 
-            button.style.color =
-                "white";
+            /*
+             * متن دکمه‌های رنگ روشن هم خواناتر شود.
+             */
+            if (
+                palette.name === "کرم" ||
+                palette.name === "آبی روشن" ||
+                palette.name === "مریم‌گلی"
+            ) {
+                button.style.color =
+                    "rgb(40,50,45)";
+            } else {
+                button.style.color =
+                    "white";
+            }
 
-            if (index === selectedPalette) {
+            if (
+                index === selectedPalette
+            ) {
                 button.classList.add(
                     "active"
                 );
@@ -1190,7 +1288,9 @@ function createPaletteButtons() {
             button.addEventListener(
                 "click",
                 () => {
-                    selectedPalette = index;
+
+                    selectedPalette =
+                        index;
 
                     document
                         .querySelectorAll(
@@ -1207,7 +1307,9 @@ function createPaletteButtons() {
                         "active"
                     );
 
-                    renderWhenReady();
+                    createCard().catch(
+                        console.error
+                    );
                 }
             );
 
@@ -1222,42 +1324,53 @@ document
     .querySelectorAll(
         ".option-btn"
     )
-    .forEach(button => {
-        button.addEventListener(
-            "click",
-            () => {
-                branded =
-                    button.dataset.branded ===
-                    "true";
+    .forEach(
+        button => {
 
-                document
-                    .querySelectorAll(
-                        ".option-btn"
-                    )
-                    .forEach(
-                        btn =>
-                            btn.classList.remove(
-                                "active"
-                            )
+            button.addEventListener(
+                "click",
+                () => {
+
+                    branded =
+                        button.dataset.branded ===
+                        "true";
+
+                    document
+                        .querySelectorAll(
+                            ".option-btn"
+                        )
+                        .forEach(
+                            btn =>
+                                btn.classList.remove(
+                                    "active"
+                                )
+                        );
+
+                    button.classList.add(
+                        "active"
                     );
 
-                button.classList.add(
-                    "active"
-                );
-
-                renderWhenReady();
-            }
-        );
-    });
+                    createCard().catch(
+                        console.error
+                    );
+                }
+            );
+        }
+    );
 
 poemInput.addEventListener(
     "input",
-    renderWhenReady
+    () => {
+        createCard().catch(
+            console.error
+        );
+    }
 );
 
 downloadBtn.addEventListener(
     "click",
     () => {
+
         if (!hasText) return;
 
         const link =
@@ -1278,9 +1391,11 @@ downloadBtn.addEventListener(
 shareBtn.addEventListener(
     "click",
     async () => {
+
         if (!hasText) return;
 
         try {
+
             const blob =
                 await new Promise(
                     resolve =>
@@ -1317,9 +1432,11 @@ shareBtn.addEventListener(
             }
 
         } catch (error) {
+
             if (
                 error &&
-                error.name !== "AbortError"
+                error.name !==
+                    "AbortError"
             ) {
                 console.error(error);
             }
