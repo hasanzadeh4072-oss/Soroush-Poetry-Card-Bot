@@ -30,7 +30,7 @@
     --primary: #2f7d5a;
     --primary-dark: #256449;
     --border: #e5e7eb;
-    --shadow: 0 8px 25px rgba(0,0,0,.08);
+    --shadow: 0 8px 25px rgba(0, 0, 0, .08);
 }
 
 * {
@@ -62,52 +62,9 @@ body {
 }
 
 .header h1 {
-    margin: 0 0 6px;
+    margin: 0;
     font-family: "BTitrBd", "Vazirmatn", sans-serif;
     font-size: 28px;
-}
-
-.header p {
-    margin: 0;
-    color: var(--muted);
-    font-family: "Vazirmatn", sans-serif;
-    font-size: 14px;
-}
-
-.card-preview {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    background: #fff;
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    margin-bottom: 20px;
-}
-
-#poetryCanvas {
-    display: none;
-    width: 100%;
-    height: 100%;
-}
-
-.preview-empty {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    color: var(--muted);
-    gap: 8px;
-}
-
-.preview-empty span {
-    font-size: 42px;
-}
-
-.preview-empty p {
-    margin: 0;
-    font-family: "Vazirmatn", sans-serif;
 }
 
 .editor {
@@ -115,6 +72,15 @@ body {
     border-radius: 18px;
     padding: 18px;
     box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+.option-group {
+    margin-bottom: 20px;
+}
+
+.option-group:last-child {
+    margin-bottom: 0;
 }
 
 .editor label,
@@ -145,14 +111,6 @@ textarea {
 
 textarea:focus {
     border-color: var(--primary);
-}
-
-.options {
-    margin-top: 18px;
-}
-
-.option-group {
-    margin-bottom: 18px;
 }
 
 .segmented {
@@ -200,11 +158,46 @@ textarea:focus {
     font-weight: 700;
 }
 
+.card-preview {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+#poetryCanvas {
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+
+.preview-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: var(--muted);
+    gap: 8px;
+}
+
+.preview-empty span {
+    font-size: 42px;
+}
+
+.preview-empty p {
+    margin: 0;
+    font-family: "Vazirmatn", sans-serif;
+}
+
 .actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-top: 20px;
 }
 
 .action-btn {
@@ -226,6 +219,7 @@ textarea:focus {
 }
 
 @media (max-width: 520px) {
+
     .app {
         padding: 16px 10px 30px;
     }
@@ -246,5 +240,3 @@ textarea:focus {
         grid-template-columns: 1fr;
     }
 }
-
-
