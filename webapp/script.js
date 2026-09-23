@@ -1,32 +1,18 @@
-const canvas = document.getElementById("poetryCanvas");
-const ctx = canvas.getContext("2d");
-
-const poemInput = document.getElementById("poemInput");
-const paletteButtons = document.getElementById("paletteButtons");
-const downloadBtn = document.getElementById("downloadBtn");
-const shareBtn = document.getElementById("shareBtn");
-const previewEmpty = document.getElementById("previewEmpty");
-
 const W = 1080;
 const H = 1080;
-
 const S = 2;
+
 const RW = W * S;
 const RH = H * S;
 
-canvas.width = RW;
-canvas.height = RH;
+const LINE_SPACING = 32;
+const BLANK_LINE_SPACING = 48;
 
 const BG_URL =
     "https://raw.githubusercontent.com/" +
     "hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/" +
     "be5859ec92836a14ef0ef28d82ca6c161959cb26/" +
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg";
-
-const FONT_BASE =
-    "https://raw.githubusercontent.com/" +
-    "hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/" +
-    "085a674b15bd74787ca00701a8ce9780342e3fd9/";
 
 const PALETTES = [
     {
@@ -193,529 +179,93 @@ const PALETTES = [
     }
 ];
 
-let selectedPalette = PALETTES[0];
-let branded = true;
+const canvas = document.getElementById("poetryCanvas");
+const ctx = canvas.getContext("2d");
 
-let backgroundImage = null;
-let textureCanvas = null;
-let panelCanvas = null;
-let backgroundCache = new Map();
+canvas.width = RW;
+canvas.height = RH;
+
+const poemInput = document.getElementById("poemInput");
+const paletteButtons = document.getElementById("paletteButtons");
+const downloadBtn = document.getElementById("downloadBtn");
+const shareBtn = document.getElementById("shareBtn");
+const previewEmpty = document.getElementById("previewEmpty");
+
+let selectedPalette = 0;
+let branded = true;
+let hasText = false;
+
+const backgroundCache = new Map();
 
 function rgba(c) {
-    return `rgba(${c[0]},${c[1]},${c[2]},${c.length > 3 ? c[3] / 255 : 1})`;
+    if (c.length === 3) {
+        return `rgb(${c[0]},${c[1]},${c[2]})`;
+    }
+
+    return `rgba(${c[0]},${c[1]},${c[2]},${c[3] / 255})`;
 }
 
-function rgb(c) {
-    return `rgb(${c[0]},${c[1]},${c[2]})`;
+function scaleRect(x, y, w, h) {
+    return {
+        x: x * S,
+        y: y * S,
+        w: w * S,
+        h: h * S
+    };
 }
 
-function scale(v) {
-    return Math.round(v * S);
-}
-
-function createOffscreen(w = RW, h = RH) {
-    const c = document.createElement("canvas");
-    c.width = w;
-    c.height = h;
-    return c;
-}
-
-function drawRoundedRect(c, x, y, w, h, radius, fill, stroke, lineWidth) {
-    const d = c.getContext("2d");
-
-    d.beginPath();
-    d.roundRect(
-        scale(x),
-        scale(y),
-        scale(w),
-        scale(h),
-        scale(radius)
+function roundedRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.roundRect(
+        x * S,
+        y * S,
+        w * S,
+        h * S,
+        r * S
     );
+}
+
+function drawRoundedRect(
+    x,
+    y,
+    w,
+    h,
+    radius,
+    fill = null,
+    stroke = null,
+    lineWidth = 1
+) {
+    roundedRect(x, y, w, h, radius);
 
     if (fill) {
-        d.fillStyle = fill;
-        d.fill();
+        ctx.fillStyle = fill;
+        ctx.fill();
     }
 
     if (stroke) {
-        d.strokeStyle = stroke;
-        d.lineWidth = scale(lineWidth);
-        d.stroke();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lineWidth * S;
+        ctx.stroke();
     }
 }
 
-function lerp(a, b, t) {
-    return Math.round(a + (b - a) * t);
+function drawLine(x1, y1, x2, y2, color, width = 1) {
+    ctx.beginPath();
+    ctx.moveTo(x1 * S, y1 * S);
+    ctx.lineTo(x2 * S, y2 * S);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width * S;
+    ctx.stroke();
 }
 
-/*
- * همان منطق گرادیان پایتون:
- *
- * 0 تا 0.52 : top -> middle
- * 0.52 تا 1  : middle -> bottom
- *
- * عمداً از createLinearGradient استفاده نشده است.
- */
-function buildGradient(p) {
-    const c = createOffscreen(1, RH);
-    const d = c.getContext("2d");
-    const image = d.createImageData(1, RH);
-
-    for (let y = 0; y < RH; y++) {
-        const ratio = y / (RH - 1);
-
-        let col;
-
-        if (ratio < 0.52) {
-            const t = ratio / 0.52;
-
-            col = [
-                lerp(p.top[0], p.middle[0], t),
-                lerp(p.top[1], p.middle[1], t),
-                lerp(p.top[2], p.middle[2], t)
-            ];
-        } else {
-            const t = (ratio - 0.52) / 0.48;
-
-            col = [
-                lerp(p.middle[0], p.bottom[0], t),
-                lerp(p.middle[1], p.bottom[1], t),
-                lerp(p.middle[2], p.bottom[2], t)
-            ];
-        }
-
-        const i = y * 4;
-
-        image.data[i] = col[0];
-        image.data[i + 1] = col[1];
-        image.data[i + 2] = col[2];
-        image.data[i + 3] = 255;
-    }
-
-    d.putImageData(image, 0, 0);
-
-    const result = createOffscreen();
-
-    const rd = result.getContext("2d");
-    rd.imageSmoothingEnabled = false;
-
-    rd.drawImage(
-        c,
-        0,
-        0,
-        1,
-        RH,
-        0,
-        0,
-        RW,
-        RH
-    );
-
-    return result;
-}
-
-async function loadBackground() {
-    if (backgroundImage) {
-        return backgroundImage;
-    }
-
-    return new Promise((resolve) => {
-        const img = new Image();
-
-        img.crossOrigin = "anonymous";
-
-        img.onload = () => {
-            backgroundImage = img;
-            resolve(img);
-        };
-
-        img.onerror = () => {
-            backgroundImage = null;
-            resolve(null);
-        };
-
-        img.src = BG_URL;
-    });
-}
-
-/*
- * معادل تقریبی مرحله:
- *
- * svg2png(output_width=4320)
- * crop به مربع
- * brightness(.48)
- * blur(8px)
- * alpha=42
- */
-async function prepareTazhib() {
-    const img = await loadBackground();
-
-    if (!img) {
-        return null;
-    }
-
-    const sourceSize = 4320;
-
-    const source = createOffscreen(sourceSize, sourceSize);
-    const sd = source.getContext("2d");
-
-    sd.clearRect(0, 0, sourceSize, sourceSize);
-
-    const scaleFit = Math.max(
-        sourceSize / img.width,
-        sourceSize / img.height
-    );
-
-    const drawW = img.width * scaleFit;
-    const drawH = img.height * scaleFit;
-
-    const sx = (drawW - sourceSize) / 2;
-    const sy = (drawH - sourceSize) / 2;
-
-    sd.drawImage(
-        img,
-        -sx,
-        -sy,
-        drawW,
-        drawH
-    );
-
-    const data = sd.getImageData(
-        0,
-        0,
-        sourceSize,
-        sourceSize
-    );
-
-    for (let i = 0; i < data.data.length; i += 4) {
-        data.data[i] = Math.round(data.data[i] * 0.48);
-        data.data[i + 1] = Math.round(data.data[i + 1] * 0.48);
-        data.data[i + 2] = Math.round(data.data[i + 2] * 0.48);
-    }
-
-    sd.putImageData(data, 0, 0);
-
-    const result = createOffscreen();
-    const rd = result.getContext("2d");
-
-    rd.filter = "blur(8px)";
-    rd.globalAlpha = 42 / 255;
-
-    rd.drawImage(
-        source,
-        0,
-        0,
-        RW,
-        RH
-    );
-
-    rd.filter = "none";
-    rd.globalAlpha = 1;
-
-    return result;
-}
-
-function buildTexture() {
-    if (textureCanvas) {
-        return textureCanvas;
-    }
-
-    const c = createOffscreen();
-    const d = c.getContext("2d");
-
-    const image = d.createImageData(RW, RH);
-    const data = image.data;
-
-    /*
-     * با توجه به اینکه Python random.Random(8)
-     * در JS معادل مستقیم ندارد، برای حفظ همان
-     * تراکم و شدت بافت از PRNG قطعی استفاده می‌کنیم.
-     */
-    let seed = 8;
-
-    function random() {
-        seed = (seed * 1664525 + 1013904223) >>> 0;
-        return seed / 4294967296;
-    }
-
-    const points = 56000;
-
-    for (let i = 0; i < points; i++) {
-        const x = Math.floor(random() * RW);
-        const y = Math.floor(random() * RH);
-
-        const index = (y * RW + x) * 4;
-
-        if (random() < 0.5) {
-            data[index] = 255;
-            data[index + 1] = 255;
-            data[index + 2] = 255;
-            data[index + 3] = 3;
-        } else {
-            data[index] = 0;
-            data[index + 1] = 0;
-            data[index + 2] = 0;
-            data[index + 3] = 4;
-        }
-    }
-
-    d.putImageData(image, 0, 0);
-
-    textureCanvas = c;
-
-    return c;
-}
-
-function buildPanel() {
-    if (panelCanvas) {
-        return panelCanvas;
-    }
-
-    const c = createOffscreen();
-    const d = c.getContext("2d");
-
-    drawRoundedRect(
-        c,
-        100,
-        164,
-        880,
-        732 - 4,
-        45,
-        "rgba(0,0,0,45/255)"
-    );
-
-    /*
-     * پایتون:
-     * rounded_rectangle((100,160,980,890), ...)
-     */
-    drawRoundedRect(
-        c,
-        100,
-        160,
-        880,
-        730,
-        45,
-        "rgba(255,255,255,24/255)"
-    );
-
-    /*
-     * blur(.35*S) = .7px
-     */
-    const blurred = createOffscreen();
-    const bd = blurred.getContext("2d");
-
-    bd.filter = "blur(0.7px)";
-    bd.drawImage(c, 0, 0);
-    bd.filter = "none";
-
-    const finalPanel = createOffscreen();
-    const fd = finalPanel.getContext("2d");
-
-    fd.drawImage(blurred, 0, 0);
-
-    drawRoundedRect(
-        finalPanel,
-        110,
-        170,
-        860,
-        710,
-        37,
-        null,
-        "rgba(255,255,255,12/255)",
-        1
-    );
-
-    panelCanvas = finalPanel;
-
-    return panelCanvas;
-}
-
-function drawBackground(p) {
-    const key = p.name;
-
-    if (backgroundCache.has(key)) {
-        return backgroundCache.get(key);
-    }
-
-    const c = buildGradient(p);
-    const d = c.getContext("2d");
-
-    const tazhibPromise = prepareTazhib();
-
-    const texture = buildTexture();
-
-    /*
-     * Python glows:
-     *
-     * (-260*S,-180*S,650*S,560*S)
-     * (690*S,690*S,1250*S,1250*S)
-     * (250*S,350*S,850*S,950*S)
-     *
-     * با مختصات اصلی همان بات.
-     */
-    const glowLayer = createOffscreen();
-    const gd = glowLayer.getContext("2d");
-
-    function ellipseGlow(box, color) {
-        gd.save();
-
-        gd.filter = "blur(220px)";
-        gd.fillStyle = rgba(color);
-
-        gd.beginPath();
-
-        const x1 = scale(box[0]);
-        const y1 = scale(box[1]);
-        const x2 = scale(box[2]);
-        const y2 = scale(box[3]);
-
-        gd.ellipse(
-            (x1 + x2) / 2,
-            (y1 + y2) / 2,
-            Math.abs(x2 - x1) / 2,
-            Math.abs(y2 - y1) / 2,
-            0,
-            0,
-            Math.PI * 2
-        );
-
-        gd.fill();
-        gd.restore();
-    }
-
-    ellipseGlow(
-        [-260, -180, 650, 560],
-        p.glow1
-    );
-
-    ellipseGlow(
-        [690, 690, 1250, 1250],
-        p.glow2
-    );
-
-    ellipseGlow(
-        [250, 350, 850, 950],
-        p.glow3
-    );
-
-    d.drawImage(glowLayer, 0, 0);
-
-    /*
-     * texture
-     */
-    d.drawImage(texture, 0, 0);
-
-    backgroundCache.set(key, c);
-
-    /*
-     * اگر تذهیب آماده شد، روی بک‌گراند قرار می‌گیرد.
-     */
-    tazhibPromise.then((tazhib) => {
-        if (!tazhib) return;
-
-        const cached = backgroundCache.get(key);
-
-        if (!cached) return;
-
-        const cd = cached.getContext("2d");
-
-        cd.drawImage(tazhib, 0, 0);
-
-        if (poemInput.value.trim()) {
-            renderCard();
-        }
-    });
-
-    return c;
-}
-
-function drawFrame(p) {
-    drawRoundedRect(
-        canvas,
-        40,
-        40,
-        1000,
-        1000,
-        42,
-        null,
-        rgb(p.frame),
-        3
-    );
-
-    drawRoundedRect(
-        canvas,
-        49,
-        49,
-        982,
-        982,
-        35,
-        null,
-        rgb(p.frame_inner),
-        2
-    );
-}
-
-function drawOrnament(d, p, y) {
-    const center = W / 2;
-    const width = 150;
-
-    d.strokeStyle = rgb(p.ornament);
-    d.lineWidth = scale(2);
-
-    d.beginPath();
-
-    d.moveTo(
-        scale(center - width),
-        scale(y)
-    );
-
-    d.lineTo(
-        scale(center - 12),
-        scale(y)
-    );
-
-    d.moveTo(
-        scale(center + 12),
-        scale(y)
-    );
-
-    d.lineTo(
-        scale(center + width),
-        scale(y)
-    );
-
-    d.stroke();
-
-    d.fillStyle = rgb(p.accent);
-
-    d.beginPath();
-
-    d.moveTo(
-        scale(center),
-        scale(y - 5)
-    );
-
-    d.lineTo(
-        scale(center + 5),
-        scale(y)
-    );
-
-    d.lineTo(
-        scale(center),
-        scale(y + 5)
-    );
-
-    d.lineTo(
-        scale(center - 5),
-        scale(y)
-    );
-
-    d.closePath();
-    d.fill();
-}
-
-function fontString(size, family, weight = "") {
-    return `${weight ? weight + " " : ""}${scale(size)}px "${family}"`;
+function drawTextTop(text, x, y, font, color, align = "left") {
+    ctx.font = font;
+    ctx.textAlign = align;
+    ctx.textBaseline = "top";
+    ctx.direction = "rtl";
+
+    ctx.fillStyle = color;
+    ctx.fillText(text, x * S, y * S);
 }
 
 function textMetrics(text, font) {
@@ -723,237 +273,556 @@ function textMetrics(text, font) {
 
     const m = ctx.measureText(text);
 
-    const left =
-        m.actualBoundingBoxLeft !== undefined
-            ? m.actualBoundingBoxLeft
-            : 0;
-
-    const right =
-        m.actualBoundingBoxRight !== undefined
-            ? m.actualBoundingBoxRight
-            : m.width;
-
     const ascent =
-        m.actualBoundingBoxAscent !== undefined
+        Number.isFinite(m.actualBoundingBoxAscent)
             ? m.actualBoundingBoxAscent
-            : scale(50);
+            : 40;
 
     const descent =
-        m.actualBoundingBoxDescent !== undefined
+        Number.isFinite(m.actualBoundingBoxDescent)
             ? m.actualBoundingBoxDescent
-            : scale(12);
+            : 10;
 
     return {
-        width: right + left,
-        height: ascent + descent,
-        ascent,
-        descent,
-        left,
-        right
+        width: m.width / S,
+        height: (ascent + descent) / S,
+        ascent: ascent / S,
+        descent: descent / S
     };
 }
 
-function drawTextTop(
-    d,
-    text,
-    x,
-    y,
-    font,
-    color,
-    shadow = null
-) {
-    d.font = font;
-    d.textAlign = "left";
-    d.textBaseline = "alphabetic";
+function drawOrnament(p, y) {
+    const center = W / 2;
+    const width = 150;
 
-    const m = d.measureText(text);
+    drawLine(
+        center - width,
+        y,
+        center - 12,
+        y,
+        rgba(p.ornament),
+        2
+    );
 
-    const ascent =
-        m.actualBoundingBoxAscent !== undefined
-            ? m.actualBoundingBoxAscent
-            : scale(50);
+    drawLine(
+        center + 12,
+        y,
+        center + width,
+        y,
+        rgba(p.ornament),
+        2
+    );
 
-    if (shadow) {
-        d.fillStyle = shadow;
-        d.fillText(
-            text,
-            scale(x + 2),
-            scale(y + 3 + ascent / S)
+    ctx.fillStyle = rgba(p.accent);
+    ctx.beginPath();
+    ctx.moveTo(center * S, (y - 5) * S);
+    ctx.lineTo((center + 5) * S, y * S);
+    ctx.lineTo(center * S, (y + 5) * S);
+    ctx.lineTo((center - 5) * S, y * S);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function buildGradient(p) {
+    const gradient = ctx.createLinearGradient(
+        0,
+        0,
+        0,
+        RH
+    );
+
+    gradient.addColorStop(
+        0,
+        rgba([...p.top, 255])
+    );
+
+    gradient.addColorStop(
+        0.52,
+        rgba([...p.middle, 255])
+    );
+
+    gradient.addColorStop(
+        1,
+        rgba([...p.bottom, 255])
+    );
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, RW, RH);
+}
+
+function drawGlow(x1, y1, x2, y2, color) {
+    const g = ctx.createRadialGradient(
+        ((x1 + x2) / 2) * S,
+        ((y1 + y2) / 2) * S,
+        0,
+        ((x1 + x2) / 2) * S,
+        ((y1 + y2) / 2) * S,
+        Math.max(
+            (x2 - x1) * S,
+            (y2 - y1) * S
+        ) / 2
+    );
+
+    const alpha = color[3] / 255;
+
+    g.addColorStop(
+        0,
+        `rgba(${color[0]},${color[1]},${color[2]},${alpha})`
+    );
+
+    g.addColorStop(
+        1,
+        `rgba(${color[0]},${color[1]},${color[2]},0)`
+    );
+
+    ctx.fillStyle = g;
+
+    ctx.beginPath();
+    ctx.ellipse(
+        ((x1 + x2) / 2) * S,
+        ((y1 + y2) / 2) * S,
+        ((x2 - x1) / 2) * S,
+        ((y2 - y1) / 2) * S,
+        0,
+        0,
+        Math.PI * 2
+    );
+    ctx.fill();
+}
+
+async function loadTazhib() {
+    if (backgroundCache.has("tazhib")) {
+        return backgroundCache.get("tazhib");
+    }
+
+    try {
+        const response = await fetch(BG_URL, {
+            mode: "cors"
+        });
+
+        if (!response.ok) {
+            throw new Error("Background fetch failed");
+        }
+
+        const svgText = await response.text();
+
+        const svgBlob = new Blob(
+            [svgText],
+            { type: "image/svg+xml" }
+        );
+
+        const url = URL.createObjectURL(svgBlob);
+
+        const img = new Image();
+
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = url;
+        });
+
+        URL.revokeObjectURL(url);
+
+        const c = document.createElement("canvas");
+        c.width = RW;
+        c.height = RH;
+
+        const cctx = c.getContext("2d");
+
+        const scale = Math.max(
+            RW / img.width,
+            RH / img.height
+        );
+
+        const iw = img.width * scale;
+        const ih = img.height * scale;
+
+        const x = (RW - iw) / 2;
+        const y = (RH - ih) / 2;
+
+        cctx.drawImage(
+            img,
+            x,
+            y,
+            iw,
+            ih
+        );
+
+        const imageData = cctx.getImageData(
+            0,
+            0,
+            RW,
+            RH
+        );
+
+        const data = imageData.data;
+
+        /*
+         * معادل تقریبی:
+         * Brightness(.48)
+         * سپس alpha = 42
+         */
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = Math.min(
+                255,
+                data[i] * 0.48
+            );
+
+            data[i + 1] = Math.min(
+                255,
+                data[i + 1] * 0.48
+            );
+
+            data[i + 2] = Math.min(
+                255,
+                data[i + 2] * 0.48
+            );
+
+            data[i + 3] =
+                Math.round(
+                    data[i + 3] * (42 / 255)
+                );
+        }
+
+        cctx.putImageData(imageData, 0, 0);
+
+        backgroundCache.set(
+            "tazhib",
+            c
+        );
+
+        return c;
+
+    } catch (error) {
+        console.warn(
+            "Tazhib could not be loaded:",
+            error
+        );
+
+        backgroundCache.set(
+            "tazhib",
+            null
+        );
+
+        return null;
+    }
+}
+
+function buildTexture() {
+    const texture = document.createElement("canvas");
+
+    texture.width = RW;
+    texture.height = RH;
+
+    const tctx = texture.getContext("2d");
+
+    const image = tctx.createImageData(
+        RW,
+        RH
+    );
+
+    /*
+     * بافت بسیار ظریف، مشابه نسخه بات.
+     * عمداً کم‌رنگ نگه داشته شده است.
+     */
+    let seed = 8;
+
+    function random() {
+        seed =
+            (seed * 1664525 + 1013904223)
+            >>> 0;
+
+        return seed / 4294967296;
+    }
+
+    for (let i = 0; i < 56000; i++) {
+        const x =
+            Math.floor(random() * RW);
+
+        const y =
+            Math.floor(random() * RH);
+
+        const index =
+            (y * RW + x) * 4;
+
+        if (random() < 0.5) {
+            image.data[index] = 255;
+            image.data[index + 1] = 255;
+            image.data[index + 2] = 255;
+            image.data[index + 3] = 3;
+        } else {
+            image.data[index] = 0;
+            image.data[index + 1] = 0;
+            image.data[index + 2] = 0;
+            image.data[index + 3] = 4;
+        }
+    }
+
+    tctx.putImageData(image, 0, 0);
+
+    return texture;
+}
+
+const textureCanvas = buildTexture();
+
+async function buildBackground(p) {
+    buildGradient(p);
+
+    drawGlow(
+        -260,
+        -180,
+        650,
+        560,
+        p.glow1
+    );
+
+    drawGlow(
+        690,
+        690,
+        1250,
+        1250,
+        p.glow2
+    );
+
+    drawGlow(
+        250,
+        350,
+        850,
+        950,
+        p.glow3
+    );
+
+    /*
+     * تیره‌سازی کنترل‌شده‌ی بسیار ملایم برای جلوگیری
+     * از روشن شدن بیش از حد پالت‌ها در Canvas.
+     */
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.fillRect(0, 0, RW, RH);
+
+    const tazhib = await loadTazhib();
+
+    if (tazhib) {
+        ctx.globalAlpha = 1;
+        ctx.drawImage(
+            tazhib,
+            0,
+            0,
+            RW,
+            RH
         );
     }
 
-    d.fillStyle = color;
+    ctx.drawImage(
+        textureCanvas,
+        0,
+        0,
+        RW,
+        RH
+    );
+}
 
-    d.fillText(
-        text,
-        scale(x),
-        scale(y) + ascent
+function drawFrame(p) {
+    drawRoundedRect(
+        40,
+        40,
+        1000,
+        1000,
+        42,
+        null,
+        rgba(p.frame),
+        3
+    );
+
+    drawRoundedRect(
+        49,
+        49,
+        982,
+        982,
+        35,
+        null,
+        rgba(p.frame_inner),
+        2
+    );
+}
+
+function drawPanel(p) {
+    drawRoundedRect(
+        100,
+        164,
+        880,
+        732,
+        45,
+        "rgba(0,0,0,0.1764705882)"
+    );
+
+    drawRoundedRect(
+        100,
+        160,
+        880,
+        730,
+        45,
+        "rgba(255,255,255,0.0941176471)"
+    );
+
+    drawRoundedRect(
+        110,
+        170,
+        860,
+        710,
+        37,
+        null,
+        "rgba(255,255,255,0.0470588235)",
+        1
+    );
+
+    drawRoundedRect(
+        100,
+        160,
+        880,
+        730,
+        45,
+        null,
+        rgba(p.panel_outline),
+        2
     );
 }
 
 function drawBranding(p) {
-    const d = ctx;
-
-    const TITLE_SIZE = 50;
-    const SUB_SIZE = 23;
-    const FOOT_SIZE = 23;
-
     const titleFont =
-        fontString(TITLE_SIZE, "BTitrBd", "700");
+        `700 ${50 * S}px "BTitrBd", sans-serif`;
 
     const subFont =
-        fontString(SUB_SIZE, "Vazirmatn");
+        `400 ${23 * S}px "Vazirmatn", sans-serif`;
 
-    const footFont =
-        fontString(FOOT_SIZE, "Vazirmatn");
+    const footerFont =
+        `400 ${23 * S}px "Vazirmatn", sans-serif`;
 
-    /*
-     * Python:
-     *
-     * footer_y = 78
-     * title_y = H - 78 - th
-     *
-     * و جای X کاملاً از عرض bbox محاسبه می‌شود.
-     */
-    d.font = footFont;
+    const footer = "کارت شعر";
 
-    const footerM = d.measureText("کارت شعر");
-
-    const fw =
-        (footerM.actualBoundingBoxRight || footerM.width) +
-        (footerM.actualBoundingBoxLeft || 0);
-
-    const fh =
-        (footerM.actualBoundingBoxAscent || scale(18)) +
-        (footerM.actualBoundingBoxDescent || scale(5));
+    const footerM =
+        textMetrics(
+            footer,
+            footerFont
+        );
 
     const footerY = 78;
-
     const footerX =
-        (W - fw / S) / 2;
+        (W - footerM.width) / 2;
 
-    /*
-     * footer shadow
-     */
-    drawTextTop(
-        d,
-        "کارت شعر",
-        footerX,
-        footerY,
-        footFont,
-        rgba([0, 0, 0, 60])
-    );
+    ctx.shadowColor =
+        "rgba(0,0,0,0.2352941176)";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 1 * S;
+    ctx.shadowOffsetY = 2 * S;
 
     drawTextTop(
-        d,
-        "کارت شعر",
+        footer,
         footerX,
         footerY,
-        footFont,
-        rgb(p.accent)
+        footerFont,
+        rgba(p.accent),
+        "left"
     );
 
-    /*
-     * همان:
-     *
-     * draw_ornament(d, p, footer_y + fh + 25)
-     */
+    ctx.shadowColor = "transparent";
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
     drawOrnament(
-        d,
         p,
-        footerY + fh / S + 25
+        footerY + footerM.height + 25
     );
 
+    if (!branded) {
+        drawOrnament(
+            p,
+            H - 112
+        );
+
+        return;
+    }
+
+    const title = "شعرکده";
+    const subtitle = "( سروش پلاس )";
+
+    const titleM =
+        textMetrics(
+            title,
+            titleFont
+        );
+
+    const subM =
+        textMetrics(
+            subtitle,
+            subFont
+        );
+
     /*
-     * عنوان شعرکده
-     */
-    d.font = titleFont;
-
-    const titleM = d.measureText("شعرکده");
-
-    const tw =
-        (titleM.actualBoundingBoxRight || titleM.width) +
-        (titleM.actualBoundingBoxLeft || 0);
-
-    const th =
-        (titleM.actualBoundingBoxAscent || scale(40)) +
-        (titleM.actualBoundingBoxDescent || scale(10));
-
-    /*
-     * دقیقاً بر اساس:
+     * دقیقاً بر اساس منطق بات:
      *
-     * title_y = H - 78 - th
      * title_x = center + 10
+     * subtitle_x = title_x - sw - 20
+     *
+     * بنابراین شعرکده سمت راست
+     * و سروش پلاس دقیقاً روبه‌روی آن قرار می‌گیرد.
      */
-    const titleY =
-        H - 78 - th / S;
-
     const titleX =
         W / 2 + 10;
 
-    /*
-     * subtitle:
-     *
-     * subtitle_x = title_x - sw - 20
-     */
-    d.font = subFont;
-
-    const subM = d.measureText("( سروش پلاس )");
-
-    const sw =
-        (subM.actualBoundingBoxRight || subM.width) +
-        (subM.actualBoundingBoxLeft || 0);
-
-    const sh =
-        (subM.actualBoundingBoxAscent || scale(18)) +
-        (subM.actualBoundingBoxDescent || scale(5));
-
     const subtitleX =
-        titleX - sw / S - 20;
+        titleX - subM.width - 20;
+
+    const titleY =
+        H - 78 - titleM.height;
 
     const subtitleY =
-        titleY + (th / S - sh / S) / 2 - 3;
+        titleY +
+        (titleM.height - subM.height) / 2 -
+        3;
 
-    /*
-     * همان جایگاه عنوان بات
-     */
+    ctx.shadowColor =
+        "rgba(0,0,0,0.3137254902)";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 2 * S;
+    ctx.shadowOffsetY = 3 * S;
+
     drawTextTop(
-        d,
-        "شعرکده",
+        title,
         titleX,
         titleY,
         titleFont,
-        rgb(p.accent),
-        rgba([0, 0, 0, 80])
+        rgba(p.accent),
+        "left"
     );
 
+    ctx.shadowColor = "transparent";
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
     drawTextTop(
-        d,
-        "( سروش پلاس )",
+        subtitle,
         subtitleX,
         subtitleY,
         subFont,
-        rgb(p.subtitle)
+        rgba(p.subtitle),
+        "left"
     );
 
-    /*
-     * همان:
-     *
-     * draw_ornament(d, p, title_y - 25)
-     */
     drawOrnament(
-        d,
         p,
         titleY - 25
     );
 }
 
-function prepareLines(text, font, maxWidth) {
-    const rawLines = text
-        .replaceAll("…", "...")
-        .split(/\r?\n/);
+function prepareLines(text, fontSize) {
+    ctx.font =
+        `400 ${fontSize * S}px "Parastoo", sans-serif`;
 
+    const maxWidth = 790;
     const lines = [];
+
+    const rawLines =
+        text.replace(/…/g, "...").split("\n");
 
     for (const raw of rawLines) {
         if (!raw.trim()) {
@@ -961,26 +830,27 @@ function prepareLines(text, font, maxWidth) {
             continue;
         }
 
-        const words = raw.trim().split(/\s+/);
+        const words =
+            raw.trim().split(/\s+/);
+
         let current = "";
 
         for (const word of words) {
             const test =
-                current.length === 0
-                    ? word
-                    : current + " " + word;
+                current
+                    ? `${current} ${word}`
+                    : word;
 
-            ctx.font = font;
+            const width =
+                ctx.measureText(test).width / S;
 
-            const m = ctx.measureText(test);
-
-            if (m.width <= scale(maxWidth)) {
+            if (
+                width <= maxWidth ||
+                !current
+            ) {
                 current = test;
             } else {
-                if (current) {
-                    lines.push(current);
-                }
-
+                lines.push(current);
                 current = word;
             }
         }
@@ -993,77 +863,58 @@ function prepareLines(text, font, maxWidth) {
     return lines;
 }
 
-function calculateLineInfo(lines, font) {
-    const items = [];
+function calculateLineHeight(line, fontSize) {
+    if (line === null) {
+        return BLANK_LINE_SPACING;
+    }
 
-    for (const line of lines) {
+    ctx.font =
+        `400 ${fontSize * S}px "Parastoo", sans-serif`;
+
+    const m =
+        ctx.measureText(line);
+
+    const ascent =
+        Number.isFinite(m.actualBoundingBoxAscent)
+            ? m.actualBoundingBoxAscent / S
+            : fontSize * 0.8;
+
+    const descent =
+        Number.isFinite(m.actualBoundingBoxDescent)
+            ? m.actualBoundingBoxDescent / S
+            : fontSize * 0.2;
+
+    return ascent + descent;
+}
+
+function calculateTotalHeight(lines, fontSize) {
+    let total = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
         if (line === null) {
-            items.push({
-                line: null,
-                height: 48,
-                width: 0,
-                top: 0
-            });
-
+            total += BLANK_LINE_SPACING;
             continue;
         }
 
-        ctx.font = font;
+        const h =
+            calculateLineHeight(
+                line,
+                fontSize
+            );
 
-        const m = ctx.measureText(line);
-
-        const width =
-            (m.actualBoundingBoxLeft || 0) +
-            (m.actualBoundingBoxRight || m.width);
-
-        const height =
-            (m.actualBoundingBoxAscent || scale(40)) +
-            (m.actualBoundingBoxDescent || scale(10));
-
-        const top =
-            -(m.actualBoundingBoxAscent || scale(40));
-
-        items.push({
-            line,
-            width: width / S,
-            height: height / S,
-            top: top / S
-        });
-    }
-
-    return items;
-}
-
-function calculateHeight(items) {
-    if (!items.length) {
-        return 0;
-    }
-
-    let total = 0;
-
-    for (const item of items) {
-        if (item.line === null) {
-            total += 48;
+        if (i < lines.length - 1) {
+            total += h + LINE_SPACING;
         } else {
-            total += item.height + 32;
+            total += h;
         }
-    }
-
-    /*
-     * Python:
-     *
-     * subtract one LINE_SPACING if last line nonblank
-     */
-    const last = items[items.length - 1];
-
-    if (last.line !== null) {
-        total -= 32;
     }
 
     return total;
 }
 
-function fitPoem(text) {
+function drawPoem(p, text) {
     const left = 145;
     const right = 935;
     const top = 205;
@@ -1073,420 +924,341 @@ function fitPoem(text) {
     const availableHeight = 640;
 
     let fontSize = 66;
+    let lines = [];
 
     while (fontSize >= 28) {
-        const font =
-            fontString(fontSize, "Parastoo");
-
-        const lines =
+        lines =
             prepareLines(
                 text,
-                font,
-                maxWidth
+                fontSize
             );
 
-        const items =
-            calculateLineInfo(
+        const total =
+            calculateTotalHeight(
                 lines,
-                font
+                fontSize
             );
 
-        const totalHeight =
-            calculateHeight(items);
-
-        const fitsWidth =
-            items.every(
-                item =>
-                    item.line === null ||
-                    item.width <= maxWidth
-            );
-
-        if (
-            totalHeight <= availableHeight &&
-            fitsWidth
-        ) {
-            return {
-                fontSize,
-                font,
-                items,
-                totalHeight,
-                left,
-                right,
-                top,
-                bottom,
-                maxWidth,
-                availableHeight
-            };
+        if (total <= availableHeight) {
+            break;
         }
 
         fontSize -= 2;
     }
 
-    const font =
-        fontString(28, "Parastoo");
-
-    const lines =
-        prepareLines(
-            text,
-            font,
-            maxWidth
-        );
-
-    const items =
-        calculateLineInfo(
-            lines,
-            font
-        );
-
-    return {
-        fontSize: 28,
-        font,
-        items,
-        totalHeight: calculateHeight(items),
-        left,
-        right,
-        top,
-        bottom,
-        maxWidth,
-        availableHeight
-    };
-}
-
-function drawPoem(p) {
-    const text = poemInput.value;
-
-    if (!text.trim()) {
-        return;
+    if (!lines.length) {
+        fontSize = 46;
+        lines = ["متن خالی است"];
     }
 
-    const result = fitPoem(text);
+    ctx.font =
+        `400 ${fontSize * S}px "Parastoo", sans-serif`;
 
-    const {
-        font,
-        items,
-        totalHeight,
-        left,
-        top,
-        bottom,
-        maxWidth,
-        availableHeight
-    } = result;
+    const totalHeight =
+        calculateTotalHeight(
+            lines,
+            fontSize
+        );
 
-    /*
-     * Python:
-     *
-     * y = top + (available_height-total_height)/2
-     * max(top, y)
-     * if overflow:
-     *     y = bottom-total_height
-     */
     let y =
         top +
         (availableHeight - totalHeight) / 2;
 
-    y = Math.max(top, y);
-
-    if (y + totalHeight > bottom) {
-        y = bottom - totalHeight;
+    if (y < top) {
+        y = top;
     }
 
-    ctx.font = font;
-    ctx.textBaseline = "alphabetic";
-    ctx.textAlign = "left";
+    if (
+        y + totalHeight >
+        bottom
+    ) {
+        y =
+            bottom -
+            totalHeight;
+    }
 
-    for (const item of items) {
-        if (item.line === null) {
-            y += 48;
+    for (const line of lines) {
+        if (line === null) {
+            y += BLANK_LINE_SPACING;
             continue;
         }
 
-        const x =
+        ctx.font =
+            `400 ${fontSize * S}px "Parastoo", sans-serif`;
+
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.direction = "rtl";
+
+        const width =
+            ctx.measureText(line).width / S;
+
+        let x =
             left +
-            (maxWidth - item.width) / 2;
+            (maxWidth - width) / 2;
 
-        /*
-         * Python:
-         *
-         * d.text(
-         *   (x, y-bbox[1]),
-         *   line,
-         *   ...
-         * )
-         *
-         * Canvas equivalent:
-         * baseline = y + ascent
-         */
-        const metrics =
-            ctx.measureText(item.line);
+        if (x < left) {
+            x = left;
+        }
 
-        const ascent =
-            metrics.actualBoundingBoxAscent ||
-            scale(40);
+        ctx.fillStyle =
+            rgba(p.text);
 
-        ctx.fillStyle = rgb(p.text);
+        ctx.strokeStyle =
+            rgba(p.text);
 
-        /*
-         * Python:
-         * stroke_width=1
-         * stroke_fill=text
-         */
-        ctx.lineWidth = scale(1);
-        ctx.strokeStyle = rgb(p.text);
-
-        const baseline =
-            scale(y) + ascent;
-
-        ctx.strokeText(
-            item.line,
-            scale(x),
-            baseline
-        );
+        ctx.lineWidth =
+            1 * S;
 
         ctx.fillText(
-            item.line,
-            scale(x),
-            baseline
+            line,
+            x * S,
+            y * S
         );
 
-        y += item.height + 32;
+        ctx.strokeText(
+            line,
+            x * S,
+            y * S
+        );
+
+        const h =
+            calculateLineHeight(
+                line,
+                fontSize
+            );
+
+        y += h + LINE_SPACING;
     }
 
     /*
-     * خطوط کناری دقیقاً طبق بات:
-     *
-     * x = 65
-     * x = 1015
-     *
-     * center_y =
-     * top + available_height // 2
-     *
-     * ±30
+     * خطوط کناری دقیقاً مطابق بات:
+     * x = 65 و 1015
+     * y = 495 تا 555
      */
     const centerY =
-        top + Math.floor(availableHeight / 2);
+        top +
+        Math.floor(
+            availableHeight / 2
+        );
 
-    ctx.strokeStyle = rgba(p.side_line);
-    ctx.lineWidth = scale(2);
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        scale(65),
-        scale(centerY - 30)
+    drawLine(
+        65,
+        centerY - 30,
+        65,
+        centerY + 30,
+        rgba(p.side_line),
+        2
     );
 
-    ctx.lineTo(
-        scale(65),
-        scale(centerY + 30)
+    drawLine(
+        1015,
+        centerY - 30,
+        1015,
+        centerY + 30,
+        rgba(p.side_line),
+        2
     );
 
-    ctx.moveTo(
-        scale(1015),
-        scale(centerY - 30)
-    );
+    ctx.fillStyle =
+        rgba(p.side_dot);
 
-    ctx.lineTo(
-        scale(1015),
-        scale(centerY + 30)
-    );
-
-    ctx.stroke();
-
-    /*
-     * نقطه‌های دقیقاً در انتهای خطوط
-     */
-    ctx.fillStyle = rgba(p.side_dot);
-
-    ctx.beginPath();
-
-    ctx.arc(
-        scale(65),
-        scale(centerY - 30),
-        scale(3),
-        0,
-        Math.PI * 2
-    );
-
-    ctx.arc(
-        scale(65),
-        scale(centerY + 30),
-        scale(3),
-        0,
-        Math.PI * 2
-    );
-
-    ctx.arc(
-        scale(1015),
-        scale(centerY - 30),
-        scale(3),
-        0,
-        Math.PI * 2
-    );
-
-    ctx.arc(
-        scale(1015),
-        scale(centerY + 30),
-        scale(3),
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
+    for (const x of [65, 1015]) {
+        for (
+            const yy of [
+                centerY - 30,
+                centerY + 30
+            ]
+        ) {
+            ctx.beginPath();
+            ctx.arc(
+                x * S,
+                yy * S,
+                3 * S,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
+    }
 }
 
-async function renderCard() {
-    const text = poemInput.value.trim();
+async function createCard() {
+    const text =
+        poemInput.value.trim();
 
-    if (!text) {
-        ctx.clearRect(0, 0, RW, RH);
+    const p =
+        PALETTES[selectedPalette];
 
-        canvas.style.display = "none";
-        previewEmpty.style.display = "flex";
+    ctx.clearRect(
+        0,
+        0,
+        RW,
+        RH
+    );
 
-        downloadBtn.disabled = true;
-        shareBtn.disabled = true;
+    await buildBackground(p);
 
-        return;
-    }
-
-    canvas.style.display = "block";
-    previewEmpty.style.display = "none";
-
-    const p = selectedPalette;
-
-    const bg = drawBackground(p);
-
-    ctx.clearRect(0, 0, RW, RH);
-
-    ctx.drawImage(bg, 0, 0);
-
-    /*
-     * ترتیب create_card پایتون:
-     *
-     * background
-     * frame
-     * branding
-     * panel
-     * panel outline
-     * poem
-     */
     drawFrame(p);
 
     drawBranding(p);
 
-    const panel = buildPanel();
+    drawPanel(p);
 
-    ctx.drawImage(
-        panel,
-        0,
-        0
+    if (text) {
+        drawPoem(
+            p,
+            text
+        );
+    }
+
+    hasText = Boolean(text);
+
+    canvas.style.display =
+        "block";
+
+    previewEmpty.style.display =
+        "none";
+
+    downloadBtn.disabled =
+        !hasText;
+
+    shareBtn.disabled =
+        !hasText;
+}
+
+function renderWhenReady() {
+    createCard().catch(
+        console.error
     );
+}
 
-    /*
-     * palette panel outline:
-     * (100,160,980,890)
-     */
-    drawRoundedRect(
-        canvas,
-        100,
-        160,
-        880,
-        730,
-        45,
-        null,
-        rgba(p.panel_outline),
-        2
-    );
+async function loadFonts() {
+    try {
+        await Promise.all([
+            document.fonts.load(
+                `700 ${50 * S}px "BTitrBd"`
+            ),
+            document.fonts.load(
+                `400 ${23 * S}px "Vazirmatn"`
+            ),
+            document.fonts.load(
+                `400 ${66 * S}px "Parastoo"`
+            )
+        ]);
 
-    drawPoem(p);
+        await document.fonts.ready;
 
-    downloadBtn.disabled = false;
-    shareBtn.disabled = false;
+    } catch (error) {
+        console.warn(
+            "Font loading warning:",
+            error
+        );
+    }
 }
 
 function createPaletteButtons() {
     paletteButtons.innerHTML = "";
 
-    PALETTES.forEach((p, index) => {
-        const button =
-            document.createElement("button");
+    PALETTES.forEach(
+        (palette, index) => {
+            const button =
+                document.createElement("button");
 
-        button.type = "button";
-        button.className = "palette-btn";
+            button.type = "button";
+            button.className =
+                "palette-btn";
 
-        if (index === 0) {
-            button.classList.add("active");
-        }
+            button.textContent =
+                palette.name;
 
-        button.textContent = p.name;
+            button.style.background =
+                `linear-gradient(135deg,
+                    rgb(${palette.top.join(",")}),
+                    rgb(${palette.bottom.join(",")})
+                )`;
 
-        button.style.background =
-            `linear-gradient(135deg,
-                ${rgb(p.top)},
-                ${rgb(p.bottom)})`;
+            button.style.color =
+                "white";
 
-        button.style.color =
-            rgb(p.text);
+            if (index === selectedPalette) {
+                button.classList.add(
+                    "active"
+                );
+            }
 
-        button.style.borderColor =
-            rgba(p.frame);
+            button.addEventListener(
+                "click",
+                () => {
+                    selectedPalette = index;
 
-        button.addEventListener(
-            "click",
-            () => {
-                selectedPalette = p;
+                    document
+                        .querySelectorAll(
+                            ".palette-btn"
+                        )
+                        .forEach(
+                            btn =>
+                                btn.classList.remove(
+                                    "active"
+                                )
+                        );
 
-                document
-                    .querySelectorAll(".palette-btn")
-                    .forEach(btn =>
-                        btn.classList.remove("active")
+                    button.classList.add(
+                        "active"
                     );
 
-                button.classList.add("active");
+                    renderWhenReady();
+                }
+            );
 
-                renderCard();
-            }
-        );
-
-        paletteButtons.appendChild(button);
-    });
+            paletteButtons.appendChild(
+                button
+            );
+        }
+    );
 }
 
 document
-    .querySelectorAll(".option-btn")
+    .querySelectorAll(
+        ".option-btn"
+    )
     .forEach(button => {
         button.addEventListener(
             "click",
             () => {
                 branded =
-                    button.dataset.branded === "true";
+                    button.dataset.branded ===
+                    "true";
 
                 document
-                    .querySelectorAll(".option-btn")
-                    .forEach(btn =>
-                        btn.classList.remove("active")
+                    .querySelectorAll(
+                        ".option-btn"
+                    )
+                    .forEach(
+                        btn =>
+                            btn.classList.remove(
+                                "active"
+                            )
                     );
 
-                button.classList.add("active");
+                button.classList.add(
+                    "active"
+                );
 
-                renderCard();
+                renderWhenReady();
             }
         );
     });
 
 poemInput.addEventListener(
     "input",
-    () => {
-        renderCard();
-    }
+    renderWhenReady
 );
 
 downloadBtn.addEventListener(
     "click",
     () => {
-        if (!poemInput.value.trim()) {
-            return;
-        }
+        if (!hasText) return;
 
         const link =
             document.createElement("a");
@@ -1495,7 +1267,9 @@ downloadBtn.addEventListener(
             "kart-shere.png";
 
         link.href =
-            canvas.toDataURL("image/png");
+            canvas.toDataURL(
+                "image/png"
+            );
 
         link.click();
     }
@@ -1504,70 +1278,58 @@ downloadBtn.addEventListener(
 shareBtn.addEventListener(
     "click",
     async () => {
-        if (!poemInput.value.trim()) {
-            return;
-        }
+        if (!hasText) return;
 
         try {
             const blob =
-                await new Promise(resolve =>
-                    canvas.toBlob(
-                        resolve,
-                        "image/png"
-                    )
+                await new Promise(
+                    resolve =>
+                        canvas.toBlob(
+                            resolve,
+                            "image/png"
+                        )
+                );
+
+            const file =
+                new File(
+                    [blob],
+                    "kart-shere.png",
+                    {
+                        type: "image/png"
+                    }
                 );
 
             if (
                 navigator.share &&
-                navigator.canShare
+                navigator.canShare &&
+                navigator.canShare({
+                    files: [file]
+                })
             ) {
-                const file =
-                    new File(
-                        [blob],
-                        "kart-shere.png",
-                        {
-                            type: "image/png"
-                        }
-                    );
-
-                if (
-                    navigator.canShare({
-                        files: [file]
-                    })
-                ) {
-                    await navigator.share({
-                        files: [file],
-                        title: "کارت شعر"
-                    });
-
-                    return;
-                }
+                await navigator.share({
+                    files: [file],
+                    title: "کارت شعر"
+                });
+            } else {
+                alert(
+                    "اشتراک‌گذاری فایل در این مرورگر پشتیبانی نمی‌شود."
+                );
             }
 
-            const link =
-                document.createElement("a");
-
-            link.href =
-                URL.createObjectURL(blob);
-
-            link.download =
-                "kart-shere.png";
-
-            link.click();
-
-            setTimeout(
-                () =>
-                    URL.revokeObjectURL(
-                        link.href
-                    ),
-                1000
-            );
         } catch (error) {
-            console.error(error);
+            if (
+                error &&
+                error.name !== "AbortError"
+            ) {
+                console.error(error);
+            }
         }
     }
 );
 
 createPaletteButtons();
 
-renderCard();
+(async () => {
+    await loadFonts();
+    await createCard();
+})();
