@@ -1,3 +1,27 @@
+@font-face {
+    font-family: "Parastoo";
+    src: url("https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/Parastoo%5Bwght%5D.ttf") format("truetype");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "BTitrBd";
+    src: url("https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/BTitrBd.ttf") format("truetype");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/Vazirmatn-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --bg: #f5f7f8;
     --card: #ffffff;
@@ -23,12 +47,7 @@ body {
 body {
     background: var(--bg);
     color: var(--text);
-    font-family: Arial, sans-serif;
-}
-
-button,
-textarea {
-    font: inherit;
+    font-family: "Vazirmatn", Arial, sans-serif;
 }
 
 .app {
@@ -44,12 +63,14 @@ textarea {
 
 .header h1 {
     margin: 0 0 6px;
+    font-family: "BTitrBd", "Vazirmatn", sans-serif;
     font-size: 28px;
 }
 
 .header p {
     margin: 0;
     color: var(--muted);
+    font-family: "Vazirmatn", sans-serif;
     font-size: 14px;
 }
 
@@ -86,6 +107,7 @@ textarea {
 
 .preview-empty p {
     margin: 0;
+    font-family: "Vazirmatn", sans-serif;
 }
 
 .editor {
@@ -99,6 +121,7 @@ textarea {
 .option-group > span {
     display: block;
     margin-bottom: 9px;
+    font-family: "Vazirmatn", sans-serif;
     font-size: 14px;
     font-weight: 700;
 }
@@ -113,6 +136,8 @@ textarea {
     outline: none;
     color: var(--text);
     background: #fff;
+    font-family: "Parastoo", "Vazirmatn", sans-serif;
+    font-size: 18px;
     line-height: 1.9;
     direction: rtl;
     text-align: right;
@@ -143,6 +168,7 @@ textarea:focus {
     background: #fff;
     cursor: pointer;
     transition: .2s;
+    font-family: "Vazirmatn", sans-serif;
 }
 
 .option-btn {
@@ -220,6 +246,5 @@ textarea:focus {
         grid-template-columns: 1fr;
     }
 }
-
 
 
