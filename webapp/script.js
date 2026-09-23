@@ -132,7 +132,6 @@ const PALETTES = [
         side_dot: [225, 170, 158, 105]
     },
 
-    // سه رنگ روشن؛ زمینه کمی تیره‌تر شده
     {
         name: "کرم",
         top: [232, 218, 187],
@@ -191,17 +190,22 @@ const PALETTES = [
 
 let selectedPalette = 0;
 let branded = true;
-let backgroundImage = null;
 let currentPoem = "";
 
 function rgba(color) {
-    if (!color) return "transparent";
+    if (!color) {
+        return "transparent";
+    }
 
     if (color.length === 3) {
         return `rgb(${color[0]},${color[1]},${color[2]})`;
     }
 
     return `rgba(${color[0]},${color[1]},${color[2]},${color[3] / 255})`;
+}
+
+function rgba3(color) {
+    return `rgb(${color[0]},${color[1]},${color[2]})`;
 }
 
 function isLightPalette(p) {
@@ -213,18 +217,60 @@ function isLightPalette(p) {
 }
 
 function roundedPath(x, y, w, h, radius) {
-    const r = Math.min(radius, w / 2, h / 2);
+    const r = Math.min(
+        radius,
+        w / 2,
+        h / 2
+    );
 
     ctx.beginPath();
+
     ctx.moveTo(x + r, y);
     ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
+
+    ctx.quadraticCurveTo(
+        x + w,
+        y,
+        x + w,
+        y + r
+    );
+
+    ctx.lineTo(
+        x + w,
+        y + h - r
+    );
+
+    ctx.quadraticCurveTo(
+        x + w,
+        y + h,
+        x + w - r,
+        y + h
+    );
+
+    ctx.lineTo(
+        x + r,
+        y + h
+    );
+
+    ctx.quadraticCurveTo(
+        x,
+        y + h,
+        x,
+        y + h - r
+    );
+
+    ctx.lineTo(
+        x,
+        y + r
+    );
+
+    ctx.quadraticCurveTo(
+        x,
+        y,
+        x + r,
+        y
+    );
+
     ctx.closePath();
 }
 
@@ -238,7 +284,13 @@ function drawRoundedRect(
     strokeStyle = null,
     lineWidth = 1
 ) {
-    roundedPath(x, y, w, h, radius);
+    roundedPath(
+        x,
+        y,
+        w,
+        h,
+        radius
+    );
 
     if (fillStyle) {
         ctx.fillStyle = fillStyle;
@@ -252,58 +304,39 @@ function drawRoundedRect(
     }
 }
 
-function interpolate(a, b, t) {
-    return Math.round(a + (b - a) * t);
-}
-
-function gradientColor(p, y) {
-    const ratio = y / (H - 1);
-
-    if (ratio <= 0.52) {
-        const t = ratio / 0.52;
-
-        return [
-            interpolate(p.top[0], p.middle[0], t),
-            interpolate(p.top[1], p.middle[1], t),
-            interpolate(p.top[2], p.middle[2], t)
-        ];
-    }
-
-    const t = (ratio - 0.52) / 0.48;
-
-    return [
-        interpolate(p.middle[0], p.bottom[0], t),
-        interpolate(p.middle[1], p.bottom[1], t),
-        interpolate(p.middle[2], p.bottom[2], t)
-    ];
-}
-
 function drawBackground(p) {
-    const gradient = ctx.createLinearGradient(0, 0, 0, H);
-
-    const top = p.top;
-    const middle = p.middle;
-    const bottom = p.bottom;
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            H
+        );
 
     gradient.addColorStop(
         0,
-        `rgb(${top[0]},${top[1]},${top[2]})`
+        rgba3(p.top)
     );
 
     gradient.addColorStop(
         0.52,
-        `rgb(${middle[0]},${middle[1]},${middle[2]})`
+        rgba3(p.middle)
     );
 
     gradient.addColorStop(
         1,
-        `rgb(${bottom[0]},${bottom[1]},${bottom[2]})`
+        rgba3(p.bottom)
     );
 
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, H);
 
-    // هاله‌های نرم
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
     drawGlow(
         -130,
         -90,
@@ -328,79 +361,140 @@ function drawBackground(p) {
         rgba(p.glow3)
     );
 
-    // برای سه رنگ روشن، کمی تیرگی کلی
-    // تا زمینه بیش از حد سفید و تخت نباشد.
     if (isLightPalette(p)) {
-        ctx.fillStyle = "rgba(0,0,0,0.055)";
-        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle =
+            "rgba(0,0,0,0.055)";
+
+        ctx.fillRect(
+            0,
+            0,
+            W,
+            H
+        );
     }
 
     drawTexture();
 }
 
-function drawGlow(x, y, w, h, color) {
-    const temp = document.createElement("canvas");
+function drawGlow(
+    x,
+    y,
+    w,
+    h,
+    color
+) {
+    const temp =
+        document.createElement(
+            "canvas"
+        );
+
     temp.width = W;
     temp.height = H;
 
-    const tctx = temp.getContext("2d");
+    const tctx =
+        temp.getContext("2d");
 
-    const g = tctx.createRadialGradient(
-        x + w / 2,
-        y + h / 2,
-        0,
-        x + w / 2,
-        y + h / 2,
-        Math.max(w, h) / 2
-    );
+    const match =
+        color.match(
+            /rgba?\((\d+),(\d+),(\d+),([\d.]+)\)/
+        );
 
-    const match = color.match(
-        /rgba?\((\d+),(\d+),(\d+),([\d.]+)\)/
-    );
-
-    if (!match) return;
+    if (!match) {
+        return;
+    }
 
     const r = match[1];
-    const gValue = match[2];
+    const g = match[2];
     const b = match[3];
     const a = parseFloat(match[4]);
 
-    g.addColorStop(
+    const cx =
+        x + w / 2;
+
+    const cy =
+        y + h / 2;
+
+    const radius =
+        Math.max(w, h) / 2;
+
+    const gradient =
+        tctx.createRadialGradient(
+            cx,
+            cy,
+            0,
+            cx,
+            cy,
+            radius
+        );
+
+    gradient.addColorStop(
         0,
-        `rgba(${r},${gValue},${b},${a})`
+        `rgba(${r},${g},${b},${a})`
     );
 
-    g.addColorStop(
+    gradient.addColorStop(
         1,
-        `rgba(${r},${gValue},${b},0)`
+        `rgba(${r},${g},${b},0)`
     );
 
-    tctx.fillStyle = g;
-    tctx.fillRect(0, 0, W, H);
+    tctx.fillStyle =
+        gradient;
+
+    tctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
 
     ctx.save();
-    ctx.filter = "blur(55px)";
-    ctx.globalCompositeOperation = "screen";
-    ctx.drawImage(temp, 0, 0);
+
+    ctx.filter =
+        "blur(55px)";
+
+    ctx.globalCompositeOperation =
+        "screen";
+
+    ctx.drawImage(
+        temp,
+        0,
+        0
+    );
+
     ctx.restore();
 }
 
 function drawTexture() {
-    const random = mulberry32(8);
+    const random =
+        mulberry32(8);
 
     ctx.save();
 
-    for (let i = 0; i < 18000; i++) {
-        const x = random() * W;
-        const y = random() * H;
+    for (
+        let i = 0;
+        i < 18000;
+        i++
+    ) {
+        const x =
+            random() * W;
 
-        const white = random() > 0.5;
+        const y =
+            random() * H;
 
-        ctx.fillStyle = white
-            ? "rgba(255,255,255,0.012)"
-            : "rgba(0,0,0,0.016)";
+        const white =
+            random() > 0.5;
 
-        ctx.fillRect(x, y, 1, 1);
+        ctx.fillStyle =
+            white
+                ? "rgba(255,255,255,0.012)"
+                : "rgba(0,0,0,0.016)";
+
+        ctx.fillRect(
+            x,
+            y,
+            1,
+            1
+        );
     }
 
     ctx.restore();
@@ -408,17 +502,21 @@ function drawTexture() {
 
 function mulberry32(seed) {
     return function () {
-        let t = seed += 0x6D2B79F5;
+        let t =
+            seed +=
+            0x6D2B79F5;
 
         t = Math.imul(
             t ^ (t >>> 15),
             t | 1
         );
 
-        t ^= t + Math.imul(
-            t ^ (t >>> 7),
-            t | 61
-        );
+        t ^=
+            t +
+            Math.imul(
+                t ^ (t >>> 7),
+                t | 61
+            );
 
         return (
             ((t ^ (t >>> 14)) >>> 0) /
@@ -428,22 +526,24 @@ function mulberry32(seed) {
 }
 
 function drawGlassPanel(p) {
-    const light = isLightPalette(p);
+    const light =
+        isLightPalette(p);
 
     ctx.save();
 
-    /*
-     * لایه اصلی شیشه:
-     * برای رنگ‌های روشن، تیرگی بسیار ملایم زیر
-     * یک لایه سفید نیمه‌شفاف قرار می‌گیرد تا
-     * هم عمق ایجاد شود و هم زمینه پشت پنل دیده شود.
-     */
     if (light) {
-        // سایه بسیار نرم بیرونی
+
+        /*
+         * لایه سایه زیر شیشه
+         * باعث می‌شود پنل از زمینه جدا دیده شود.
+         */
         ctx.save();
-        ctx.shadowColor = "rgba(0,0,0,0.16)";
-        ctx.shadowBlur = 22;
-        ctx.shadowOffsetY = 5;
+
+        ctx.shadowColor =
+            "rgba(0,0,0,0.22)";
+
+        ctx.shadowBlur = 26;
+        ctx.shadowOffsetY = 6;
 
         drawRoundedRect(
             100,
@@ -451,99 +551,79 @@ function drawGlassPanel(p) {
             880,
             730,
             45,
-            "rgba(30,35,30,0.055)"
+            "rgba(25,30,25,0.085)"
         );
 
         ctx.restore();
 
-        // شیشه اصلی؛ گرادیان بسیار ملایم
-        roundedPath(100, 160, 880, 730, 45);
-
-        const glassGradient = ctx.createLinearGradient(
-            0,
+        /*
+         * شیشه اصلی
+         * عمداً کمی تیره‌تر از نسخه قبل
+         * تا تفاوت آن با زمینه کاملاً مشخص باشد.
+         */
+        roundedPath(
+            100,
             160,
-            0,
-            890
+            880,
+            730,
+            45
         );
+
+        const glassGradient =
+            ctx.createLinearGradient(
+                0,
+                160,
+                0,
+                890
+            );
 
         glassGradient.addColorStop(
             0,
-            "rgba(255,255,255,0.135)"
+            "rgba(255,255,255,0.16)"
         );
 
         glassGradient.addColorStop(
-            0.20,
-            "rgba(255,255,255,0.085)"
+            0.18,
+            "rgba(255,255,255,0.10)"
         );
 
         glassGradient.addColorStop(
-            0.58,
-            "rgba(255,255,255,0.052)"
+            0.50,
+            "rgba(245,245,245,0.065)"
+        );
+
+        glassGradient.addColorStop(
+            0.78,
+            "rgba(30,35,30,0.075)"
         );
 
         glassGradient.addColorStop(
             1,
-            "rgba(25,30,25,0.085)"
+            "rgba(20,25,20,0.12)"
         );
 
-        ctx.fillStyle = glassGradient;
+        ctx.fillStyle =
+            glassGradient;
+
         ctx.fill();
 
-        // لایه خیلی ظریف تیره برای عمق شیشه
+        /*
+         * لایه شفاف تیره
+         * برای ایجاد تفاوت محسوس با زمینه.
+         */
         drawRoundedRect(
             100,
             164,
             880,
             732,
             45,
-            "rgba(25,30,25,0.045)"
+            "rgba(30,35,30,0.065)"
         );
 
-        // هایلایت داخلی شیشه
-        drawRoundedRect(
-            110,
-            170,
-            860,
-            710,
-            37,
-            null,
-            "rgba(255,255,255,0.14)",
-            1
-        );
-
-        // خط درخشش بالایی
-        ctx.save();
-
-        roundedPath(118, 178, 844, 300, 32);
-
-        const highlight = ctx.createLinearGradient(
-            0,
-            178,
-            0,
-            478
-        );
-
-        highlight.addColorStop(
-            0,
-            "rgba(255,255,255,0.075)"
-        );
-
-        highlight.addColorStop(
-            0.45,
-            "rgba(255,255,255,0.025)"
-        );
-
-        highlight.addColorStop(
-            1,
-            "rgba(255,255,255,0)"
-        );
-
-        ctx.fillStyle = highlight;
-        ctx.fill();
-
-        ctx.restore();
-
-        // کادر رنگی ظریف
+        /*
+         * کادر اصلی شیشه
+         * عمداً واضح‌تر شده.
+         */
         drawRoundedRect(
             100,
             160,
@@ -552,22 +632,85 @@ function drawGlassPanel(p) {
             45,
             null,
             rgba(p.panel_outline),
-            1.4
+            3
         );
 
-        // خط داخلی بسیار ظریف
+        /*
+         * خط روشن داخلی
+         */
         drawRoundedRect(
-            112,
-            172,
-            856,
-            706,
-            35,
+            108,
+            168,
+            864,
+            714,
+            39,
             null,
-            "rgba(255,255,255,0.055)",
+            "rgba(255,255,255,0.24)",
+            1.5
+        );
+
+        /*
+         * خط داخلی دوم
+         */
+        drawRoundedRect(
+            116,
+            176,
+            848,
+            698,
+            33,
+            null,
+            "rgba(255,255,255,0.075)",
             1
         );
+
+        /*
+         * انعکاس نور در قسمت بالایی
+         */
+        ctx.save();
+
+        roundedPath(
+            118,
+            178,
+            844,
+            300,
+            32
+        );
+
+        const highlight =
+            ctx.createLinearGradient(
+                0,
+                178,
+                0,
+                478
+            );
+
+        highlight.addColorStop(
+            0,
+            "rgba(255,255,255,0.105)"
+        );
+
+        highlight.addColorStop(
+            0.40,
+            "rgba(255,255,255,0.035)"
+        );
+
+        highlight.addColorStop(
+            1,
+            "rgba(255,255,255,0)"
+        );
+
+        ctx.fillStyle =
+            highlight;
+
+        ctx.fill();
+
+        ctx.restore();
+
     } else {
-        // پنل دقیقاً با حس نسخه تیره
+
+        /*
+         * پنل رنگ‌های تیره
+         */
         drawRoundedRect(
             100,
             164,
@@ -600,7 +743,10 @@ function drawGlassPanel(p) {
 
     ctx.restore();
 
-    // کادر اصلی پنل
+    /*
+     * کادر نهایی پنل
+     * برای هر دو گروه رنگ.
+     */
     drawRoundedRect(
         100,
         160,
@@ -609,8 +755,50 @@ function drawGlassPanel(p) {
         45,
         null,
         rgba(p.panel_outline),
-        2
+        light ? 2.5 : 2
     );
+}
+
+function getTextSize(
+    text,
+    font
+) {
+    ctx.save();
+
+    ctx.font = font;
+
+    const metrics =
+        ctx.measureText(text);
+
+    const width =
+        metrics.width;
+
+    const ascent =
+        metrics.actualBoundingBoxAscent ||
+        0;
+
+    const descent =
+        metrics.actualBoundingBoxDescent ||
+        0;
+
+    const height =
+        ascent + descent;
+
+    ctx.restore();
+
+    return {
+        width,
+        height,
+        ascent,
+        descent
+    };
+}
+
+function loadFont(
+    fontFamily,
+    size
+) {
+    return `${size}px "${fontFamily}"`;
 }
 
 function drawFrame(p) {
@@ -637,83 +825,95 @@ function drawFrame(p) {
     );
 }
 
-function rgba3(c) {
-    return `rgb(${c[0]},${c[1]},${c[2]})`;
-}
-
-function loadFont(fontFamily, size) {
-    return `${size}px "${fontFamily}"`;
-}
-
-function getTextSize(text, font) {
-    ctx.save();
-    ctx.font = font;
-
-    const metrics = ctx.measureText(text);
-
-    const width = metrics.width;
-
-    const ascent =
-        metrics.actualBoundingBoxAscent || 0;
-
-    const descent =
-        metrics.actualBoundingBoxDescent || 0;
-
-    const height = ascent + descent;
-
-    ctx.restore();
-
-    return {
-        width,
-        height,
-        ascent,
-        descent
-    };
-}
-
 function drawBranding(p) {
-    const titleFont = loadFont(TITLE_FONT, 50);
-    const subFont = loadFont(SUB_FONT, 23);
-    const footFont = loadFont(SUB_FONT, 23);
+    const titleFont =
+        loadFont(
+            TITLE_FONT,
+            50
+        );
 
-    const title = "شعرکده";
-    const subtitle = "( سروش پلاس )";
-    const footer = "کارت شعر";
+    const subFont =
+        loadFont(
+            SUB_FONT,
+            23
+        );
 
-    const titleSize = getTextSize(title, titleFont);
-    const subtitleSize = getTextSize(subtitle, subFont);
-    const footerSize = getTextSize(footer, footFont);
+    const footFont =
+        loadFont(
+            SUB_FONT,
+            23
+        );
+
+    const title =
+        "شعرکده";
+
+    const subtitle =
+        "( سروش پلاس )";
+
+    const footer =
+        "کارت شعر";
+
+    const titleSize =
+        getTextSize(
+            title,
+            titleFont
+        );
+
+    const subtitleSize =
+        getTextSize(
+            subtitle,
+            subFont
+        );
+
+    const footerSize =
+        getTextSize(
+            footer,
+            footFont
+        );
 
     const footerY = 78;
+
     const footerX =
         (W - footerSize.width) / 2;
 
     ctx.save();
 
-    // footer shadow
-    ctx.fillStyle = "rgba(0,0,0,0.24)";
-    ctx.font = footFont;
+    ctx.font =
+        footFont;
+
+    ctx.fillStyle =
+        "rgba(0,0,0,0.24)";
+
     ctx.fillText(
         footer,
         footerX + 1,
-        footerY + footerSize.ascent + 2
+        footerY +
+            footerSize.ascent +
+            2
     );
 
-    ctx.fillStyle = rgba3(p.accent);
+    ctx.fillStyle =
+        rgba3(p.accent);
+
     ctx.fillText(
         footer,
         footerX,
-        footerY + footerSize.ascent
+        footerY +
+            footerSize.ascent
     );
 
     drawOrnament(
-        footerY + footerSize.height + 25,
+        footerY +
+            footerSize.height +
+            25,
         p
     );
 
     if (branded) {
         const titleY =
-            H - 78 - titleSize.height;
+            H -
+            78 -
+            titleSize.height;
 
         const titleX =
             W / 2 + 10;
@@ -725,33 +925,47 @@ function drawBranding(p) {
 
         const subtitleY =
             titleY +
-            (titleSize.height - subtitleSize.height) / 2 -
+            (
+                titleSize.height -
+                subtitleSize.height
+            ) / 2 -
             3;
 
-        ctx.font = titleFont;
+        ctx.font =
+            titleFont;
 
-        // title shadow
-        ctx.fillStyle = "rgba(0,0,0,0.31)";
+        ctx.fillStyle =
+            "rgba(0,0,0,0.31)";
+
         ctx.fillText(
             title,
             titleX + 2,
-            titleY + titleSize.ascent + 3
+            titleY +
+                titleSize.ascent +
+                3
         );
 
-        ctx.fillStyle = rgba3(p.accent);
+        ctx.fillStyle =
+            rgba3(p.accent);
+
         ctx.fillText(
             title,
             titleX,
-            titleY + titleSize.ascent
+            titleY +
+                titleSize.ascent
         );
 
-        ctx.font = subFont;
-        ctx.fillStyle = rgba3(p.subtitle);
+        ctx.font =
+            subFont;
+
+        ctx.fillStyle =
+            rgba3(p.subtitle);
 
         ctx.fillText(
             subtitle,
             subtitleX,
-            subtitleY + subtitleSize.ascent
+            subtitleY +
+                subtitleSize.ascent
         );
 
         drawOrnament(
@@ -768,106 +982,185 @@ function drawBranding(p) {
     ctx.restore();
 }
 
-function drawOrnament(y, p) {
-    const center = W / 2;
+function drawOrnament(
+    y,
+    p
+) {
+    const center =
+        W / 2;
+
     const width = 150;
 
     ctx.save();
 
-    ctx.strokeStyle = rgba3(p.ornament);
+    ctx.strokeStyle =
+        rgba3(p.ornament);
+
     ctx.lineWidth = 2;
 
     ctx.beginPath();
-    ctx.moveTo(center - width, y);
-    ctx.lineTo(center - 12, y);
+
+    ctx.moveTo(
+        center - width,
+        y
+    );
+
+    ctx.lineTo(
+        center - 12,
+        y
+    );
+
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(center + 12, y);
-    ctx.lineTo(center + width, y);
+
+    ctx.moveTo(
+        center + 12,
+        y
+    );
+
+    ctx.lineTo(
+        center + width,
+        y
+    );
+
     ctx.stroke();
 
-    ctx.fillStyle = rgba3(p.accent);
+    ctx.fillStyle =
+        rgba3(p.accent);
 
     ctx.beginPath();
-    ctx.moveTo(center, y - 5);
-    ctx.lineTo(center + 5, y);
-    ctx.lineTo(center, y + 5);
-    ctx.lineTo(center - 5, y);
+
+    ctx.moveTo(
+        center,
+        y - 5
+    );
+
+    ctx.lineTo(
+        center + 5,
+        y
+    );
+
+    ctx.lineTo(
+        center,
+        y + 5
+    );
+
+    ctx.lineTo(
+        center - 5,
+        y
+    );
+
     ctx.closePath();
+
     ctx.fill();
 
     ctx.restore();
 }
 
-function prepareLines(text, font) {
-    const rawLines = text
-        .replace(/…/g, "...")
-        .split(/\r?\n/);
+function prepareLines(
+    text,
+    font
+) {
+    const rawLines =
+        text
+            .replace(/…/g, "...")
+            .split(/\r?\n/);
 
     const result = [];
 
-    for (const raw of rawLines) {
+    for (
+        const raw of rawLines
+    ) {
         if (!raw.trim()) {
             result.push(null);
             continue;
         }
 
-        const words = raw.trim().split(/\s+/);
+        const words =
+            raw
+                .trim()
+                .split(/\s+/);
+
         let current = "";
 
-        for (const word of words) {
+        for (
+            const word of words
+        ) {
             const candidate =
                 current.length
                     ? `${current} ${word}`
                     : word;
 
-            const size = getTextSize(
-                candidate,
-                font
-            );
+            const size =
+                getTextSize(
+                    candidate,
+                    font
+                );
 
             if (
                 size.width <= 790 ||
                 !current
             ) {
-                current = candidate;
+                current =
+                    candidate;
             } else {
-                result.push(current);
-                current = word;
+                result.push(
+                    current
+                );
+
+                current =
+                    word;
             }
         }
 
         if (current) {
-            result.push(current);
+            result.push(
+                current
+            );
         }
     }
 
     return result;
 }
 
-function calculateTextHeight(lines, font) {
+function calculateTextHeight(
+    lines,
+    font
+) {
     let total = 0;
     let lastWasNonBlank = false;
 
-    for (const line of lines) {
+    for (
+        const line of lines
+    ) {
         if (line === null) {
-            total += BLANK_LINE_SPACING;
-            lastWasNonBlank = false;
+            total +=
+                BLANK_LINE_SPACING;
+
+            lastWasNonBlank =
+                false;
+
             continue;
         }
 
-        const size = getTextSize(
-            line,
-            font
-        );
+        const size =
+            getTextSize(
+                line,
+                font
+            );
 
-        total += size.height + LINE_SPACING;
-        lastWasNonBlank = true;
+        total +=
+            size.height +
+            LINE_SPACING;
+
+        lastWasNonBlank =
+            true;
     }
 
     if (lastWasNonBlank) {
-        total -= LINE_SPACING;
+        total -=
+            LINE_SPACING;
     }
 
     return total;
@@ -879,23 +1172,30 @@ function drawPoem(p) {
     const top = 205;
     const bottom = 845;
 
-    const maxWidth = right - left;
-    const availableHeight = bottom - top;
+    const maxWidth =
+        right - left;
+
+    const availableHeight =
+        bottom - top;
 
     let fontSize = 66;
     let lines = [];
     let font = "";
 
-    while (fontSize >= 28) {
-        font = loadFont(
-            POEM_FONT,
-            fontSize
-        );
+    while (
+        fontSize >= 28
+    ) {
+        font =
+            loadFont(
+                POEM_FONT,
+                fontSize
+            );
 
-        lines = prepareLines(
-            currentPoem,
-            font
-        );
+        lines =
+            prepareLines(
+                currentPoem,
+                font
+            );
 
         const height =
             calculateTextHeight(
@@ -903,7 +1203,10 @@ function drawPoem(p) {
                 font
             );
 
-        if (height <= availableHeight) {
+        if (
+            height <=
+            availableHeight
+        ) {
             break;
         }
 
@@ -913,15 +1216,18 @@ function drawPoem(p) {
     if (!lines.length) {
         fontSize = 46;
 
-        font = loadFont(
-            POEM_FONT,
-            fontSize
-        );
+        font =
+            loadFont(
+                POEM_FONT,
+                fontSize
+            );
 
-        lines = ["متن خالی است"];
+        lines = [
+            "متن خالی است"
+        ];
     }
 
-    let totalHeight =
+    const totalHeight =
         calculateTextHeight(
             lines,
             font
@@ -929,40 +1235,63 @@ function drawPoem(p) {
 
     let y =
         top +
-        (availableHeight - totalHeight) / 2;
+        (
+            availableHeight -
+            totalHeight
+        ) / 2;
 
     if (y < top) {
         y = top;
     }
 
-    if (y + totalHeight > bottom) {
-        y = bottom - totalHeight;
+    if (
+        y + totalHeight >
+        bottom
+    ) {
+        y =
+            bottom -
+            totalHeight;
     }
 
     ctx.save();
 
     ctx.font = font;
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
 
-    for (const line of lines) {
+    ctx.textAlign =
+        "left";
+
+    ctx.textBaseline =
+        "alphabetic";
+
+    for (
+        const line of lines
+    ) {
         if (line === null) {
-            y += BLANK_LINE_SPACING;
+            y +=
+                BLANK_LINE_SPACING;
+
             continue;
         }
 
-        const size = getTextSize(
-            line,
-            font
-        );
+        const size =
+            getTextSize(
+                line,
+                font
+            );
 
         const x =
             left +
-            (maxWidth - size.width) / 2;
+            (
+                maxWidth -
+                size.width
+            ) / 2;
 
-        ctx.fillStyle = rgba3(p.text);
+        ctx.fillStyle =
+            rgba3(p.text);
 
-        ctx.strokeStyle = rgba3(p.text);
+        ctx.strokeStyle =
+            rgba3(p.text);
+
         ctx.lineWidth = 1;
 
         ctx.strokeText(
@@ -977,15 +1306,18 @@ function drawPoem(p) {
             y + size.ascent
         );
 
-        y += size.height + LINE_SPACING;
+        y +=
+            size.height +
+            LINE_SPACING;
     }
 
     ctx.restore();
 
-    // خطوط کناری
     ctx.save();
 
-    ctx.strokeStyle = rgba(p.side_line);
+    ctx.strokeStyle =
+        rgba(p.side_line);
+
     ctx.lineWidth = 2;
 
     const centerY =
@@ -995,18 +1327,38 @@ function drawPoem(p) {
         );
 
     ctx.beginPath();
-    ctx.moveTo(65, centerY - 30);
-    ctx.lineTo(65, centerY + 30);
+
+    ctx.moveTo(
+        65,
+        centerY - 30
+    );
+
+    ctx.lineTo(
+        65,
+        centerY + 30
+    );
+
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(1015, centerY - 30);
-    ctx.lineTo(1015, centerY + 30);
+
+    ctx.moveTo(
+        1015,
+        centerY - 30
+    );
+
+    ctx.lineTo(
+        1015,
+        centerY + 30
+    );
+
     ctx.stroke();
 
-    ctx.fillStyle = rgba(p.side_dot);
+    ctx.fillStyle =
+        rgba(p.side_dot);
 
     ctx.beginPath();
+
     ctx.arc(
         65,
         centerY,
@@ -1014,9 +1366,11 @@ function drawPoem(p) {
         0,
         Math.PI * 2
     );
+
     ctx.fill();
 
     ctx.beginPath();
+
     ctx.arc(
         1015,
         centerY,
@@ -1024,13 +1378,17 @@ function drawPoem(p) {
         0,
         Math.PI * 2
     );
+
     ctx.fill();
 
     ctx.restore();
 }
 
 function drawCard() {
-    const p = PALETTES[selectedPalette];
+    const p =
+        PALETTES[
+            selectedPalette
+        ];
 
     ctx.clearRect(
         0,
@@ -1049,11 +1407,17 @@ function drawCard() {
 
     drawBranding(p);
 
-    canvas.style.display = "block";
-    previewEmpty.style.display = "none";
+    canvas.style.display =
+        "block";
 
-    downloadBtn.disabled = false;
-    shareBtn.disabled = false;
+    previewEmpty.style.display =
+        "none";
+
+    downloadBtn.disabled =
+        false;
+
+    shareBtn.disabled =
+        false;
 }
 
 function updateCard() {
@@ -1061,11 +1425,17 @@ function updateCard() {
         poemInput.value.trim();
 
     if (!currentPoem) {
-        canvas.style.display = "none";
-        previewEmpty.style.display = "flex";
+        canvas.style.display =
+            "none";
 
-        downloadBtn.disabled = true;
-        shareBtn.disabled = true;
+        previewEmpty.style.display =
+            "flex";
+
+        downloadBtn.disabled =
+            true;
+
+        shareBtn.disabled =
+            true;
 
         return;
     }
@@ -1074,31 +1444,49 @@ function updateCard() {
 }
 
 function createPaletteButtons() {
-    paletteButtons.innerHTML = "";
+    paletteButtons.innerHTML =
+        "";
 
     PALETTES.forEach(
         (palette, index) => {
             const button =
-                document.createElement("button");
+                document.createElement(
+                    "button"
+                );
 
             button.type = "button";
+
             button.className =
                 "palette-btn";
 
-            if (index === selectedPalette) {
-                button.classList.add("active");
+            if (
+                index ===
+                selectedPalette
+            ) {
+                button.classList.add(
+                    "active"
+                );
             }
 
-            const top = palette.top;
-            const bottom = palette.bottom;
-
             button.style.background =
-                `linear-gradient(135deg,
-                rgb(${top[0]},${top[1]},${top[2]}),
-                rgb(${bottom[0]},${bottom[1]},${bottom[2]}))`;
+                `linear-gradient(
+                    135deg,
+                    rgb(
+                        ${palette.top[0]},
+                        ${palette.top[1]},
+                        ${palette.top[2]}
+                    ),
+                    rgb(
+                        ${palette.bottom[0]},
+                        ${palette.bottom[1]},
+                        ${palette.bottom[2]}
+                    )
+                )`;
 
             button.style.color =
-                isLightPalette(palette)
+                isLightPalette(
+                    palette
+                )
                     ? "#26352c"
                     : "#fff";
 
@@ -1108,16 +1496,18 @@ function createPaletteButtons() {
             button.addEventListener(
                 "click",
                 () => {
-                    selectedPalette = index;
+                    selectedPalette =
+                        index;
 
                     document
                         .querySelectorAll(
                             ".palette-btn"
                         )
-                        .forEach(btn =>
-                            btn.classList.remove(
-                                "active"
-                            )
+                        .forEach(
+                            btn =>
+                                btn.classList.remove(
+                                    "active"
+                                )
                         );
 
                     button.classList.add(
@@ -1151,10 +1541,11 @@ document
                     .querySelectorAll(
                         ".option-btn"
                     )
-                    .forEach(btn =>
-                        btn.classList.remove(
-                            "active"
-                        )
+                    .forEach(
+                        btn =>
+                            btn.classList.remove(
+                                "active"
+                            )
                     );
 
                 button.classList.add(
@@ -1174,10 +1565,14 @@ poemInput.addEventListener(
 downloadBtn.addEventListener(
     "click",
     () => {
-        if (!currentPoem) return;
+        if (!currentPoem) {
+            return;
+        }
 
         const link =
-            document.createElement("a");
+            document.createElement(
+                "a"
+            );
 
         link.download =
             "kart-shere.png";
@@ -1195,7 +1590,9 @@ downloadBtn.addEventListener(
 shareBtn.addEventListener(
     "click",
     async () => {
-        if (!currentPoem) return;
+        if (!currentPoem) {
+            return;
+        }
 
         if (
             !navigator.share ||
@@ -1210,7 +1607,9 @@ shareBtn.addEventListener(
 
         canvas.toBlob(
             async blob => {
-                if (!blob) return;
+                if (!blob) {
+                    return;
+                }
 
                 const file =
                     new File(
