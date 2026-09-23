@@ -1,12 +1,27 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#f5f7f8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
+
+    <meta
+        name="theme-color"
+        content="#f5f7f8"
+    >
+
     <title>کارت شعر</title>
-    <link rel="stylesheet" href="style.css">
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 </head>
+
 <body>
 
 <main class="app">
@@ -15,10 +30,14 @@
         <h1>کارت شعر</h1>
     </header>
 
+
     <section class="editor">
 
         <div class="option-group">
-            <label for="poemInput">متن کارت شعر را وارد کنید</label>
+
+            <label for="poemInput">
+                متن کارت شعر را وارد کنید
+            </label>
 
             <textarea
                 id="poemInput"
@@ -26,12 +45,18 @@
                 rows="7"
                 maxlength="3000"
             ></textarea>
+
         </div>
 
+
         <div class="option-group">
-            <span>نوع کارت شعر را انتخاب کنید</span>
+
+            <span>
+                نوع کارت شعر را انتخاب کنید
+            </span>
 
             <div class="segmented">
+
                 <button
                     type="button"
                     class="option-btn active"
@@ -47,40 +72,37 @@
                 >
                     ◻️ بدون امضا
                 </button>
+
             </div>
+
         </div>
+
 
         <div class="option-group">
-            <span>رنگ کارت شعر را انتخاب کنید</span>
 
-            <div id="paletteButtons" class="palette-grid"></div>
+            <span>
+                رنگ کارت شعر را انتخاب کنید
+            </span>
+
+            <div
+                id="paletteButtons"
+                class="palette-grid"
+            ></div>
+
         </div>
 
     </section>
 
-    <section class="card-preview">
-
-        <div id="previewEmpty" class="preview-empty">
-            <span>🖼️</span>
-            <p>پیش‌نمایش کارت شعر</p>
-        </div>
-
-        <canvas
-            id="poetryCanvas"
-            width="1080"
-            height="1080"
-        ></canvas>
-
-    </section>
 
     <section class="actions">
+
         <button
             type="button"
             id="downloadBtn"
             class="action-btn"
             disabled
         >
-            ⬇️ دانلود
+            ⬇️ ذخیره
         </button>
 
         <button
@@ -91,11 +113,36 @@
         >
             ↗️ اشتراک‌گذاری
         </button>
+
+    </section>
+
+
+    <section class="card-preview">
+
+        <div
+            id="previewEmpty"
+            class="preview-empty"
+        >
+            <span>🖼️</span>
+
+            <p>
+                پیش‌نمایش کارت شعر
+            </p>
+        </div>
+
+        <canvas
+            id="poetryCanvas"
+            width="1080"
+            height="1080"
+        ></canvas>
+
     </section>
 
 </main>
 
+
 <script src="script.js"></script>
 
 </body>
+
 </html>
