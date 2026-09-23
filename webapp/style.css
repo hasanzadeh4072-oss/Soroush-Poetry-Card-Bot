@@ -1,26 +1,41 @@
 @font-face {
     font-family: "Parastoo";
-    src: url("https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/Parastoo%5Bwght%5D.ttf") format("truetype");
+
+    src: url(
+        "https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/Parastoo%5Bwght%5D.ttf"
+    ) format("truetype");
+
     font-weight: 100 900;
     font-style: normal;
     font-display: swap;
 }
 
+
 @font-face {
     font-family: "BTitrBd";
-    src: url("https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/BTitrBd.ttf") format("truetype");
+
+    src: url(
+        "https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/BTitrBd.ttf"
+    ) format("truetype");
+
     font-weight: 700;
     font-style: normal;
     font-display: swap;
 }
 
+
 @font-face {
     font-family: "Vazirmatn";
-    src: url("https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/Vazirmatn-Regular.ttf") format("truetype");
+
+    src: url(
+        "https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/Vazirmatn-Regular.ttf"
+    ) format("truetype");
+
     font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
+
 
 :root {
     --bg: #f5f7f8;
@@ -33,9 +48,11 @@
     --shadow: 0 8px 25px rgba(0, 0, 0, .08);
 }
 
+
 * {
     box-sizing: border-box;
 }
+
 
 html,
 body {
@@ -44,11 +61,13 @@ body {
     min-height: 100%;
 }
 
+
 body {
     background: var(--bg);
     color: var(--text);
     font-family: "Vazirmatn", Arial, sans-serif;
 }
+
 
 .app {
     width: min(100%, 760px);
@@ -56,187 +75,298 @@ body {
     padding: 24px 16px 40px;
 }
 
+
 .header {
     text-align: center;
     margin-bottom: 20px;
 }
 
+
 .header h1 {
     margin: 0;
-    font-family: "BTitrBd", "Vazirmatn", sans-serif;
+
+    font-family:
+        "BTitrBd",
+        "Vazirmatn",
+        sans-serif;
+
     font-size: 28px;
 }
 
+
 .editor {
     background: var(--card);
+
     border-radius: 18px;
+
     padding: 18px;
+
     box-shadow: var(--shadow);
+
     margin-bottom: 20px;
 }
+
 
 .option-group {
     margin-bottom: 20px;
 }
 
+
 .option-group:last-child {
     margin-bottom: 0;
 }
 
+
 .editor label,
 .option-group > span {
     display: block;
+
     margin-bottom: 9px;
-    font-family: "Vazirmatn", sans-serif;
+
+    font-family:
+        "Vazirmatn",
+        sans-serif;
+
     font-size: 14px;
+
     font-weight: 700;
 }
 
+
 textarea {
     width: 100%;
+
     min-height: 150px;
+
     resize: vertical;
+
     border: 1px solid var(--border);
+
     border-radius: 12px;
+
     padding: 14px;
+
     outline: none;
+
     color: var(--text);
+
     background: #fff;
-    font-family: "Parastoo", "Vazirmatn", sans-serif;
+
+    font-family:
+        "Parastoo",
+        "Vazirmatn",
+        sans-serif;
+
     font-size: 18px;
+
     line-height: 1.9;
+
     direction: rtl;
+
     text-align: right;
 }
+
 
 textarea:focus {
     border-color: var(--primary);
 }
 
+
 .segmented {
     display: grid;
+
     grid-template-columns: 1fr 1fr;
+
     gap: 8px;
 }
+
 
 .option-btn,
 .palette-btn,
 .action-btn {
     border: 1px solid var(--border);
+
     background: #fff;
+
     cursor: pointer;
+
     transition: .2s;
-    font-family: "Vazirmatn", sans-serif;
+
+    font-family:
+        "Vazirmatn",
+        sans-serif;
 }
+
 
 .option-btn {
     min-height: 46px;
+
     border-radius: 10px;
+
     padding: 8px;
 }
 
+
 .option-btn.active {
     background: var(--primary);
+
     color: #fff;
+
     border-color: var(--primary);
 }
+
 
 .palette-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
     gap: 8px;
 }
 
+
 .palette-btn {
-    min-height: 42px;
+    min-height: 48px;
+
     border-radius: 10px;
+
     padding: 6px;
+
+    font-size: 13px;
 }
+
 
 .palette-btn.active {
     border: 2px solid var(--primary);
+
     font-weight: 700;
 }
 
-.card-preview {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    background: #fff;
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    margin-bottom: 20px;
-}
-
-#poetryCanvas {
-    display: none;
-    width: 100%;
-    height: 100%;
-}
-
-.preview-empty {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    color: var(--muted);
-    gap: 8px;
-}
-
-.preview-empty span {
-    font-size: 42px;
-}
-
-.preview-empty p {
-    margin: 0;
-    font-family: "Vazirmatn", sans-serif;
-}
 
 .actions {
     display: grid;
+
     grid-template-columns: 1fr 1fr;
+
     gap: 10px;
+
+    margin-bottom: 20px;
 }
+
 
 .action-btn {
     min-height: 50px;
+
     border-radius: 12px;
+
     background: var(--primary);
+
     color: #fff;
+
     border-color: var(--primary);
+
     font-weight: 700;
 }
+
 
 .action-btn:not(:disabled):hover {
     background: var(--primary-dark);
 }
 
+
 .action-btn:disabled {
     opacity: .45;
+
     cursor: not-allowed;
 }
+
+
+.card-preview {
+    width: 100%;
+
+    aspect-ratio: 1 / 1;
+
+    background: #fff;
+
+    border-radius: 18px;
+
+    overflow: hidden;
+
+    box-shadow: var(--shadow);
+}
+
+
+#poetryCanvas {
+    display: none;
+
+    width: 100%;
+
+    height: 100%;
+}
+
+
+.preview-empty {
+    width: 100%;
+
+    height: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-direction: column;
+
+    color: var(--muted);
+
+    gap: 8px;
+}
+
+
+.preview-empty span {
+    font-size: 42px;
+}
+
+
+.preview-empty p {
+    margin: 0;
+
+    font-family:
+        "Vazirmatn",
+        sans-serif;
+}
+
 
 @media (max-width: 520px) {
 
     .app {
-        padding: 16px 10px 30px;
+        padding:
+            16px
+            10px
+            30px;
     }
+
 
     .editor {
         padding: 14px;
     }
 
+
     .header h1 {
         font-size: 24px;
     }
 
+
     .palette-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns:
+            repeat(2, 1fr);
     }
+
 
     .segmented {
         grid-template-columns: 1fr;
     }
+
 }
