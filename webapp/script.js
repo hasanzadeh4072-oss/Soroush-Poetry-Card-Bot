@@ -222,12 +222,23 @@ function isLightPalette(p) {
 }
 
 function roundedPath(x, y, w, h, radius) {
-    const r = Math.min(radius, w / 2, h / 2);
+    const r = Math.min(
+        radius,
+        w / 2,
+        h / 2
+    );
 
     ctx.beginPath();
 
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
+    ctx.moveTo(
+        x + r,
+        y
+    );
+
+    ctx.lineTo(
+        x + w - r,
+        y
+    );
 
     ctx.quadraticCurveTo(
         x + w,
@@ -367,6 +378,7 @@ function drawGlow(
     ctx.fillStyle = gradient;
 
     ctx.beginPath();
+
     ctx.arc(
         0,
         0,
@@ -374,13 +386,15 @@ function drawGlow(
         0,
         Math.PI * 2
     );
+
     ctx.fill();
 
     ctx.restore();
 }
 
 function drawTexture() {
-    const random = mulberry32(73421);
+    const random =
+        mulberry32(73421);
 
     ctx.save();
 
@@ -479,22 +493,24 @@ function drawBackground(p) {
 }
 
 function drawGlassPanel(p) {
-    const light = isLightPalette(p);
+    const light =
+        isLightPalette(p);
 
     ctx.save();
 
     if (light) {
 
         /*
-         * سایه بسیار نرم زیر شیشه
+         * شیشه نباید رنگ مستقلی داخل خودش داشته باشد.
+         * فقط یک سایه بسیار ضعیف برای ایجاد عمق.
          */
         ctx.save();
 
         ctx.shadowColor =
-            "rgba(0,0,0,0.12)";
+            "rgba(0,0,0,0.09)";
 
-        ctx.shadowBlur = 24;
-        ctx.shadowOffsetY = 5;
+        ctx.shadowBlur = 22;
+        ctx.shadowOffsetY = 4;
 
         drawRoundedRect(
             100,
@@ -502,13 +518,15 @@ function drawGlassPanel(p) {
             880,
             730,
             45,
-            "rgba(255,255,255,0.025)"
+            "rgba(255,255,255,0.008)"
         );
 
         ctx.restore();
 
         /*
-         * بدنه اصلی شیشه
+         * لایه اصلی:
+         * تقریباً کاملاً شفاف تا همان زمینه
+         * از داخل کادر دیده شود.
          */
         roundedPath(
             100,
@@ -528,34 +546,36 @@ function drawGlassPanel(p) {
 
         glass.addColorStop(
             0,
-            "rgba(255,255,255,0.095)"
+            "rgba(255,255,255,0.028)"
         );
 
         glass.addColorStop(
-            0.22,
-            "rgba(255,255,255,0.045)"
+            0.25,
+            "rgba(255,255,255,0.008)"
         );
 
         glass.addColorStop(
-            0.50,
-            "rgba(255,255,255,0.018)"
+            0.55,
+            "rgba(255,255,255,0.002)"
         );
 
         glass.addColorStop(
-            0.78,
-            "rgba(255,255,255,0.025)"
+            0.80,
+            "rgba(255,255,255,0.006)"
         );
 
         glass.addColorStop(
             1,
-            "rgba(255,255,255,0.065)"
+            "rgba(255,255,255,0.025)"
         );
 
-        ctx.fillStyle = glass;
+        ctx.fillStyle =
+            glass;
+
         ctx.fill();
 
         /*
-         * انعکاس بالایی
+         * انعکاس بسیار ظریف در بالای شیشه
          */
         ctx.save();
 
@@ -563,90 +583,92 @@ function drawGlassPanel(p) {
             104,
             164,
             872,
-            340,
+            310,
             43
         );
 
-        const topReflection =
+        const reflection =
             ctx.createLinearGradient(
                 0,
                 164,
                 0,
-                504
+                474
             );
 
-        topReflection.addColorStop(
+        reflection.addColorStop(
             0,
-            "rgba(255,255,255,0.15)"
-        );
-
-        topReflection.addColorStop(
-            0.18,
             "rgba(255,255,255,0.085)"
         );
 
-        topReflection.addColorStop(
-            0.48,
-            "rgba(255,255,255,0.025)"
+        reflection.addColorStop(
+            0.20,
+            "rgba(255,255,255,0.035)"
         );
 
-        topReflection.addColorStop(
+        reflection.addColorStop(
+            0.50,
+            "rgba(255,255,255,0.008)"
+        );
+
+        reflection.addColorStop(
             1,
             "rgba(255,255,255,0)"
         );
 
         ctx.fillStyle =
-            topReflection;
+            reflection;
 
         ctx.fill();
 
         ctx.restore();
 
         /*
-         * انعکاس پایین
+         * یک انعکاس بسیار ضعیف در پایین
          */
         ctx.save();
 
         roundedPath(
             104,
-            650,
+            700,
             872,
-            236,
+            184,
             43
         );
 
-        const bottomReflection =
+        const lowerReflection =
             ctx.createLinearGradient(
                 0,
-                650,
+                700,
                 0,
-                886
+                884
             );
 
-        bottomReflection.addColorStop(
+        lowerReflection.addColorStop(
             0,
             "rgba(255,255,255,0)"
         );
 
-        bottomReflection.addColorStop(
-            0.70,
-            "rgba(255,255,255,0.018)"
+        lowerReflection.addColorStop(
+            0.75,
+            "rgba(255,255,255,0.004)"
         );
 
-        bottomReflection.addColorStop(
+        lowerReflection.addColorStop(
             1,
-            "rgba(255,255,255,0.065)"
+            "rgba(255,255,255,0.025)"
         );
 
         ctx.fillStyle =
-            bottomReflection;
+            lowerReflection;
 
         ctx.fill();
 
         ctx.restore();
 
         /*
-         * کادر بیرونی
+         * کادر اصلی شیشه
+         * این قسمت مشخص‌تر است تا خود کادر
+         * عامل اصلی تشخیص شیشه باشد.
          */
         drawRoundedRect(
             100,
@@ -659,13 +681,13 @@ function drawGlassPanel(p) {
                 p.panel_outline[0],
                 p.panel_outline[1],
                 p.panel_outline[2],
-                125
+                135
             ]),
             3
         );
 
         /*
-         * خط سفید داخلی
+         * لبه روشن داخلی
          */
         drawRoundedRect(
             108,
@@ -674,12 +696,12 @@ function drawGlassPanel(p) {
             714,
             39,
             null,
-            "rgba(255,255,255,0.28)",
+            "rgba(255,255,255,0.22)",
             1.5
         );
 
         /*
-         * خط داخلی بسیار ظریف دوم
+         * خط بسیار ظریف دوم
          */
         drawRoundedRect(
             114,
@@ -688,12 +710,12 @@ function drawGlassPanel(p) {
             702,
             35,
             null,
-            "rgba(255,255,255,0.075)",
+            "rgba(255,255,255,0.055)",
             1
         );
 
         /*
-         * درخشش لبه بالایی
+         * هایلایت باریک لبه بالایی
          */
         ctx.save();
 
@@ -712,17 +734,17 @@ function drawGlassPanel(p) {
                 0,
                 176,
                 0,
-                300
+                290
             );
 
         edgeHighlight.addColorStop(
             0,
-            "rgba(255,255,255,0.13)"
+            "rgba(255,255,255,0.10)"
         );
 
         edgeHighlight.addColorStop(
-            0.35,
-            "rgba(255,255,255,0.045)"
+            0.45,
+            "rgba(255,255,255,0.025)"
         );
 
         edgeHighlight.addColorStop(
@@ -737,7 +759,7 @@ function drawGlassPanel(p) {
             100,
             160,
             880,
-            180
+            150
         );
 
         ctx.restore();
@@ -780,9 +802,10 @@ function drawGlassPanel(p) {
     ctx.restore();
 
     /*
-     * کادر نهایی پنل
+     * کادر نهایی
      */
     if (light) {
+
         drawRoundedRect(
             100,
             160,
@@ -794,11 +817,13 @@ function drawGlassPanel(p) {
                 p.panel_outline[0],
                 p.panel_outline[1],
                 p.panel_outline[2],
-                125
+                135
             ]),
             3
         );
+
     } else {
+
         drawRoundedRect(
             100,
             160,
@@ -818,7 +843,10 @@ function getTextSize(text, font) {
     return ctx.measureText(text).width;
 }
 
-function loadFont(fontFamily, size) {
+function loadFont(
+    fontFamily,
+    size
+) {
     ctx.font =
         `${size}px "${fontFamily}"`;
 }
@@ -960,7 +988,10 @@ function drawOrnament(y, p) {
     ctx.restore();
 }
 
-function prepareLines(text, font) {
+function prepareLines(
+    text,
+    font
+) {
     const maxWidth = 790;
 
     loadFont(
@@ -969,19 +1000,25 @@ function prepareLines(text, font) {
     );
 
     const rawLines =
-        text.replace(/\r/g, "").split("\n");
+        text
+            .replace(/\r/g, "")
+            .split("\n");
 
     const lines = [];
 
     for (const rawLine of rawLines) {
 
-        if (rawLine.trim() === "") {
+        if (
+            rawLine.trim() === ""
+        ) {
             lines.push("");
             continue;
         }
 
         const words =
-            rawLine.trim().split(/\s+/);
+            rawLine
+                .trim()
+                .split(/\s+/);
 
         let current = "";
 
@@ -1015,10 +1052,14 @@ function prepareLines(text, font) {
     return lines;
 }
 
-function calculateTextHeight(lines, font) {
+function calculateTextHeight(
+    lines,
+    font
+) {
     let height = 0;
 
     for (const line of lines) {
+
         height +=
             line === ""
                 ? BLANK_LINE_SPACING
@@ -1032,13 +1073,13 @@ function calculateTextHeight(lines, font) {
 }
 
 function drawPoem(p) {
-    const text = currentPoem.trim();
+    const text =
+        currentPoem.trim();
 
     if (!text) {
         return;
     }
 
-    const maxWidth = 790;
     const availableHeight = 640;
 
     let fontSize = 66;
@@ -1058,7 +1099,9 @@ function drawPoem(p) {
                 fontSize
             );
 
-        if (height <= availableHeight) {
+        if (
+            height <= availableHeight
+        ) {
             break;
         }
 
@@ -1066,6 +1109,7 @@ function drawPoem(p) {
     }
 
     if (fontSize < 28) {
+
         fontSize = 28;
 
         lines =
@@ -1101,7 +1145,10 @@ function drawPoem(p) {
     for (const line of lines) {
 
         if (line === "") {
-            y += BLANK_LINE_SPACING;
+
+            y +=
+                BLANK_LINE_SPACING;
+
             continue;
         }
 
@@ -1223,8 +1270,11 @@ function updateCard() {
 
     if (!currentPoem) {
 
-        canvas.style.display = "none";
-        previewEmpty.style.display = "flex";
+        canvas.style.display =
+            "none";
+
+        previewEmpty.style.display =
+            "flex";
 
         downloadBtn.disabled = true;
         shareBtn.disabled = true;
@@ -1232,8 +1282,11 @@ function updateCard() {
         return;
     }
 
-    canvas.style.display = "block";
-    previewEmpty.style.display = "none";
+    canvas.style.display =
+        "block";
+
+    previewEmpty.style.display =
+        "none";
 
     drawCard();
 
@@ -1248,16 +1301,21 @@ function createPaletteButtons() {
         (palette, index) => {
 
             const button =
-                document.createElement("button");
+                document.createElement(
+                    "button"
+                );
 
             button.type = "button";
-            button.className = "palette-btn";
+
+            button.className =
+                "palette-btn";
 
             button.textContent =
                 palette.name;
 
             button.style.background =
-                `linear-gradient(135deg,
+                `linear-gradient(
+                    135deg,
                     ${rgba3(palette.top)},
                     ${rgba3(palette.bottom)}
                 )`;
@@ -1268,15 +1326,20 @@ function createPaletteButtons() {
             button.style.borderColor =
                 rgba3(palette.frame);
 
-            if (index === selectedPalette) {
-                button.classList.add("active");
+            if (
+                index === selectedPalette
+            ) {
+                button.classList.add(
+                    "active"
+                );
             }
 
             button.addEventListener(
                 "click",
                 () => {
 
-                    selectedPalette = index;
+                    selectedPalette =
+                        index;
 
                     document
                         .querySelectorAll(
@@ -1284,6 +1347,7 @@ function createPaletteButtons() {
                         )
                         .forEach(
                             (btn, i) => {
+
                                 btn.classList.toggle(
                                     "active",
                                     i === index
@@ -1304,35 +1368,37 @@ function createPaletteButtons() {
 
 document
     .querySelectorAll(".option-btn")
-    .forEach(button => {
+    .forEach(
+        button => {
 
-        button.addEventListener(
-            "click",
-            () => {
+            button.addEventListener(
+                "click",
+                () => {
 
-                document
-                    .querySelectorAll(
-                        ".option-btn"
-                    )
-                    .forEach(
-                        btn =>
-                            btn.classList.remove(
-                                "active"
-                            )
+                    document
+                        .querySelectorAll(
+                            ".option-btn"
+                        )
+                        .forEach(
+                            btn =>
+                                btn.classList.remove(
+                                    "active"
+                                )
+                        );
+
+                    button.classList.add(
+                        "active"
                     );
 
-                button.classList.add(
-                    "active"
-                );
+                    branded =
+                        button.dataset.branded ===
+                        "true";
 
-                branded =
-                    button.dataset.branded ===
-                    "true";
-
-                updateCard();
-            }
-        );
-    });
+                    updateCard();
+                }
+            );
+        }
+    );
 
 poemInput.addEventListener(
     "input",
@@ -1348,7 +1414,9 @@ downloadBtn.addEventListener(
         }
 
         const link =
-            document.createElement("a");
+            document.createElement(
+                "a"
+            );
 
         link.download =
             "کارت-شعر.png";
