@@ -18,6 +18,17 @@ const TITLE_FONT = "BTitrBd";
 const SUB_FONT = "Vazirmatn";
 const FOOT_FONT = "Vazirmatn";
 
+const FONT_URLS = {
+    Parastoo:
+        "https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/Parastoo%5Bwght%5D.ttf",
+
+    BTitrBd:
+        "https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/BTitrBd.ttf",
+
+    Vazirmatn:
+        "https://raw.githubusercontent.com/hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/085a674b15bd74787ca00701a8ce9780342e3fd9/Vazirmatn-Regular.ttf"
+};
+
 const BG_URL =
     "https://raw.githubusercontent.com/" +
     "hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/" +
@@ -197,6 +208,65 @@ const backgroundImage = new Image();
 backgroundImage.crossOrigin = "anonymous";
 backgroundImage.src = BG_URL;
 
+
+/* =========================
+   FONT LOADING
+========================= */
+
+async function loadFonts() {
+    try {
+        const fonts = [
+            new FontFace(
+                "Parastoo",
+                `url("${FONT_URLS.Parastoo}")`,
+                {
+                    weight: "100 900",
+                    style: "normal"
+                }
+            ),
+
+            new FontFace(
+                "BTitrBd",
+                `url("${FONT_URLS.BTitrBd}")`,
+                {
+                    weight: "700",
+                    style: "normal"
+                }
+            ),
+
+            new FontFace(
+                "Vazirmatn",
+                `url("${FONT_URLS.Vazirmatn}")`,
+                {
+                    weight: "400",
+                    style: "normal"
+                }
+            )
+        ];
+
+        await Promise.all(
+            fonts.map(async font => {
+                const loaded = await font.load();
+                document.fonts.add(loaded);
+            })
+        );
+
+        await Promise.all([
+            document.fonts.load(`66px "${POEM_FONT}"`),
+            document.fonts.load(`50px "${TITLE_FONT}"`),
+            document.fonts.load(`23px "${SUB_FONT}"`)
+        ]);
+
+    } catch (error) {
+        console.error("Font loading failed:", error);
+    }
+}
+
+
+/* =========================
+   HELPERS
+========================= */
+
 function rgba(c) {
     return `rgba(${c[0]},${c[1]},${c[2]},${(c[3] ?? 255) / 255})`;
 }
@@ -317,6 +387,7 @@ function drawBackground(p) {
         const y = (H - dh) / 2;
 
         ctx.filter = "brightness(.48) blur(4px)";
+
         ctx.drawImage(
             backgroundImage,
             x,y,dw,dh
@@ -376,8 +447,14 @@ function drawPanel(p) {
 }
 
 function fontFamily(name) {
-    if (name === POEM_FONT) return `"Parastoo", serif`;
-    if (name === TITLE_FONT) return `"BTitrBd", sans-serif`;
+    if (name === POEM_FONT) {
+        return `"Parastoo", serif`;
+    }
+
+    if (name === TITLE_FONT) {
+        return `"BTitrBd", sans-serif`;
+    }
+
     return `"Vazirmatn", sans-serif`;
 }
 
@@ -483,6 +560,11 @@ function drawTextCentered(
     );
 }
 
+
+/* =========================
+   CREATE CARD
+========================= */
+
 function createCard() {
     const text = poemInput.value.trim();
 
@@ -521,6 +603,7 @@ function createCard() {
     ctx.textBaseline = "top";
 
     ctx.fillStyle = "rgba(0,0,0,.24)";
+
     ctx.fillText(
         footer,
         W/2+1,
@@ -528,6 +611,7 @@ function createCard() {
     );
 
     ctx.fillStyle = rgb(selectedPalette.accent);
+
     ctx.fillText(
         footer,
         W/2,
@@ -560,6 +644,7 @@ function createCard() {
         ctx.textBaseline = "top";
 
         ctx.fillStyle = "rgba(0,0,0,.30)";
+
         ctx.fillText(
             title,
             titleX+2,
@@ -567,6 +652,7 @@ function createCard() {
         );
 
         ctx.fillStyle = rgb(selectedPalette.accent);
+
         ctx.fillText(
             title,
             titleX,
@@ -576,6 +662,7 @@ function createCard() {
         setFont(SUB_FONT,23);
 
         ctx.fillStyle = rgb(selectedPalette.subtitle);
+
         ctx.fillText(
             subtitle,
             titleX - sw - 20,
@@ -586,7 +673,9 @@ function createCard() {
             selectedPalette,
             titleY - 25
         );
+
     } else {
+
         drawOrnament(
             selectedPalette,
             H - 112
@@ -611,6 +700,7 @@ function createCard() {
     let result;
 
     while (fontSize >= 28) {
+
         let spacing;
 
         result = textHeight(
@@ -627,15 +717,19 @@ function createCard() {
         if (lineCount <= 2) {
             spacing = 32;
             blankSpacing = 48;
+
         } else if (lineCount === 3) {
             spacing = 26;
             blankSpacing = 40;
+
         } else if (lineCount === 4) {
             spacing = 20;
             blankSpacing = 32;
+
         } else if (lineCount === 5) {
             spacing = 17;
             blankSpacing = 28;
+
         } else {
             spacing = 14;
             blankSpacing = 24;
@@ -716,11 +810,21 @@ function createCard() {
     [65,1015].forEach(x => {
 
         ctx.beginPath();
-        ctx.moveTo(x,centerY-30);
-        ctx.lineTo(x,centerY+30);
+
+        ctx.moveTo(
+            x,
+            centerY-30
+        );
+
+        ctx.lineTo(
+            x,
+            centerY+30
+        );
+
         ctx.stroke();
 
         ctx.beginPath();
+
         ctx.arc(
             x,
             centerY,
@@ -728,29 +832,38 @@ function createCard() {
             0,
             Math.PI*2
         );
+
         ctx.fill();
     });
 
-    currentImage = canvas.toDataURL(
-        "image/png"
-    );
+    currentImage =
+        canvas.toDataURL("image/png");
 
     downloadBtn.disabled = false;
     shareBtn.disabled = false;
 }
 
+
+/* =========================
+   PALETTES
+========================= */
+
 function makePaletteButtons() {
     paletteButtons.innerHTML = "";
 
     PALETTES.forEach((palette,index) => {
-        const button = document.createElement("button");
+
+        const button =
+            document.createElement("button");
 
         button.type = "button";
+
         button.className =
             "palette-btn" +
             (index === 0 ? " active" : "");
 
-        button.textContent = palette.name;
+        button.textContent =
+            palette.name;
 
         button.style.background =
             `linear-gradient(135deg,
@@ -763,6 +876,7 @@ function makePaletteButtons() {
         button.addEventListener(
             "click",
             () => {
+
                 selectedPalette = palette;
 
                 document
@@ -780,6 +894,11 @@ function makePaletteButtons() {
         paletteButtons.appendChild(button);
     });
 }
+
+
+/* =========================
+   CARD TYPE
+========================= */
 
 document
     .querySelectorAll(".option-btn")
@@ -805,10 +924,20 @@ document
         );
     });
 
+
+/* =========================
+   INPUT
+========================= */
+
 poemInput.addEventListener(
     "input",
     createCard
 );
+
+
+/* =========================
+   DOWNLOAD
+========================= */
 
 downloadBtn.addEventListener(
     "click",
@@ -828,6 +957,11 @@ downloadBtn.addEventListener(
         link.click();
     }
 );
+
+
+/* =========================
+   SHARE
+========================= */
 
 shareBtn.addEventListener(
     "click",
@@ -855,8 +989,11 @@ shareBtn.addEventListener(
             if (
                 navigator.share &&
                 navigator.canShare &&
-                navigator.canShare({files:[file]})
+                navigator.canShare({
+                    files:[file]
+                })
             ) {
+
                 await navigator.share({
                     title: "کارت شعر",
                     text: "کارت شعر",
@@ -867,6 +1004,7 @@ shareBtn.addEventListener(
             }
 
             if (navigator.share) {
+
                 await navigator.share({
                     title: "کارت شعر",
                     text: "کارت شعر"
@@ -882,6 +1020,7 @@ shareBtn.addEventListener(
         } catch (error) {
 
             if (error.name !== "AbortError") {
+
                 alert(
                     "اشتراک‌گذاری انجام نشد."
                 );
@@ -890,10 +1029,32 @@ shareBtn.addEventListener(
     }
 );
 
-backgroundImage.onload = createCard;
 
-makePaletteButtons();
-createCard();
+/* =========================
+   INITIALIZE
+========================= */
+
+async function initialize() {
+
+    makePaletteButtons();
+
+    await loadFonts();
+
+    if (
+        backgroundImage.complete &&
+        backgroundImage.naturalWidth
+    ) {
+        createCard();
+    }
+}
+
+backgroundImage.onload = () => {
+    if (document.fonts.status === "loaded") {
+        createCard();
+    }
+};
+
+initialize();
 
 
 
