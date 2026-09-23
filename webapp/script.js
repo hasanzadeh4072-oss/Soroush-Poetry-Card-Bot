@@ -22,6 +22,23 @@ const BG_URL =
     "Soroush-Poetry-Card-Bot/be5859ec92836a14ef0ef28d82ca6c161959cb26/" +
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg";
 
+const backgroundImage = new Image();
+backgroundImage.crossOrigin = "anonymous";
+
+let backgroundLoaded = false;
+
+backgroundImage.onload = () => {
+    backgroundLoaded = true;
+    updateCard();
+};
+
+backgroundImage.onerror = () => {
+    backgroundLoaded = false;
+    updateCard();
+};
+
+backgroundImage.src = BG_URL;
+
 const PALETTES = [
     {
         name: "بنفش سلطنتی",
@@ -200,7 +217,9 @@ let branded = true;
 let currentPoem = "";
 
 function rgba(color) {
-    if (!color) return "transparent";
+    if (!color) {
+        return "transparent";
+    }
 
     if (color.length === 3) {
         return `rgb(${color[0]},${color[1]},${color[2]})`;
@@ -375,7 +394,8 @@ function drawGlow(
         "rgba(0,0,0,0)"
     );
 
-    ctx.fillStyle = gradient;
+    ctx.fillStyle =
+        gradient;
 
     ctx.beginPath();
 
@@ -444,7 +464,8 @@ function drawBackground(p) {
         rgba3(p.bottom)
     );
 
-    ctx.fillStyle = gradient;
+    ctx.fillStyle =
+        gradient;
 
     ctx.fillRect(
         0,
@@ -490,6 +511,25 @@ function drawBackground(p) {
     }
 
     drawTexture();
+
+    /*
+     * تصویر اصلی تذهیب
+     */
+    if (backgroundLoaded) {
+        ctx.save();
+
+        ctx.globalAlpha = 0.78;
+
+        ctx.drawImage(
+            backgroundImage,
+            0,
+            0,
+            W,
+            H
+        );
+
+        ctx.restore();
+    }
 }
 
 function drawGlassPanel(p) {
@@ -501,8 +541,7 @@ function drawGlassPanel(p) {
     if (light) {
 
         /*
-         * شیشه نباید رنگ مستقلی داخل خودش داشته باشد.
-         * فقط یک سایه بسیار ضعیف برای ایجاد عمق.
+         * سایه بسیار ضعیف
          */
         ctx.save();
 
@@ -524,9 +563,8 @@ function drawGlassPanel(p) {
         ctx.restore();
 
         /*
-         * لایه اصلی:
-         * تقریباً کاملاً شفاف تا همان زمینه
-         * از داخل کادر دیده شود.
+         * بدنه شیشه:
+         * تقریباً شفاف و هم‌رنگ با زمینه
          */
         roundedPath(
             100,
@@ -575,7 +613,7 @@ function drawGlassPanel(p) {
         ctx.fill();
 
         /*
-         * انعکاس بسیار ظریف در بالای شیشه
+         * انعکاس بالایی بسیار ظریف
          */
         ctx.save();
 
@@ -623,7 +661,7 @@ function drawGlassPanel(p) {
         ctx.restore();
 
         /*
-         * یک انعکاس بسیار ضعیف در پایین
+         * انعکاس پایین
          */
         ctx.save();
 
@@ -666,9 +704,7 @@ function drawGlassPanel(p) {
         ctx.restore();
 
         /*
-         * کادر اصلی شیشه
-         * این قسمت مشخص‌تر است تا خود کادر
-         * عامل اصلی تشخیص شیشه باشد.
+         * کادر بیرونی
          */
         drawRoundedRect(
             100,
@@ -687,7 +723,7 @@ function drawGlassPanel(p) {
         );
 
         /*
-         * لبه روشن داخلی
+         * لبه داخلی روشن
          */
         drawRoundedRect(
             108,
@@ -701,7 +737,7 @@ function drawGlassPanel(p) {
         );
 
         /*
-         * خط بسیار ظریف دوم
+         * خط داخلی دوم
          */
         drawRoundedRect(
             114,
@@ -715,7 +751,7 @@ function drawGlassPanel(p) {
         );
 
         /*
-         * هایلایت باریک لبه بالایی
+         * هایلایت لبه بالایی
          */
         ctx.save();
 
@@ -835,12 +871,6 @@ function drawGlassPanel(p) {
             2
         );
     }
-}
-
-function getTextSize(text, font) {
-    ctx.font = font;
-
-    return ctx.measureText(text).width;
 }
 
 function loadFont(
@@ -1507,3 +1537,7 @@ shareBtn.addEventListener(
 );
 
 createPaletteButtons();
+
+if (currentPoem) {
+    updateCard();
+}
