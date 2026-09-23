@@ -41,6 +41,7 @@ const PALETTES = [
         side_line: [205, 172, 105, 82],
         side_dot: [205, 172, 105, 105]
     },
+
     {
         name: "آبی شبانه",
         top: [30, 58, 100],
@@ -59,6 +60,7 @@ const PALETTES = [
         side_line: [200, 175, 110, 82],
         side_dot: [215, 185, 115, 105]
     },
+
     {
         name: "شرابی",
         top: [103, 31, 52],
@@ -77,6 +79,7 @@ const PALETTES = [
         side_line: [200, 160, 100, 82],
         side_dot: [215, 175, 105, 105]
     },
+
     {
         name: "فیروزه‌ای تیره",
         top: [16, 80, 88],
@@ -95,6 +98,7 @@ const PALETTES = [
         side_line: [185, 175, 110, 82],
         side_dot: [210, 190, 120, 105]
     },
+
     {
         name: "سبز زمردی",
         top: [18, 76, 64],
@@ -113,6 +117,7 @@ const PALETTES = [
         side_line: [190, 170, 105, 82],
         side_dot: [210, 180, 110, 105]
     },
+
     {
         name: "رزگلد",
         top: [94, 48, 62],
@@ -132,10 +137,1305 @@ const PALETTES = [
         side_dot: [225, 170, 158, 105]
     },
 
-    /* فقط این سه پالت روشن تنظیم شده‌اند */
     {
         name: "کرم",
         top: [232, 218, 187],
         middle: [218, 202, 168],
         bottom: [198, 180, 142],
-        glow1: [255, 
+        glow1: [255, 252, 230, 35],
+        glow2: [255, 240, 185, 18],
+        glow3: [255, 255, 255, 12],
+        frame: [91, 67, 39],
+        frame_inner: [126, 96, 58],
+        text: [49, 40, 31],
+        accent: [104, 73, 38],
+        subtitle: [77, 61, 43],
+        ornament: [113, 80, 42],
+        panel_outline: [105, 78, 43, 55],
+        side_line: [105, 78, 43, 85],
+        side_dot: [94, 67, 35, 125]
+    },
+
+    {
+        name: "آبی روشن",
+        top: [188, 218, 234],
+        middle: [164, 202, 222],
+        bottom: [139, 181, 207],
+        glow1: [235, 249, 255, 38],
+        glow2: [145, 205, 235, 18],
+        glow3: [255, 255, 255, 13],
+        frame: [43, 73, 91],
+        frame_inner: [72, 105, 124],
+        text: [31, 51, 63],
+        accent: [48, 82, 101],
+        subtitle: [54, 77, 91],
+        ornament: [59, 91, 108],
+        panel_outline: [58, 91, 110, 55],
+        side_line: [58, 91, 110, 85],
+        side_dot: [46, 79, 99, 125]
+    },
+
+    {
+        name: "مریم‌گلی",
+        top: [200, 216, 188],
+        middle: [183, 201, 165],
+        bottom: [161, 181, 140],
+        glow1: [242, 249, 230, 38],
+        glow2: [175, 205, 145, 18],
+        glow3: [255, 255, 255, 13],
+        frame: [60, 76, 52],
+        frame_inner: [91, 108, 78],
+        text: [39, 54, 35],
+        accent: [67, 88, 55],
+        subtitle: [67, 82, 59],
+        ornament: [75, 96, 62],
+        panel_outline: [73, 96, 62, 55],
+        side_line: [73, 96, 62, 85],
+        side_dot: [62, 84, 52, 125]
+    }
+];
+
+let selectedPalette = 0;
+let branded = true;
+let currentPoem = "";
+
+function rgba(color) {
+    if (!color) return "transparent";
+
+    if (color.length === 3) {
+        return `rgb(${color[0]},${color[1]},${color[2]})`;
+    }
+
+    return `rgba(${color[0]},${color[1]},${color[2]},${color[3] / 255})`;
+}
+
+function rgba3(color) {
+    return `rgb(${color[0]},${color[1]},${color[2]})`;
+}
+
+function isLightPalette(p) {
+    return (
+        p.name === "کرم" ||
+        p.name === "آبی روشن" ||
+        p.name === "مریم‌گلی"
+    );
+}
+
+function roundedPath(x, y, w, h, radius) {
+    const r = Math.min(radius, w / 2, h / 2);
+
+    ctx.beginPath();
+
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+
+    ctx.quadraticCurveTo(
+        x + w,
+        y,
+        x + w,
+        y + r
+    );
+
+    ctx.lineTo(
+        x + w,
+        y + h - r
+    );
+
+    ctx.quadraticCurveTo(
+        x + w,
+        y + h,
+        x + w - r,
+        y + h
+    );
+
+    ctx.lineTo(
+        x + r,
+        y + h
+    );
+
+    ctx.quadraticCurveTo(
+        x,
+        y + h,
+        x,
+        y + h - r
+    );
+
+    ctx.lineTo(
+        x,
+        y + r
+    );
+
+    ctx.quadraticCurveTo(
+        x,
+        y,
+        x + r,
+        y
+    );
+
+    ctx.closePath();
+}
+
+function drawRoundedRect(
+    x,
+    y,
+    w,
+    h,
+    radius,
+    fillStyle = null,
+    strokeStyle = null,
+    lineWidth = 1
+) {
+    roundedPath(
+        x,
+        y,
+        w,
+        h,
+        radius
+    );
+
+    if (fillStyle) {
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+    }
+
+    if (strokeStyle) {
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+    }
+}
+
+function mulberry32(seed) {
+    return function () {
+        let t = seed += 0x6D2B79F5;
+
+        t = Math.imul(
+            t ^ (t >>> 15),
+            t | 1
+        );
+
+        t ^= t + Math.imul(
+            t ^ (t >>> 7),
+            t | 61
+        );
+
+        return (
+            (t ^ (t >>> 14)) >>> 0
+        ) / 4294967296;
+    };
+}
+
+function drawGlow(
+    x,
+    y,
+    radiusX,
+    radiusY,
+    color
+) {
+    ctx.save();
+
+    ctx.translate(
+        x + radiusX / 2,
+        y + radiusY / 2
+    );
+
+    ctx.scale(
+        radiusX / 2,
+        radiusY / 2
+    );
+
+    const gradient =
+        ctx.createRadialGradient(
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+        );
+
+    gradient.addColorStop(
+        0,
+        color
+    );
+
+    gradient.addColorStop(
+        1,
+        "rgba(0,0,0,0)"
+    );
+
+    ctx.fillStyle = gradient;
+
+    ctx.beginPath();
+    ctx.arc(
+        0,
+        0,
+        1,
+        0,
+        Math.PI * 2
+    );
+    ctx.fill();
+
+    ctx.restore();
+}
+
+function drawTexture() {
+    const random = mulberry32(73421);
+
+    ctx.save();
+
+    for (let i = 0; i < 1500; i++) {
+        const x = random() * W;
+        const y = random() * H;
+
+        const alpha =
+            0.012 +
+            random() * 0.018;
+
+        ctx.fillStyle =
+            `rgba(255,255,255,${alpha})`;
+
+        ctx.fillRect(
+            x,
+            y,
+            1,
+            1
+        );
+    }
+
+    ctx.restore();
+}
+
+function drawBackground(p) {
+    const gradient =
+        ctx.createLinearGradient(
+            0,
+            0,
+            0,
+            H
+        );
+
+    gradient.addColorStop(
+        0,
+        rgba3(p.top)
+    );
+
+    gradient.addColorStop(
+        0.52,
+        rgba3(p.middle)
+    );
+
+    gradient.addColorStop(
+        1,
+        rgba3(p.bottom)
+    );
+
+    ctx.fillStyle = gradient;
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+    drawGlow(
+        -130,
+        -90,
+        455,
+        370,
+        rgba(p.glow1)
+    );
+
+    drawGlow(
+        345,
+        345,
+        280,
+        280,
+        rgba(p.glow2)
+    );
+
+    drawGlow(
+        125,
+        175,
+        300,
+        300,
+        rgba(p.glow3)
+    );
+
+    if (isLightPalette(p)) {
+        ctx.fillStyle =
+            "rgba(0,0,0,0.055)";
+
+        ctx.fillRect(
+            0,
+            0,
+            W,
+            H
+        );
+    }
+
+    drawTexture();
+}
+
+function drawGlassPanel(p) {
+    const light = isLightPalette(p);
+
+    ctx.save();
+
+    if (light) {
+
+        /*
+         * سایه بسیار نرم زیر شیشه
+         */
+        ctx.save();
+
+        ctx.shadowColor =
+            "rgba(0,0,0,0.12)";
+
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetY = 5;
+
+        drawRoundedRect(
+            100,
+            160,
+            880,
+            730,
+            45,
+            "rgba(255,255,255,0.025)"
+        );
+
+        ctx.restore();
+
+        /*
+         * بدنه اصلی شیشه
+         */
+        roundedPath(
+            100,
+            160,
+            880,
+            730,
+            45
+        );
+
+        const glass =
+            ctx.createLinearGradient(
+                0,
+                160,
+                0,
+                890
+            );
+
+        glass.addColorStop(
+            0,
+            "rgba(255,255,255,0.095)"
+        );
+
+        glass.addColorStop(
+            0.22,
+            "rgba(255,255,255,0.045)"
+        );
+
+        glass.addColorStop(
+            0.50,
+            "rgba(255,255,255,0.018)"
+        );
+
+        glass.addColorStop(
+            0.78,
+            "rgba(255,255,255,0.025)"
+        );
+
+        glass.addColorStop(
+            1,
+            "rgba(255,255,255,0.065)"
+        );
+
+        ctx.fillStyle = glass;
+        ctx.fill();
+
+        /*
+         * انعکاس بالایی
+         */
+        ctx.save();
+
+        roundedPath(
+            104,
+            164,
+            872,
+            340,
+            43
+        );
+
+        const topReflection =
+            ctx.createLinearGradient(
+                0,
+                164,
+                0,
+                504
+            );
+
+        topReflection.addColorStop(
+            0,
+            "rgba(255,255,255,0.15)"
+        );
+
+        topReflection.addColorStop(
+            0.18,
+            "rgba(255,255,255,0.085)"
+        );
+
+        topReflection.addColorStop(
+            0.48,
+            "rgba(255,255,255,0.025)"
+        );
+
+        topReflection.addColorStop(
+            1,
+            "rgba(255,255,255,0)"
+        );
+
+        ctx.fillStyle =
+            topReflection;
+
+        ctx.fill();
+
+        ctx.restore();
+
+        /*
+         * انعکاس پایین
+         */
+        ctx.save();
+
+        roundedPath(
+            104,
+            650,
+            872,
+            236,
+            43
+        );
+
+        const bottomReflection =
+            ctx.createLinearGradient(
+                0,
+                650,
+                0,
+                886
+            );
+
+        bottomReflection.addColorStop(
+            0,
+            "rgba(255,255,255,0)"
+        );
+
+        bottomReflection.addColorStop(
+            0.70,
+            "rgba(255,255,255,0.018)"
+        );
+
+        bottomReflection.addColorStop(
+            1,
+            "rgba(255,255,255,0.065)"
+        );
+
+        ctx.fillStyle =
+            bottomReflection;
+
+        ctx.fill();
+
+        ctx.restore();
+
+        /*
+         * کادر بیرونی
+         */
+        drawRoundedRect(
+            100,
+            160,
+            880,
+            730,
+            45,
+            null,
+            rgba([
+                p.panel_outline[0],
+                p.panel_outline[1],
+                p.panel_outline[2],
+                125
+            ]),
+            3
+        );
+
+        /*
+         * خط سفید داخلی
+         */
+        drawRoundedRect(
+            108,
+            168,
+            864,
+            714,
+            39,
+            null,
+            "rgba(255,255,255,0.28)",
+            1.5
+        );
+
+        /*
+         * خط داخلی بسیار ظریف دوم
+         */
+        drawRoundedRect(
+            114,
+            174,
+            852,
+            702,
+            35,
+            null,
+            "rgba(255,255,255,0.075)",
+            1
+        );
+
+        /*
+         * درخشش لبه بالایی
+         */
+        ctx.save();
+
+        roundedPath(
+            116,
+            176,
+            848,
+            696,
+            34
+        );
+
+        ctx.clip();
+
+        const edgeHighlight =
+            ctx.createLinearGradient(
+                0,
+                176,
+                0,
+                300
+            );
+
+        edgeHighlight.addColorStop(
+            0,
+            "rgba(255,255,255,0.13)"
+        );
+
+        edgeHighlight.addColorStop(
+            0.35,
+            "rgba(255,255,255,0.045)"
+        );
+
+        edgeHighlight.addColorStop(
+            1,
+            "rgba(255,255,255,0)"
+        );
+
+        ctx.fillStyle =
+            edgeHighlight;
+
+        ctx.fillRect(
+            100,
+            160,
+            880,
+            180
+        );
+
+        ctx.restore();
+
+    } else {
+
+        /*
+         * شش رنگ تیره بدون تغییر
+         */
+        drawRoundedRect(
+            100,
+            164,
+            880,
+            732,
+            45,
+            "rgba(0,0,0,0.176)"
+        );
+
+        drawRoundedRect(
+            100,
+            160,
+            880,
+            730,
+            45,
+            "rgba(255,255,255,0.094)"
+        );
+
+        drawRoundedRect(
+            110,
+            170,
+            860,
+            710,
+            37,
+            null,
+            "rgba(255,255,255,0.047)",
+            1
+        );
+    }
+
+    ctx.restore();
+
+    /*
+     * کادر نهایی پنل
+     */
+    if (light) {
+        drawRoundedRect(
+            100,
+            160,
+            880,
+            730,
+            45,
+            null,
+            rgba([
+                p.panel_outline[0],
+                p.panel_outline[1],
+                p.panel_outline[2],
+                125
+            ]),
+            3
+        );
+    } else {
+        drawRoundedRect(
+            100,
+            160,
+            880,
+            730,
+            45,
+            null,
+            rgba(p.panel_outline),
+            2
+        );
+    }
+}
+
+function getTextSize(text, font) {
+    ctx.font = font;
+
+    return ctx.measureText(text).width;
+}
+
+function loadFont(fontFamily, size) {
+    ctx.font =
+        `${size}px "${fontFamily}"`;
+}
+
+function drawFrame(p) {
+    drawRoundedRect(
+        40,
+        40,
+        1000,
+        1000,
+        42,
+        null,
+        rgba(p.frame),
+        3
+    );
+
+    drawRoundedRect(
+        49,
+        49,
+        982,
+        982,
+        35,
+        null,
+        rgba(p.frame_inner),
+        2
+    );
+}
+
+function drawBranding(p) {
+    if (!branded) {
+        return;
+    }
+
+    ctx.save();
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    loadFont(
+        TITLE_FONT,
+        50
+    );
+
+    ctx.fillStyle =
+        rgba(p.accent);
+
+    ctx.fillText(
+        "شعرکده",
+        W / 2,
+        105
+    );
+
+    loadFont(
+        SUB_FONT,
+        23
+    );
+
+    ctx.fillStyle =
+        rgba(p.subtitle);
+
+    ctx.fillText(
+        "شعر، برای ماندن",
+        W / 2,
+        1002
+    );
+
+    ctx.restore();
+}
+
+function drawOrnament(y, p) {
+    const centerX = W / 2;
+    const width = 150;
+
+    ctx.save();
+
+    ctx.strokeStyle =
+        rgba(p.ornament);
+
+    ctx.fillStyle =
+        rgba(p.ornament);
+
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        centerX - width / 2,
+        y
+    );
+
+    ctx.lineTo(
+        centerX - 18,
+        y
+    );
+
+    ctx.lineTo(
+        centerX,
+        y - 10
+    );
+
+    ctx.lineTo(
+        centerX + 18,
+        y
+    );
+
+    ctx.lineTo(
+        centerX + width / 2,
+        y
+    );
+
+    ctx.stroke();
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        centerX,
+        y - 7
+    );
+
+    ctx.lineTo(
+        centerX + 7,
+        y
+    );
+
+    ctx.lineTo(
+        centerX,
+        y + 7
+    );
+
+    ctx.lineTo(
+        centerX - 7,
+        y
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    ctx.restore();
+}
+
+function prepareLines(text, font) {
+    const maxWidth = 790;
+
+    loadFont(
+        POEM_FONT,
+        font
+    );
+
+    const rawLines =
+        text.replace(/\r/g, "").split("\n");
+
+    const lines = [];
+
+    for (const rawLine of rawLines) {
+
+        if (rawLine.trim() === "") {
+            lines.push("");
+            continue;
+        }
+
+        const words =
+            rawLine.trim().split(/\s+/);
+
+        let current = "";
+
+        for (const word of words) {
+
+            const test =
+                current
+                    ? `${current} ${word}`
+                    : word;
+
+            if (
+                ctx.measureText(test).width <=
+                maxWidth
+            ) {
+                current = test;
+            } else {
+
+                if (current) {
+                    lines.push(current);
+                }
+
+                current = word;
+            }
+        }
+
+        if (current) {
+            lines.push(current);
+        }
+    }
+
+    return lines;
+}
+
+function calculateTextHeight(lines, font) {
+    let height = 0;
+
+    for (const line of lines) {
+        height +=
+            line === ""
+                ? BLANK_LINE_SPACING
+                : font + LINE_SPACING;
+    }
+
+    return Math.max(
+        0,
+        height - LINE_SPACING
+    );
+}
+
+function drawPoem(p) {
+    const text = currentPoem.trim();
+
+    if (!text) {
+        return;
+    }
+
+    const maxWidth = 790;
+    const availableHeight = 640;
+
+    let fontSize = 66;
+    let lines = [];
+
+    while (fontSize >= 28) {
+
+        lines =
+            prepareLines(
+                text,
+                fontSize
+            );
+
+        const height =
+            calculateTextHeight(
+                lines,
+                fontSize
+            );
+
+        if (height <= availableHeight) {
+            break;
+        }
+
+        fontSize -= 2;
+    }
+
+    if (fontSize < 28) {
+        fontSize = 28;
+
+        lines =
+            prepareLines(
+                text,
+                fontSize
+            );
+    }
+
+    const textHeight =
+        calculateTextHeight(
+            lines,
+            fontSize
+        );
+
+    let y =
+        525 -
+        textHeight / 2;
+
+    ctx.save();
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+
+    loadFont(
+        POEM_FONT,
+        fontSize
+    );
+
+    ctx.fillStyle =
+        rgba(p.text);
+
+    for (const line of lines) {
+
+        if (line === "") {
+            y += BLANK_LINE_SPACING;
+            continue;
+        }
+
+        ctx.fillText(
+            line,
+            W / 2,
+            y
+        );
+
+        y +=
+            fontSize +
+            LINE_SPACING;
+    }
+
+    ctx.restore();
+}
+
+function drawSideDecoration(p) {
+    ctx.save();
+
+    ctx.strokeStyle =
+        rgba(p.side_line);
+
+    ctx.fillStyle =
+        rgba(p.side_dot);
+
+    ctx.lineWidth = 2;
+
+    const leftX = 65;
+    const rightX = 1015;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        leftX,
+        495
+    );
+
+    ctx.lineTo(
+        leftX,
+        555
+    );
+
+    ctx.stroke();
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        rightX,
+        495
+    );
+
+    ctx.lineTo(
+        rightX,
+        555
+    );
+
+    ctx.stroke();
+
+    ctx.beginPath();
+
+    ctx.arc(
+        leftX,
+        525,
+        3,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    ctx.beginPath();
+
+    ctx.arc(
+        rightX,
+        525,
+        3,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+}
+
+function drawCard() {
+    const p =
+        PALETTES[selectedPalette];
+
+    ctx.clearRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+    drawBackground(p);
+
+    drawGlassPanel(p);
+
+    drawFrame(p);
+
+    drawSideDecoration(p);
+
+    drawOrnament(
+        185,
+        p
+    );
+
+    drawPoem(p);
+
+    drawBranding(p);
+}
+
+function updateCard() {
+    currentPoem =
+        poemInput.value.trim();
+
+    if (!currentPoem) {
+
+        canvas.style.display = "none";
+        previewEmpty.style.display = "flex";
+
+        downloadBtn.disabled = true;
+        shareBtn.disabled = true;
+
+        return;
+    }
+
+    canvas.style.display = "block";
+    previewEmpty.style.display = "none";
+
+    drawCard();
+
+    downloadBtn.disabled = false;
+    shareBtn.disabled = false;
+}
+
+function createPaletteButtons() {
+    paletteButtons.innerHTML = "";
+
+    PALETTES.forEach(
+        (palette, index) => {
+
+            const button =
+                document.createElement("button");
+
+            button.type = "button";
+            button.className = "palette-btn";
+
+            button.textContent =
+                palette.name;
+
+            button.style.background =
+                `linear-gradient(135deg,
+                    ${rgba3(palette.top)},
+                    ${rgba3(palette.bottom)}
+                )`;
+
+            button.style.color =
+                rgba3(palette.text);
+
+            button.style.borderColor =
+                rgba3(palette.frame);
+
+            if (index === selectedPalette) {
+                button.classList.add("active");
+            }
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    selectedPalette = index;
+
+                    document
+                        .querySelectorAll(
+                            ".palette-btn"
+                        )
+                        .forEach(
+                            (btn, i) => {
+                                btn.classList.toggle(
+                                    "active",
+                                    i === index
+                                );
+                            }
+                        );
+
+                    updateCard();
+                }
+            );
+
+            paletteButtons.appendChild(
+                button
+            );
+        }
+    );
+}
+
+document
+    .querySelectorAll(".option-btn")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                document
+                    .querySelectorAll(
+                        ".option-btn"
+                    )
+                    .forEach(
+                        btn =>
+                            btn.classList.remove(
+                                "active"
+                            )
+                    );
+
+                button.classList.add(
+                    "active"
+                );
+
+                branded =
+                    button.dataset.branded ===
+                    "true";
+
+                updateCard();
+            }
+        );
+    });
+
+poemInput.addEventListener(
+    "input",
+    updateCard
+);
+
+downloadBtn.addEventListener(
+    "click",
+    () => {
+
+        if (!currentPoem) {
+            return;
+        }
+
+        const link =
+            document.createElement("a");
+
+        link.download =
+            "کارت-شعر.png";
+
+        link.href =
+            canvas.toDataURL(
+                "image/png",
+                1
+            );
+
+        link.click();
+    }
+);
+
+shareBtn.addEventListener(
+    "click",
+    async () => {
+
+        if (!currentPoem) {
+            return;
+        }
+
+        try {
+
+            const blob =
+                await new Promise(
+                    resolve =>
+                        canvas.toBlob(
+                            resolve,
+                            "image/png",
+                            1
+                        )
+                );
+
+            const file =
+                new File(
+                    [blob],
+                    "کارت-شعر.png",
+                    {
+                        type: "image/png"
+                    }
+                );
+
+            if (
+                navigator.share &&
+                navigator.canShare &&
+                navigator.canShare({
+                    files: [file]
+                })
+            ) {
+
+                await navigator.share({
+                    files: [file],
+                    title: "کارت شعر"
+                });
+
+            } else if (
+                navigator.share
+            ) {
+
+                await navigator.share({
+                    title: "کارت شعر",
+                    text: currentPoem
+                });
+
+            } else {
+
+                alert(
+                    "اشتراک‌گذاری فایل در این مرورگر پشتیبانی نمی‌شود."
+                );
+            }
+
+        } catch (error) {
+
+            if (
+                error &&
+                error.name === "AbortError"
+            ) {
+                return;
+            }
+
+            console.error(
+                "Share error:",
+                error
+            );
+        }
+    }
+);
+
+createPaletteButtons();
