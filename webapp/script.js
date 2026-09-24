@@ -1,35 +1,16 @@
-const canvas =
-    document.getElementById("poetryCanvas");
+"use strict";
 
-const ctx =
-    canvas.getContext("2d");
-
-const poemInput =
-    document.getElementById("poemInput");
-
-const paletteButtons =
-    document.getElementById("paletteButtons");
-
-const downloadBtn =
-    document.getElementById("downloadBtn");
-
-const shareBtn =
-    document.getElementById("shareBtn");
-
-const previewEmpty =
-    document.getElementById("previewEmpty");
-
+/*
+    طراحی کارت مستقیماً بر اساس کد اصلی بات کارت شعر
+*/
 
 const W = 1080;
 const H = 1080;
 
+const S = 2;
+
 const LINE_SPACING = 32;
 const BLANK_LINE_SPACING = 48;
-
-const POEM_FONT = "Parastoo";
-const TITLE_FONT = "BTitrBd";
-const SUB_FONT = "Vazirmatn";
-
 
 const BG_URL =
     "https://raw.githubusercontent.com/" +
@@ -38,39 +19,24 @@ const BG_URL =
     "tazhib-21-v1-t1-pub1-inkscape-plain.svg";
 
 
-const backgroundImage =
-    new Image();
+const FONT_URLS = {
+    poem:
+        "https://raw.githubusercontent.com/" +
+        "hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/main/Parastoo%5Bwght%5D.ttf",
 
-backgroundImage.crossOrigin =
-    "anonymous";
+    title:
+        "https://raw.githubusercontent.com/" +
+        "hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/main/BTitrBd.ttf",
 
-
-let backgroundLoaded = false;
-
-
-backgroundImage.onload = () => {
-
-    backgroundLoaded = true;
-
-    updateCard();
-
+    regular:
+        "https://raw.githubusercontent.com/" +
+        "hasanzadeh4072-oss/Soroush-Poetry-Card-Bot/main/Vazirmatn-Regular.ttf"
 };
 
 
-backgroundImage.onerror = () => {
-
-    backgroundLoaded = false;
-
-    updateCard();
-
-};
-
-
-backgroundImage.src = BG_URL;
-
+/* -------------------- پالت‌ها -------------------- */
 
 const PALETTES = [
-
     {
         name: "بنفش سلطنتی",
         top: [76,43,105],
@@ -241,67 +207,137 @@ const PALETTES = [
         side_line: [73,96,62,85],
         side_dot: [62,84,52,125]
     }
-
 ];
 
 
-let selectedPalette = 0;
+/* -------------------- عناصر صفحه -------------------- */
+
+const canvas = document.getElementById("poetryCanvas");
+const ctx = canvas.getContext("2d");
+
+const poemInput = document.getElementById("poemInput");
+const paletteButtons = document.getElementById("paletteButtons");
+const downloadBtn = document.getElementById("downloadBtn");
+const shareBtn = document.getElementById("shareBtn");
+const previewEmpty = document.getElementById("previewEmpty");
+
+let currentPalette = 0;
 let branded = true;
-let currentPoem = "";
+let backgroundImage = null;
+let backgroundReady = false;
 
 
-function rgba(c) {
+/* -------------------- فونت‌ها -------------------- */
 
-    if (c.length === 3) {
+async function loadFonts() {
 
-        return `rgb(
-            ${c[0]},
-            ${c[1]},
-            ${c[2]}
-        )`;
+    try {
+
+        const poemFont = new FontFace(
+            "PoemFont",
+            `url("${FONT_URLS.poem}")`
+        );
+
+        const titleFont = new FontFace(
+            "TitleFont",
+            `url("${FONT_URLS.title}")`
+        );
+
+        const regularFont = new FontFace(
+            "RegularFont",
+            `url("${FONT_URLS.regular}")`
+        );
+
+        await Promise.all([
+            poemFont.load(),
+            titleFont.load(),
+            regularFont.load()
+        ]);
+
+        document.fonts.add(poemFont);
+        document.fonts.add(titleFont);
+        document.fonts.add(regularFont);
+
+    } catch (error) {
+
+        console.warn("Font loading failed:", error);
 
     }
-
-    return `rgba(
-        ${c[0]},
-        ${c[1]},
-        ${c[2]},
-        ${c[3] / 255}
-    )`;
 }
 
 
-function gradientBackground(p) {
+/* -------------------- پس‌زمینه -------------------- */
 
-    const gradient =
-        ctx.createLinearGradient(
-            0,
-            0,
-            0,
-            H
-        );
+function loadBackground() {
 
+    backgroundImage = new Image();
+
+    backgroundImage.crossOrigin = "anonymous";
+
+    backgroundImage.onload = function () {
+        backgroundReady = true;
+
+        if (poemInput.value.trim()) {
+            render();
+        }
+    };
+
+    backgroundImage.onerror = function () {
+        backgroundReady = false;
+
+        if (poemInput.value.trim()) {
+            render();
+        }
+    };
+
+    backgroundImage.src = BG_URL;
+}
+
+
+/* -------------------- ابزار رنگ -------------------- */
+
+function rgba(color) {
+
+    if (color.length === 3) {
+        return `rgb(${color[0]},${color[1]},${color[2]})`;
+    }
+
+    return `rgba(${color[0]},${color[1]},${color[2]},${color[3] / 255})`;
+}
+
+
+function rgb(color) {
+    return `rgb(${color[0]},${color[1]},${color[2]})`;
+}
+
+
+/* -------------------- گرادیان -------------------- */
+
+function drawGradient(p) {
+
+    const gradient = ctx.createLinearGradient(
+        0,
+        0,
+        0,
+        H
+    );
 
     gradient.addColorStop(
         0,
-        `rgb(${p.top.join(",")})`
+        rgb(p.top)
     );
-
 
     gradient.addColorStop(
         0.52,
-        `rgb(${p.middle.join(",")})`
+        rgb(p.middle)
     );
-
 
     gradient.addColorStop(
         1,
-        `rgb(${p.bottom.join(",")})`
+        rgb(p.bottom)
     );
 
-
-    ctx.fillStyle =
-        gradient;
+    ctx.fillStyle = gradient;
 
     ctx.fillRect(
         0,
@@ -309,210 +345,68 @@ function gradientBackground(p) {
         W,
         H
     );
-
-
-    drawGlow(
-        -130,
-        -90,
-        455,
-        370,
-        rgba(p.glow1)
-    );
-
-
-    drawGlow(
-        345,
-        345,
-        280,
-        280,
-        rgba(p.glow2)
-    );
-
-
-    drawGlow(
-        125,
-        175,
-        300,
-        300,
-        rgba(p.glow3)
-    );
-
 }
 
 
-function drawGlow(
-    x,
-    y,
-    w,
-    h,
-    color
-) {
-
-    ctx.save();
-
-    ctx.translate(
-        x + w / 2,
-        y + h / 2
-    );
-
-    ctx.scale(
-        w / 2,
-        h / 2
-    );
-
-
-    const gradient =
-        ctx.createRadialGradient(
-            0,
-            0,
-            0,
-            0,
-            0,
-            1
-        );
-
-
-    gradient.addColorStop(
-        0,
-        color
-    );
-
-
-    gradient.addColorStop(
-        1,
-        "rgba(0,0,0,0)"
-    );
-
-
-    ctx.fillStyle =
-        gradient;
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-        0,
-        0,
-        1,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-    ctx.restore();
-
-}
-
-
-function drawTexture() {
-
-    const random =
-        mulberry32(73421);
-
-
-    ctx.save();
-
-
-    for (
-        let i = 0;
-        i < 1500;
-        i++
-    ) {
-
-        const x =
-            random() * W;
-
-        const y =
-            random() * H;
-
-        const alpha =
-            .012 +
-            random() * .018;
-
-
-        ctx.fillStyle =
-            `rgba(
-                255,
-                255,
-                255,
-                ${alpha}
-            )`;
-
-
-        ctx.fillRect(
-            x,
-            y,
-            1,
-            1
-        );
-
-    }
-
-
-    ctx.restore();
-
-}
-
-
-function mulberry32(seed) {
-
-    return function () {
-
-        let t =
-            seed +=
-            0x6D2B79F5;
-
-
-        t =
-            Math.imul(
-                t ^ (t >>> 15),
-                t | 1
-            );
-
-
-        t ^=
-            t +
-            Math.imul(
-                t ^ (t >>> 7),
-                t | 61
-            );
-
-
-        return (
-            (t ^ (t >>> 14))
-            >>> 0
-        ) / 4294967296;
-
-    };
-
-}
-
+/* -------------------- پس‌زمینه اصلی بات -------------------- */
 
 function drawBackground(p) {
 
-    gradientBackground(p);
-
+    drawGradient(p);
 
     /*
-     * تصویر اصلی تذهیب بات
-     * با همان حالت محو
-     */
+        در بات:
+        BG با Brightness(.48)
+        Blur = 8
+        Alpha = 42 / 255
+    */
 
-    if (
-        backgroundLoaded &&
-        backgroundImage.naturalWidth > 0
-    ) {
+    if (backgroundReady && backgroundImage) {
+
+        const bgCanvas = document.createElement("canvas");
+
+        bgCanvas.width = W;
+        bgCanvas.height = H;
+
+        const bgCtx = bgCanvas.getContext("2d");
+
+        bgCtx.clearRect(
+            0,
+            0,
+            W,
+            H
+        );
+
+        const iw = backgroundImage.naturalWidth || W;
+        const ih = backgroundImage.naturalHeight || H;
+
+        const scale = Math.max(
+            W / iw,
+            H / ih
+        );
+
+        const dw = iw * scale;
+        const dh = ih * scale;
+
+        const dx = (W - dw) / 2;
+        const dy = (H - dh) / 2;
+
+        bgCtx.filter = "brightness(48%) blur(8px)";
+
+        bgCtx.drawImage(
+            backgroundImage,
+            dx,
+            dy,
+            dw,
+            dh
+        );
 
         ctx.save();
 
-        ctx.globalAlpha = 0.165;
-
-        ctx.filter =
-            "blur(4px)";
+        ctx.globalAlpha = 42 / 255;
 
         ctx.drawImage(
-            backgroundImage,
+            bgCanvas,
             0,
             0,
             W,
@@ -520,161 +414,108 @@ function drawBackground(p) {
         );
 
         ctx.restore();
-
     }
 
 
-    drawTexture();
-
-}
-
-
-function roundedPath(
-    x,
-    y,
-    w,
-    h,
-    radius
-) {
-
-    const r =
-        Math.min(
-            radius,
-            w / 2,
-            h / 2
-        );
-
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x + r,
-        y
-    );
-
-    ctx.lineTo(
-        x + w - r,
-        y
-    );
-
-    ctx.quadraticCurveTo(
-        x + w,
-        y,
-        x + w,
-        y + r
-    );
-
-    ctx.lineTo(
-        x + w,
-        y + h - r
-    );
-
-    ctx.quadraticCurveTo(
-        x + w,
-        y + h,
-        x + w - r,
-        y + h
-    );
-
-    ctx.lineTo(
-        x + r,
-        y + h
-    );
-
-    ctx.quadraticCurveTo(
-        x,
-        y + h,
-        x,
-        y + h - r
-    );
-
-    ctx.lineTo(
-        x,
-        y + r
-    );
-
-    ctx.quadraticCurveTo(
-        x,
-        y,
-        x + r,
-        y
-    );
-
-    ctx.closePath();
-
-}
-
-
-function drawGlassPanel(p) {
+    /*
+        glow های دقیق پالت بات
+    */
 
     ctx.save();
 
+    ctx.filter = "blur(55px)";
 
-    ctx.shadowColor =
-        "rgba(0,0,0,0.09)";
+    ctx.fillStyle = rgba(p.glow1);
 
-    ctx.shadowBlur = 22;
+    ctx.beginPath();
 
-    ctx.shadowOffsetY = 4;
-
-
-    roundedPath(
-        100,
-        160,
-        880,
-        730,
-        45
-    );
-
-
-    const glass =
-        ctx.createLinearGradient(
-            0,
-            160,
-            0,
-            890
-        );
-
-
-    glass.addColorStop(
+    ctx.ellipse(
+        260,
+        230,
+        270,
+        210,
         0,
-        "rgba(255,255,255,0.028)"
+        0,
+        Math.PI * 2
     );
 
+    ctx.fill();
 
-    glass.addColorStop(
-        .25,
-        "rgba(255,255,255,0.008)"
+
+    ctx.fillStyle = rgba(p.glow2);
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        850,
+        390,
+        250,
+        280,
+        0,
+        0,
+        Math.PI * 2
     );
 
+    ctx.fill();
 
-    glass.addColorStop(
-        .55,
-        "rgba(255,255,255,0.002)"
+
+    ctx.fillStyle = rgba(p.glow3);
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        500,
+        900,
+        360,
+        180,
+        0,
+        0,
+        Math.PI * 2
     );
-
-
-    glass.addColorStop(
-        .80,
-        "rgba(255,255,255,0.006)"
-    );
-
-
-    glass.addColorStop(
-        1,
-        "rgba(255,255,255,0.025)"
-    );
-
-
-    ctx.fillStyle =
-        glass;
 
     ctx.fill();
 
     ctx.restore();
+}
 
 
-    roundedPath(
+/* -------------------- پنل دقیق بات -------------------- */
+
+function drawPanel(p) {
+
+    const panel = document.createElement("canvas");
+
+    panel.width = W;
+    panel.height = H;
+
+    const d = panel.getContext("2d");
+
+    /*
+        d.rr((100,164,980,896), radius=45, fill=(0,0,0,45))
+    */
+
+    d.fillStyle = "rgba(0,0,0,45/255)";
+
+    roundedRect(
+        d,
+        100,
+        164,
+        880,
+        732,
+        45
+    );
+
+    d.fill();
+
+
+    /*
+        d.rr((100,160,980,890), radius=45, fill=(255,255,255,24))
+    */
+
+    d.fillStyle = "rgba(255,255,255,24/255)";
+
+    roundedRect(
+        d,
         100,
         160,
         880,
@@ -682,196 +523,226 @@ function drawGlassPanel(p) {
         45
     );
 
-
-    ctx.strokeStyle =
-        rgba([
-            p.panel_outline[0],
-            p.panel_outline[1],
-            p.panel_outline[2],
-            135
-        ]);
+    d.fill();
 
 
-    ctx.lineWidth = 3;
+    /*
+        d.rr((110,170,970,880), radius=37,
+             outline=(255,255,255,12), width=1)
+    */
 
-    ctx.stroke();
-
-
-    roundedPath(
-        108,
-        168,
-        864,
-        714,
-        39
+    roundedRectStroke(
+        d,
+        110,
+        170,
+        860,
+        710,
+        37,
+        "rgba(255,255,255,12/255)",
+        1
     );
-
-
-    ctx.strokeStyle =
-        "rgba(255,255,255,0.22)";
-
-    ctx.lineWidth = 1.5;
-
-    ctx.stroke();
-
-
-    roundedPath(
-        114,
-        174,
-        852,
-        702,
-        35
-    );
-
-
-    ctx.strokeStyle =
-        "rgba(255,255,255,0.055)";
-
-    ctx.lineWidth = 1;
-
-    ctx.stroke();
 
 
     ctx.save();
 
-    roundedPath(
-        116,
-        176,
-        848,
-        696,
-        34
-    );
+    ctx.globalAlpha = 1;
 
-    ctx.clip();
-
-
-    const reflection =
-        ctx.createLinearGradient(
-            0,
-            176,
-            0,
-            290
-        );
-
-
-    reflection.addColorStop(
+    ctx.drawImage(
+        panel,
         0,
-        "rgba(255,255,255,0.10)"
+        0
     );
-
-
-    reflection.addColorStop(
-        .45,
-        "rgba(255,255,255,0.025)"
-    );
-
-
-    reflection.addColorStop(
-        1,
-        "rgba(255,255,255,0)"
-    );
-
-
-    ctx.fillStyle =
-        reflection;
-
-
-    ctx.fillRect(
-        100,
-        160,
-        880,
-        150
-    );
-
 
     ctx.restore();
-
 }
 
+
+function roundedRect(
+    context,
+    x,
+    y,
+    width,
+    height,
+    radius
+) {
+
+    context.beginPath();
+
+    context.moveTo(x + radius, y);
+
+    context.lineTo(
+        x + width - radius,
+        y
+    );
+
+    context.quadraticCurveTo(
+        x + width,
+        y,
+        x + width,
+        y + radius
+    );
+
+    context.lineTo(
+        x + width,
+        y + height - radius
+    );
+
+    context.quadraticCurveTo(
+        x + width,
+        y + height,
+        x + width - radius,
+        y + height
+    );
+
+    context.lineTo(
+        x + radius,
+        y + height
+    );
+
+    context.quadraticCurveTo(
+        x,
+        y + height,
+        x,
+        y + height - radius
+    );
+
+    context.lineTo(
+        x,
+        y + radius
+    );
+
+    context.quadraticCurveTo(
+        x,
+        y,
+        x + radius,
+        y
+    );
+
+    context.closePath();
+}
+
+
+function roundedRectStroke(
+    context,
+    x,
+    y,
+    width,
+    height,
+    radius,
+    color,
+    lineWidth
+) {
+
+    context.beginPath();
+
+    context.moveTo(x + radius, y);
+
+    context.lineTo(
+        x + width - radius,
+        y
+    );
+
+    context.quadraticCurveTo(
+        x + width,
+        y,
+        x + width,
+        y + radius
+    );
+
+    context.lineTo(
+        x + width,
+        y + height - radius
+    );
+
+    context.quadraticCurveTo(
+        x + width,
+        y + height,
+        x + width - radius,
+        y + height
+    );
+
+    context.lineTo(
+        x + radius,
+        y + height
+    );
+
+    context.quadraticCurveTo(
+        x,
+        y + height,
+        x,
+        y + height - radius
+    );
+
+    context.lineTo(
+        x,
+        y + radius
+    );
+
+    context.quadraticCurveTo(
+        x,
+        y,
+        x + radius,
+        y
+    );
+
+    context.closePath();
+
+    context.strokeStyle = color;
+    context.lineWidth = lineWidth;
+
+    context.stroke();
+}
+
+
+/* -------------------- قاب دقیق بات -------------------- */
 
 function drawFrame(p) {
 
-    roundedPath(
+    roundedRectStroke(
+        ctx,
         40,
         40,
         1000,
         1000,
-        42
+        42,
+        rgb(p.frame),
+        3
     );
 
-
-    ctx.strokeStyle =
-        rgba(p.frame);
-
-    ctx.lineWidth = 3;
-
-    ctx.stroke();
-
-
-    roundedPath(
+    roundedRectStroke(
+        ctx,
         49,
         49,
         982,
         982,
-        35
+        35,
+        rgb(p.frame_inner),
+        2
     );
-
-
-    ctx.strokeStyle =
-        rgba(p.frame_inner);
-
-    ctx.lineWidth = 2;
-
-    ctx.stroke();
-
 }
 
 
-function drawOrnament(
-    y,
-    p
-) {
+/* -------------------- تزئین وسط -------------------- */
 
-    const center =
-        W / 2;
+function drawOrnament(p, y) {
+
+    const center = W / 2;
 
     const width = 150;
 
 
-    ctx.save();
-
-    ctx.strokeStyle =
-        rgba(p.ornament);
-
-    ctx.fillStyle =
-        rgba(p.ornament);
-
+    ctx.strokeStyle = rgb(p.ornament);
     ctx.lineWidth = 2;
-
 
     ctx.beginPath();
 
     ctx.moveTo(
-        center - width / 2,
+        center - width,
         y
     );
 
     ctx.lineTo(
-        center - 18,
-        y
-    );
-
-    ctx.lineTo(
-        center,
-        y - 10
-    );
-
-    ctx.lineTo(
-        center + 18,
-        y
-    );
-
-    ctx.lineTo(
-        center + width / 2,
+        center - 12,
         y
     );
 
@@ -881,399 +752,407 @@ function drawOrnament(
     ctx.beginPath();
 
     ctx.moveTo(
-        center,
-        y - 7
+        center + 12,
+        y
     );
 
     ctx.lineTo(
-        center + 7,
+        center + width,
+        y
+    );
+
+    ctx.stroke();
+
+
+    ctx.fillStyle = rgb(p.accent);
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        center,
+        y - 5
+    );
+
+    ctx.lineTo(
+        center + 5,
         y
     );
 
     ctx.lineTo(
         center,
-        y + 7
+        y + 5
     );
 
     ctx.lineTo(
-        center - 7,
+        center - 5,
         y
     );
 
     ctx.closePath();
 
     ctx.fill();
-
-
-    ctx.restore();
-
 }
 
+
+/* -------------------- نوشته‌های بات -------------------- */
 
 function drawBranding(p) {
 
-    if (!branded) {
-        return;
-    }
+    const title = "شعرکده";
+    const subtitle = "( سروش پلاس )";
+    const footer = "کارت شعر";
+
+    const titleFontSize = 42;
+    const subtitleFontSize = 22;
+    const footerFontSize = 23;
+
+    const footerY = 78;
 
 
-    ctx.save();
+    /*
+        footer = کارت شعر
+        بالای کارت
+    */
 
-    ctx.textAlign =
-        "center";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
 
-    ctx.textBaseline =
-        "middle";
+    ctx.font =
+        `${footerFontSize}px RegularFont, Vazirmatn, sans-serif`;
+
+    ctx.fillStyle = rgb(p.accent);
+
+    ctx.fillText(
+        footer,
+        W / 2,
+        footerY
+    );
+
+
+    /*
+        ornament بعد از footer
+    */
+
+    drawOrnament(
+        p,
+        footerY + 23 + 25
+    );
+
+
+    /*
+        پایین کارت:
+        شعرکده + ( سروش پلاس )
+    */
+
+    ctx.font =
+        `bold ${titleFontSize}px TitleFont, Vazirmatn, sans-serif`;
+
+    const titleWidth =
+        ctx.measureText(title).width;
+
+    const titleHeight = titleFontSize;
 
 
     ctx.font =
-        `50px "${TITLE_FONT}"`;
+        `${subtitleFontSize}px RegularFont, Vazirmatn, sans-serif`;
+
+    const subtitleWidth =
+        ctx.measureText(subtitle).width;
+
+    const subtitleHeight = subtitleFontSize;
 
 
-    ctx.fillStyle =
-        rgba(p.accent);
+    const titleY =
+        H - 78 - titleHeight;
 
+    const titleX =
+        W / 2 + 10;
+
+
+    ctx.font =
+        `bold ${titleFontSize}px TitleFont, Vazirmatn, sans-serif`;
+
+    ctx.textAlign = "left";
+
+    ctx.fillStyle = rgb(p.accent);
 
     ctx.fillText(
-        "شعرکده",
-        W / 2,
-        100
+        title,
+        titleX,
+        titleY
     );
 
 
     ctx.font =
-        `23px "${SUB_FONT}"`;
+        `${subtitleFontSize}px RegularFont, Vazirmatn, sans-serif`;
 
-
-    ctx.fillStyle =
-        rgba(p.subtitle);
-
+    ctx.fillStyle = rgb(p.subtitle);
 
     ctx.fillText(
-        "شعر، برای ماندن",
-        W / 2,
-        1002
+        subtitle,
+        titleX - titleWidth - 20,
+        titleY + (titleHeight - subtitleHeight) / 2 - 3
     );
 
 
-    ctx.restore();
+    /*
+        ornament بالای نوشته پایین
+    */
 
+    drawOrnament(
+        p,
+        titleY - 25
+    );
 }
 
 
-function prepareLines(
+/* -------------------- متن شعر -------------------- */
+
+function wrapText(
     text,
-    fontSize
+    fontSize,
+    maxWidth
 ) {
 
-    const maxWidth = 790;
-
     ctx.font =
-        `${fontSize}px "${POEM_FONT}"`;
+        `${fontSize}px PoemFont, Parastoo, serif`;
 
+    const result = [];
 
-    const lines = [];
+    const paragraphs = text.split("\n");
 
+    for (const paragraph of paragraphs) {
 
-    const rawLines =
-        text
-            .replace(/\r/g, "")
-            .split("\n");
+        if (paragraph.trim() === "") {
 
-
-    for (
-        const rawLine
-        of rawLines
-    ) {
-
-        if (
-            rawLine.trim() === ""
-        ) {
-
-            lines.push("");
+            result.push("");
 
             continue;
         }
 
+        const words = paragraph.trim().split(/\s+/);
 
-        const words =
-            rawLine
-                .trim()
-                .split(/\s+/);
+        let line = "";
 
-
-        let current = "";
-
-
-        for (
-            const word
-            of words
-        ) {
+        for (const word of words) {
 
             const test =
-                current
-                    ? `${current} ${word}`
+                line
+                    ? line + " " + word
                     : word;
 
+            const width =
+                ctx.measureText(test).width;
 
             if (
-                ctx.measureText(test).width
-                <= maxWidth
+                width <= maxWidth ||
+                !line
             ) {
 
-                current = test;
+                line = test;
 
             } else {
 
-                if (current) {
-                    lines.push(current);
-                }
+                result.push(line);
 
-                current = word;
-
+                line = word;
             }
-
         }
 
-
-        if (current) {
-            lines.push(current);
+        if (line) {
+            result.push(line);
         }
-
     }
 
-
-    return lines;
-
+    return result;
 }
 
 
+/* -------------------- ارتفاع شعر -------------------- */
+
 function calculateTextHeight(
     lines,
-    fontSize
+    lineSpacing,
+    blankSpacing
 ) {
 
     let height = 0;
 
+    for (let i = 0; i < lines.length; i++) {
 
-    for (
-        const line
-        of lines
-    ) {
-
-        height +=
-            line === ""
-                ? BLANK_LINE_SPACING
-                : fontSize + LINE_SPACING;
-
+        if (lines[i] === "") {
+            height += blankSpacing;
+        } else {
+            height += lineSpacing;
+        }
     }
 
-
-    return Math.max(
-        0,
-        height - LINE_SPACING
-    );
-
+    return height;
 }
 
 
-function drawPoem(p) {
+/* -------------------- رسم شعر -------------------- */
 
-    const text =
-        currentPoem.trim();
-
-
-    if (!text) {
-        return;
-    }
-
+function drawPoem(p, text) {
 
     const left = 145;
     const right = 935;
+
     const top = 205;
     const bottom = 845;
 
-
-    const availableHeight =
-        bottom - top;
-
-
-    const maxWidth =
-        right - left;
+    const maxWidth = 790;
+    const availableHeight = 640;
 
 
     let fontSize = 66;
+
     let lines = [];
 
 
-    while (
-        fontSize >= 28
-    ) {
+    while (fontSize >= 28) {
 
-        lines =
-            prepareLines(
-                text,
-                fontSize
-            );
-
+        lines = wrapText(
+            text,
+            fontSize,
+            maxWidth
+        );
 
         const height =
             calculateTextHeight(
                 lines,
-                fontSize
+                LINE_SPACING,
+                BLANK_LINE_SPACING
             );
 
-
-        if (
-            height <= availableHeight
-        ) {
+        if (height <= availableHeight) {
             break;
         }
 
-
         fontSize -= 2;
-
     }
 
 
-    if (fontSize < 28) {
-
-        fontSize = 28;
-
-        lines =
-            prepareLines(
-                text,
-                fontSize
-            );
-
-    }
-
-
-    const textHeight =
+    const totalHeight =
         calculateTextHeight(
             lines,
-            fontSize
+            LINE_SPACING,
+            BLANK_LINE_SPACING
         );
 
 
     let y =
         top +
-        (
-            availableHeight -
-            textHeight
-        ) / 2;
+        (availableHeight - totalHeight) / 2;
 
 
-    ctx.save();
-
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
 
     ctx.font =
-        `${fontSize}px "${POEM_FONT}"`;
+        `${fontSize}px PoemFont, Parastoo, serif`;
 
-    ctx.fillStyle =
-        rgba(p.text);
+    ctx.fillStyle = rgb(p.text);
 
-    ctx.textAlign =
-        "center";
+    ctx.strokeStyle = rgb(p.text);
 
-    ctx.textBaseline =
-        "top";
+    ctx.lineWidth = 1;
 
 
-    for (
-        const line
-        of lines
-    ) {
+    for (const line of lines) {
 
         if (line === "") {
 
-            y +=
-                BLANK_LINE_SPACING;
+            y += BLANK_LINE_SPACING;
 
             continue;
         }
 
 
+        /*
+            در کد بات:
+            fill=p["text"]
+            stroke_width=1
+            stroke_fill=p["text"]
+        */
+
+        ctx.strokeText(
+            line,
+            (left + right) / 2,
+            y + fontSize
+        );
+
         ctx.fillText(
             line,
-            W / 2,
-            y
+            (left + right) / 2,
+            y + fontSize
         );
 
 
-        y +=
-            fontSize +
-            LINE_SPACING;
-
+        y += LINE_SPACING;
     }
-
-
-    ctx.restore();
-
 }
 
 
+/* -------------------- المان‌های کناری دقیق بات -------------------- */
+
 function drawSideDecoration(p) {
 
-    const centerY = 525;
+    const xs = [65, 1015];
 
+    for (const x of xs) {
 
-    ctx.save();
+        ctx.strokeStyle = rgba([
+            p.side_line[0],
+            p.side_line[1],
+            p.side_line[2],
+            p.side_line[3]
+        ]);
 
-
-    ctx.strokeStyle =
-        rgba(p.side_line);
-
-    ctx.fillStyle =
-        rgba(p.side_dot);
-
-    ctx.lineWidth = 2;
-
-
-    for (
-        const x of [65, 1015]
-    ) {
+        ctx.lineWidth = 2;
 
         ctx.beginPath();
 
         ctx.moveTo(
             x,
-            centerY - 30
+            495
         );
 
         ctx.lineTo(
             x,
-            centerY + 30
+            555
         );
 
         ctx.stroke();
 
 
+        ctx.fillStyle = rgba([
+            p.side_dot[0],
+            p.side_dot[1],
+            p.side_dot[2],
+            p.side_dot[3]
+        ]);
+
         ctx.beginPath();
 
         ctx.arc(
             x,
-            centerY,
+            525,
             3,
             0,
             Math.PI * 2
         );
 
         ctx.fill();
-
     }
-
-
-    ctx.restore();
-
 }
 
 
-function drawCard() {
+/* -------------------- ساخت کارت -------------------- */
 
-    const p =
-        PALETTES[selectedPalette];
+function createCard(text) {
 
+    const p = PALETTES[currentPalette];
 
     ctx.clearRect(
         0,
@@ -1283,228 +1162,179 @@ function drawCard() {
     );
 
 
-    drawBackground(p);
+    /*
+        ترتیب دقیق create_card بات:
 
-    drawGlassPanel(p);
+        1. background
+        2. frame
+        3. branding/footer/ornament
+        4. panel
+        5. poem
+        6. side decoration
+    */
+
+    drawBackground(p);
 
     drawFrame(p);
 
-    drawSideDecoration(p);
-
-    drawOrnament(
-        185,
-        p
-    );
-
-    drawPoem(p);
-
     drawBranding(p);
 
+    drawPanel(p);
+
+    drawPoem(p, text);
+
+    drawSideDecoration(p);
 }
 
 
-function updateCard() {
+/* -------------------- رندر -------------------- */
 
-    currentPoem =
-        poemInput.value.trim();
+function render() {
 
+    const text = poemInput.value.trim();
 
-    if (!currentPoem) {
+    if (!text) {
 
-        canvas.style.display =
-            "none";
+        canvas.classList.remove("visible");
 
-        previewEmpty.style.display =
-            "flex";
+        previewEmpty.style.display = "flex";
 
-        downloadBtn.disabled =
-            true;
-
-        shareBtn.disabled =
-            true;
+        downloadBtn.disabled = true;
+        shareBtn.disabled = true;
 
         return;
     }
 
 
-    canvas.style.display =
-        "block";
+    createCard(text);
 
-    previewEmpty.style.display =
-        "none";
+    canvas.classList.add("visible");
 
+    previewEmpty.style.display = "none";
 
-    drawCard();
-
-
-    downloadBtn.disabled =
-        false;
-
-    shareBtn.disabled =
-        false;
-
+    downloadBtn.disabled = false;
+    shareBtn.disabled = false;
 }
 
+
+/* -------------------- پالت‌ها -------------------- */
 
 function createPaletteButtons() {
 
     paletteButtons.innerHTML = "";
 
+    PALETTES.forEach((palette, index) => {
 
-    PALETTES.forEach(
-        (palette, index) => {
+        const button =
+            document.createElement("button");
 
-            const button =
-                document.createElement(
-                    "button"
-                );
+        button.type = "button";
 
+        button.className = "palette-btn";
 
-            button.type =
-                "button";
-
-
-            button.className =
-                "palette-btn";
-
-
-            button.textContent =
-                palette.name;
-
-
-            button.style.background =
-                `linear-gradient(
-                    135deg,
-                    rgb(${palette.top.join(",")}),
-                    rgb(${palette.bottom.join(",")})
-                )`;
-
-
-            button.style.color =
-                `rgb(${palette.text.join(",")})`;
-
-
-            button.style.borderColor =
-                `rgb(${palette.frame.join(",")})`;
-
-
-            if (
-                index === selectedPalette
-            ) {
-
-                button.classList.add(
-                    "active"
-                );
-
-            }
-
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    selectedPalette =
-                        index;
-
-
-                    document
-                        .querySelectorAll(
-                            ".palette-btn"
-                        )
-                        .forEach(
-                            (btn, i) => {
-
-                                btn.classList.toggle(
-                                    "active",
-                                    i === index
-                                );
-
-                            }
-                        );
-
-
-                    updateCard();
-
-                }
-            );
-
-
-            paletteButtons.appendChild(
-                button
-            );
-
+        if (index === currentPalette) {
+            button.classList.add("active");
         }
-    );
 
+
+        const gradient =
+            `linear-gradient(180deg,
+            rgb(${palette.top.join(",")}) 0%,
+            rgb(${palette.middle.join(",")}) 52%,
+            rgb(${palette.bottom.join(",")}) 100%)`;
+
+        button.style.background = gradient;
+
+        button.title = palette.name;
+
+        button.setAttribute(
+            "aria-label",
+            palette.name
+        );
+
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                currentPalette = index;
+
+                document
+                    .querySelectorAll(".palette-btn")
+                    .forEach(
+                        item =>
+                            item.classList.remove("active")
+                    );
+
+                button.classList.add("active");
+
+                render();
+            }
+        );
+
+
+        paletteButtons.appendChild(button);
+    });
 }
 
 
+/* -------------------- نوع کارت -------------------- */
+
 document
-    .querySelectorAll(
-        ".option-btn"
-    )
-    .forEach(
-        button => {
+    .querySelectorAll(".option-btn")
+    .forEach(button => {
 
-            button.addEventListener(
-                "click",
-                () => {
+        button.addEventListener(
+            "click",
+            () => {
 
-                    document
-                        .querySelectorAll(
-                            ".option-btn"
-                        )
-                        .forEach(
-                            btn =>
-                                btn.classList.remove(
-                                    "active"
-                                )
-                        );
-
-
-                    button.classList.add(
-                        "active"
+                document
+                    .querySelectorAll(".option-btn")
+                    .forEach(
+                        item =>
+                            item.classList.remove("active")
                     );
 
+                button.classList.add("active");
 
-                    branded =
-                        button.dataset.branded ===
-                        "true";
+                branded =
+                    button.dataset.branded === "true";
+
+                /*
+                    متغیر branded برای حفظ منطق
+                    انتخاب امضا نگه داشته شده است.
+                */
+
+                render();
+            }
+        );
+    });
 
 
-                    updateCard();
-
-                }
-            );
-
-        }
-    );
-
+/* -------------------- ورود شعر -------------------- */
 
 poemInput.addEventListener(
     "input",
-    updateCard
+    () => {
+        render();
+    }
 );
 
+
+/* -------------------- ذخیره -------------------- */
 
 downloadBtn.addEventListener(
     "click",
     () => {
 
-        if (!currentPoem) {
+        if (!poemInput.value.trim()) {
             return;
         }
 
-
         const link =
-            document.createElement(
-                "a"
-            );
+            document.createElement("a");
 
-
-        link.download =
-            "کارت-شعر.png";
-
+        link.download = "kart-sh-er.png";
 
         link.href =
             canvas.toDataURL(
@@ -1512,18 +1342,32 @@ downloadBtn.addEventListener(
                 1
             );
 
+        document.body.appendChild(link);
 
         link.click();
 
+        link.remove();
     }
 );
 
+
+/* -------------------- اشتراک‌گذاری -------------------- */
 
 shareBtn.addEventListener(
     "click",
     async () => {
 
-        if (!currentPoem) {
+        if (!poemInput.value.trim()) {
+            return;
+        }
+
+
+        if (!navigator.share) {
+
+            alert(
+                "اشتراک‌گذاری مستقیم در این دستگاه در دسترس نیست. ابتدا کارت را ذخیره کنید."
+            );
+
             return;
         }
 
@@ -1532,39 +1376,31 @@ shareBtn.addEventListener(
 
             const blob =
                 await new Promise(
-                    resolve => {
-
+                    resolve =>
                         canvas.toBlob(
                             resolve,
                             "image/png",
                             1
-                        );
-
-                    }
+                        )
                 );
 
 
             const file =
                 new File(
                     [blob],
-                    "کارت-شعر.png",
+                    "kart-sh-er.png",
                     {
-                        type:
-                            "image/png"
+                        type: "image/png"
                     }
                 );
 
 
             if (
-                navigator.share &&
                 navigator.canShare &&
-                navigator.canShare({
-                    files: [file]
-                })
+                !navigator.canShare({ files: [file] })
             ) {
 
                 await navigator.share({
-                    files: [file],
                     title: "کارت شعر"
                 });
 
@@ -1572,44 +1408,38 @@ shareBtn.addEventListener(
             }
 
 
-            if (
-                navigator.share
-            ) {
-
-                await navigator.share({
-                    title: "کارت شعر",
-                    text: currentPoem
-                });
-
-                return;
-            }
-
-
-            alert(
-                "اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود."
-            );
+            await navigator.share({
+                title: "کارت شعر",
+                text: "کارت شعر"
+            });
 
 
         } catch (error) {
 
-            if (
-                error &&
-                error.name ===
-                "AbortError"
-            ) {
-                return;
+            if (error.name !== "AbortError") {
+
+                console.error(
+                    "Share error:",
+                    error
+                );
             }
-
-
-            console.error(
-                "Share error:",
-                error
-            );
-
         }
-
     }
 );
 
 
-createPaletteButtons();
+/* -------------------- شروع -------------------- */
+
+async function init() {
+
+    createPaletteButtons();
+
+    await loadFonts();
+
+    loadBackground();
+
+    render();
+}
+
+
+init();
