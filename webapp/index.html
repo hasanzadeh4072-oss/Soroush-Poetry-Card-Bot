@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#f5f7f8">
+
     <title>کارت شعر</title>
+
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,33 +13,38 @@
 
 <main class="app">
 
-    <header class="header">
+    <header class="page-header">
         <h1>کارت شعر</h1>
     </header>
 
     <section class="editor">
 
-        <div class="option-group">
-            <label for="poemInput">متن کارت شعر را وارد کنید</label>
+        <div class="field">
+            <label for="poemInput">
+                متن شعر
+            </label>
 
             <textarea
                 id="poemInput"
-                placeholder="شعرتان را اینجا وارد کنید..."
-                rows="7"
+                placeholder="شعرت را همین‌جا بنویس..."
                 maxlength="3000"
+                autocomplete="off"
+                spellcheck="false"
             ></textarea>
         </div>
 
 
-        <div class="option-group">
+        <div class="field">
 
-            <span class="group-title">نوع کارت شعر را انتخاب کنید</span>
+            <div class="field-title">
+                نوع کارت شعر
+            </div>
 
-            <div class="segmented">
+            <div class="type-options">
 
                 <button
                     type="button"
-                    class="option-btn active"
+                    class="type-button active"
                     data-branded="true"
                 >
                     🖋️ با امضای شعرکده
@@ -46,10 +52,10 @@
 
                 <button
                     type="button"
-                    class="option-btn"
+                    class="type-button"
                     data-branded="false"
                 >
-                    ◻️ بدون امضا
+                    ◻️ کارت عمومی، بدون امضا
                 </button>
 
             </div>
@@ -57,11 +63,16 @@
         </div>
 
 
-        <div class="option-group">
+        <div class="field">
 
-            <span class="group-title">رنگ کارت شعر را انتخاب کنید</span>
+            <div class="field-title">
+                رنگ کارت شعر
+            </div>
 
-            <div id="paletteButtons" class="palette-grid"></div>
+            <div
+                id="paletteButtons"
+                class="palette-options"
+            ></div>
 
         </div>
 
@@ -71,18 +82,18 @@
     <section class="actions">
 
         <button
-            type="button"
             id="downloadBtn"
-            class="action-btn"
+            type="button"
+            class="action-button"
             disabled
         >
             ⬇️ ذخیره
         </button>
 
         <button
-            type="button"
             id="shareBtn"
-            class="action-btn"
+            type="button"
+            class="action-button"
             disabled
         >
             ↗️ اشتراک‌گذاری
@@ -91,12 +102,15 @@
     </section>
 
 
-    <!-- پیش‌نمایش همیشه آخر صفحه -->
-    <section class="card-preview">
+    <!-- پیش‌نمایش عمداً آخر صفحه است -->
+    <section class="preview-section">
 
-        <div id="previewEmpty" class="preview-empty">
-            <span>🖼️</span>
-            <p>پیش‌نمایش کارت شعر</p>
+        <div
+            id="previewEmpty"
+            class="preview-empty"
+        >
+            <div class="preview-icon">🖼️</div>
+            <div>پیش‌نمایش کارت شعر</div>
         </div>
 
         <canvas
