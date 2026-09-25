@@ -917,6 +917,9 @@ def draw_ornament(d, p, y):
 
 def create_card(text, p, branded=True):
 
+    create_start = time.perf_counter()
+    print("[CARD] CREATE START", flush=True)
+
     image = BACKGROUNDS[
         p["name"]
     ].copy().convert("RGBA")
@@ -1246,6 +1249,12 @@ def create_card(text, p, branded=True):
         optimize=False
     )
 
+    create_elapsed = time.perf_counter() - create_start
+    print(
+        f"[CARD] CREATE END = {create_elapsed:.3f}s",
+        flush=True
+    )
+
     return filename
 
 
@@ -1305,14 +1314,24 @@ def worker(
     full_name
 ):
 
+    worker_start = time.perf_counter()
+    print("[CARD] WORKER START", flush=True)
+
     filename = None
     building_id = None
 
     try:
 
+        building_start = time.perf_counter()
+
         response = send_message(
             chat_id,
             "⏳ <b>کارت شعر در حال ساخت است...</b>"
+        )
+
+        print(
+            f"[CARD] BUILDING MESSAGE = {time.perf_counter() - building_start:.3f}s",
+            flush=True
         )
 
         if response is not None and response.ok:
@@ -1328,15 +1347,29 @@ def worker(
             except Exception:
                 pass
 
+        create_call_start = time.perf_counter()
+
         filename = create_card(
             poem,
             p,
             branded
         )
 
+        print(
+            f"[CARD] CREATE CALL TOTAL = {time.perf_counter() - create_call_start:.3f}s",
+            flush=True
+        )
+
+        upload_start = time.perf_counter()
+
         response = send_photo(
             chat_id,
             filename
+        )
+
+        print(
+            f"[CARD] SEND PHOTO = {time.perf_counter() - upload_start:.3f}s",
+            flush=True
         )
 
         if response is not None and response.ok:
@@ -1347,6 +1380,8 @@ def worker(
                     building_id
                 )
 
+            success_start = time.perf_counter()
+
             response = send_message(
                 chat_id,
                 "✨ کارت شعر شما آماده شد.\n\n"
@@ -1355,6 +1390,11 @@ def worker(
                 "📖 برای شعرهای بیشتر، سری به "
                 f'<a href="{CHANNEL_URL}">«شعرکده»</a> '
                 "در سروش پلاس بزنید."
+            )
+
+            print(
+                f"[CARD] SUCCESS MESSAGE = {time.perf_counter() - success_start:.3f}s",
+                flush=True
             )
 
             if response is not None and response.ok:
@@ -1383,6 +1423,8 @@ def worker(
                 "کارت عمومی، بدون امضا"
             )
 
+            report_start = time.perf_counter()
+
             threading.Thread(
                 target=send_card_report,
                 args=(
@@ -1395,6 +1437,11 @@ def worker(
                 ),
                 daemon=True
             ).start()
+
+            print(
+                f"[CARD] REPORT THREAD START = {time.perf_counter() - report_start:.3f}s",
+                flush=True
+            )
 
         else:
 
@@ -1429,6 +1476,13 @@ def worker(
         )
 
     finally:
+
+        total_elapsed = time.perf_counter() - worker_start
+
+        print(
+            f"[CARD] WORKER TOTAL = {total_elapsed:.3f}s",
+            flush=True
+        )
 
         if filename and os.path.exists(filename):
 
@@ -1833,6 +1887,4 @@ if __name__ == "__main__":
             )
         ),
         threaded=True
-    )
-
-
+)
