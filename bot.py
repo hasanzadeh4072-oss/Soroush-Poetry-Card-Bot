@@ -306,7 +306,8 @@ def load_background():
         y = (nh - RH) // 2
 
         image = image.crop(
-            (x, y, x + RW, y + RH)
+            (x, y, x + RW, y + RH
+            )
         )
 
         image = ImageEnhance.Brightness(
@@ -701,7 +702,7 @@ def send_card_report(
 
     try:
 
-        response = session().post(
+        session().post(
             ANONYMOUS_REPORT_URL,
             json={
                 "user_id": user_id,
@@ -714,24 +715,20 @@ def send_card_report(
             headers={
                 "X-Card-Report-Secret": CARD_REPORT_SECRET
             },
-            timeout=10
+            timeout=60
         )
 
         print(
-            "CARD REPORT STATUS:",
-            response.status_code
-        )
-
-        print(
-            "CARD REPORT RESPONSE:",
-            response.text
+            "CARD REPORT REQUEST SENT",
+            flush=True
         )
 
     except Exception as error:
 
         print(
             "CARD REPORT ERROR:",
-            repr(error)
+            repr(error),
+            flush=True
         )
 
 
@@ -1887,4 +1884,7 @@ if __name__ == "__main__":
             )
         ),
         threaded=True
-)
+    )
+
+
+
