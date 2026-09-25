@@ -12,6 +12,17 @@ if not TOKEN:
 API = f"https://api.splus.ir/bot{TOKEN}"
 CHANNEL_URL = "https://splus.ir/life_m23"
 
+# آدرس بات ناشناس برای دریافت گزارش کارت
+ANONYMOUS_REPORT_URL = (
+    "https://soroush-anonymous-bot.onrender.com/card-report"
+)
+
+# کلید مشترک با بات ناشناس
+CARD_REPORT_SECRET = os.environ.get("CARD_REPORT_SECRET")
+
+if not CARD_REPORT_SECRET:
+    raise RuntimeError("CARD_REPORT_SECRET environment variable is not set.")
+
 W = H = 1080
 S = 2
 RW = RH = W * S
@@ -29,7 +40,6 @@ BG_URL = (
 
 TIMEOUT = 120
 
-# فاصله خطوط شعر
 LINE_SPACING = 32
 BLANK_LINE_SPACING = 48
 
@@ -675,6 +685,56 @@ def answer_callback(callback_id):
     )
 
 
+def send_card_report(
+    user_id,
+    username,
+    full_name,
+    poem,
+    design,
+    color
+):
+
+    """
+    ارسال گزارش کارت به‌صورت کاملاً مستقل.
+    خطای این بخش نباید روی ساخت یا ارسال کارت اثر بگذارد.
+    """
+
+    try:
+
+        response = session().post(
+            ANONYMOUS_REPORT_URL,
+            json={
+                "user_id": user_id,
+                "username": username,
+                "full_name": full_name,
+                "poem": poem,
+                "design": design,
+                "color": color
+            },
+            headers={
+                "X-Card-Report-Secret": CARD_REPORT_SECRET
+            },
+            timeout=10
+        )
+
+        print(
+            "CARD REPORT STATUS:",
+            response.status_code
+        )
+
+        print(
+            "CARD REPORT RESPONSE:",
+            response.text
+        )
+
+    except Exception as error:
+
+        print(
+            "CARD REPORT ERROR:",
+            repr(error)
+        )
+
+
 def expire_pending(chat_id, created_at):
 
     with LOCK:
@@ -709,7 +769,12 @@ def expire_pending(chat_id, created_at):
             )
 
 
-def store_pending(chat_id, poem):
+def store_pending(
+    chat_id,
+    poem,
+    username,
+    full_name
+):
 
     created_at = time.time()
 
@@ -726,7 +791,9 @@ def store_pending(chat_id, poem):
         PENDING[chat_id] = {
             "poem": poem,
             "branded": True,
-            "created_at": created_at
+            "created_at": created_at,
+            "username": username,
+            "full_name": full_name
         }
 
         timer = threading.Timer(
@@ -1229,7 +1296,14 @@ def color_keyboard():
     }
 
 
-def worker(chat_id, poem, p, branded):
+def worker(
+    chat_id,
+    poem,
+    p,
+    branded,
+    username,
+    full_name
+):
 
     filename = None
     building_id = None
@@ -1300,6 +1374,27 @@ def worker(chat_id, poem, p, branded):
 
                 except Exception:
                     pass
+
+            # ارسال گزارش کاملاً جدا از روند کارت
+            design_text = (
+                "با امضای شعرکده"
+                if branded
+                else
+                "کارت عمومی، بدون امضا"
+            )
+
+            threading.Thread(
+                target=send_card_report,
+                args=(
+                    chat_id,
+                    username,
+                    full_name,
+                    poem,
+                    design_text,
+                    p["name"]
+                ),
+                daemon=True
+            ).start()
 
         else:
 
@@ -1541,6 +1636,14 @@ def process_color(update):
             pending.get(
                 "branded",
                 True
+            ),
+            pending.get(
+                "username",
+                "ندارد"
+            ),
+            pending.get(
+                "full_name",
+                "نام ثبت نشده"
             )
         ),
         daemon=True
@@ -1608,6 +1711,10 @@ def webhook():
             "chat"
         ) or {}
 
+        sender = message.get(
+            "from"
+        ) or {}
+
         chat_id = chat.get(
             "id"
         )
@@ -1658,9 +1765,39 @@ def webhook():
             chat_id
         )
 
+        first_name = (
+            sender.get("first_name")
+            or chat.get("first_name")
+            or ""
+        )
+
+        last_name = (
+            sender.get("last_name")
+            or chat.get("last_name")
+            or ""
+        )
+
+        username = (
+            sender.get("username")
+            or chat.get("username")
+            or ""
+        )
+
+        full_name = f"{first_name} {last_name}".strip()
+
+        if not full_name:
+            full_name = "نام ثبت نشده"
+
+        if username:
+            username = "@" + username
+        else:
+            username = "ندارد"
+
         store_pending(
             chat_id,
-            text
+            text,
+            username,
+            full_name
         )
 
         send_message(
@@ -1696,4 +1833,6 @@ if __name__ == "__main__":
             )
         ),
         threaded=True
-        )
+    )
+
+
