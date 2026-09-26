@@ -827,9 +827,11 @@ def send_card_report(
 ):
 
     """
-    ارسال گزارش کارت به‌صورت کاملاً مستقل.
+    مرحله تشخیصی ارسال گزارش کارت.
 
-    این درخواست مستقل است و منتظر پاسخ کاربر نیست.
+    در این نسخه فقط یک درخواست ارسال می‌شود
+    تا منشأ خطای 429 مشخص شود.
+    هیچ retry انجام نمی‌شود.
     """
 
     payload = {
@@ -845,66 +847,149 @@ def send_card_report(
         "X-Card-Report-Secret": CARD_REPORT_SECRET
     }
 
-    for attempt in range(1, 4):
+    try:
 
-        try:
+        print(
+            "========================================",
+            flush=True
+        )
+
+        print(
+            "CARD REPORT DIAGNOSTIC START",
+            flush=True
+        )
+
+        print(
+            "CARD REPORT URL:",
+            ANONYMOUS_REPORT_URL,
+            flush=True
+        )
+
+        print(
+            "CARD REPORT PAYLOAD USER ID:",
+            user_id,
+            flush=True
+        )
+
+        print(
+            "CARD REPORT HEADERS:",
+            {
+                "X-Card-Report-Secret":
+                    "***"
+                    if CARD_REPORT_SECRET
+                    else "MISSING"
+            },
+            flush=True
+        )
+
+        response = session().post(
+            ANONYMOUS_REPORT_URL,
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
+
+        print(
+            "CARD REPORT STATUS:",
+            response.status_code,
+            flush=True
+        )
+
+        print(
+            "CARD REPORT RESPONSE HEADERS:",
+            dict(response.headers),
+            flush=True
+        )
+
+        print(
+            "CARD REPORT RESPONSE BODY:",
+            response.text,
+            flush=True
+        )
+
+        if response.status_code == 429:
 
             print(
-                f"CARD REPORT ATTEMPT {attempt}",
+                "========================================",
                 flush=True
             )
 
-            response = session().post(
-                ANONYMOUS_REPORT_URL,
-                json=payload,
-                headers=headers,
-                timeout=30
-            )
-
             print(
-                f"CARD REPORT STATUS {attempt}: "
-                f"{response.status_code}",
+                "CARD REPORT 429 DETECTED",
                 flush=True
             )
 
             print(
-                f"CARD REPORT RESPONSE {attempt}: "
-                f"{response.text}",
+                "SERVER:",
+                response.headers.get("Server"),
                 flush=True
             )
-
-            if response.ok:
-
-                print(
-                    "CARD REPORT DELIVERED",
-                    flush=True
-                )
-
-                return
-
-        except Exception as error:
 
             print(
-                f"CARD REPORT ERROR {attempt}: "
-                f"{repr(error)}",
+                "RETRY-AFTER:",
+                response.headers.get("Retry-After"),
                 flush=True
             )
-
-        if attempt == 1:
 
             print(
-                "CARD REPORT WAITING 70s FOR RENDER",
+                "CONTENT-TYPE:",
+                response.headers.get("Content-Type"),
                 flush=True
             )
 
-            time.sleep(70)
+            print(
+                "VIA:",
+                response.headers.get("Via"),
+                flush=True
+            )
 
-        elif attempt == 2:
+            print(
+                "X-REQUEST-ID:",
+                response.headers.get("X-Request-ID"),
+                flush=True
+            )
 
-            time.sleep(10)
+            print(
+                "X-RENDER-REQUEST-ID:",
+                response.headers.get("X-Render-Request-ID"),
+                flush=True
+            )
+
+            print(
+                "========================================",
+                flush=True
+            )
+
+        if response.ok:
+
+            print(
+                "CARD REPORT DELIVERED",
+                flush=True
+            )
+
+        else:
+
+            print(
+                "CARD REPORT FAILED - "
+                "NO RETRY IN DIAGNOSTIC MODE",
+                flush=True
+            )
+
+    except Exception as error:
+
+        print(
+            "CARD REPORT DIAGNOSTIC ERROR:",
+            repr(error),
+            flush=True
+        )
 
     print(
-        "CARD REPORT FAILED AFTER 3 ATTEMPTS",
+        "CARD REPORT DIAGNOSTIC END",
+        flush=True
+    )
+
+    print(
+        "========================================",
         flush=True
     )
 
@@ -2113,4 +2198,6 @@ if __name__ == "__main__":
             )
         ),
         threaded=True
-)
+    )
+
+
