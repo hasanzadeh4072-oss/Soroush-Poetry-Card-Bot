@@ -306,8 +306,7 @@ def load_background():
         y = (nh - RH) // 2
 
         image = image.crop(
-            (x, y, x + RW, y + RH
-            )
+            (x, y, x + RW, y + RH)
         )
 
         image = ImageEnhance.Brightness(
@@ -697,12 +696,15 @@ def send_card_report(
 
     """
     ارسال گزارش کارت به‌صورت کاملاً مستقل.
-    خطای این بخش نباید روی ساخت یا ارسال کارت اثر بگذارد.
+
+    این درخواست مستقل است و منتظر پاسخ کاربر نیست.
+    اگر بات ناشناس خواب باشد، درخواست فرصت کافی
+    برای بیدار شدن Render دارد.
     """
 
     try:
 
-        session().post(
+        response = session().post(
             ANONYMOUS_REPORT_URL,
             json={
                 "user_id": user_id,
@@ -715,13 +717,34 @@ def send_card_report(
             headers={
                 "X-Card-Report-Secret": CARD_REPORT_SECRET
             },
-            timeout=60
+            timeout=120
         )
 
         print(
-            "CARD REPORT REQUEST SENT",
+            "CARD REPORT STATUS:",
+            response.status_code,
             flush=True
         )
+
+        print(
+            "CARD REPORT RESPONSE:",
+            response.text,
+            flush=True
+        )
+
+        if response.ok:
+
+            print(
+                "CARD REPORT DELIVERED",
+                flush=True
+            )
+
+        else:
+
+            print(
+                "CARD REPORT FAILED",
+                flush=True
+            )
 
     except Exception as error:
 
