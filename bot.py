@@ -827,11 +827,17 @@ def send_card_report(
 ):
 
     """
-    مرحله تشخیصی ارسال گزارش کارت.
+    ارسال مستقل گزارش کارت شعر.
 
-    در این نسخه فقط یک درخواست ارسال می‌شود
-    تا منشأ خطای 429 مشخص شود.
-    هیچ retry انجام نمی‌شود.
+    اگر سرویس بات ناشناس در حالت Hibernate باشد،
+    Render ممکن است قبل از رسیدن درخواست به Flask
+    پاسخ 429 با x-render-routing=hibernate-rate-limited بدهد.
+
+    در این حالت:
+    - کارت شعر قبلاً ساخته و ارسال شده است.
+    - این Thread مستقل می‌ماند.
+    - چند بار با فاصله مناسب تلاش می‌شود.
+    - ساخت یا ارسال کارت تحت تأثیر قرار نمی‌گیرد.
     """
 
     payload = {
@@ -847,67 +853,9 @@ def send_card_report(
         "X-Card-Report-Secret": CARD_REPORT_SECRET
     }
 
-    try:
+    for attempt in range(1, 4):
 
-        print(
-            "========================================",
-            flush=True
-        )
-
-        print(
-            "CARD REPORT DIAGNOSTIC START",
-            flush=True
-        )
-
-        print(
-            "CARD REPORT URL:",
-            ANONYMOUS_REPORT_URL,
-            flush=True
-        )
-
-        print(
-            "CARD REPORT PAYLOAD USER ID:",
-            user_id,
-            flush=True
-        )
-
-        print(
-            "CARD REPORT HEADERS:",
-            {
-                "X-Card-Report-Secret":
-                    "***"
-                    if CARD_REPORT_SECRET
-                    else "MISSING"
-            },
-            flush=True
-        )
-
-        response = session().post(
-            ANONYMOUS_REPORT_URL,
-            json=payload,
-            headers=headers,
-            timeout=30
-        )
-
-        print(
-            "CARD REPORT STATUS:",
-            response.status_code,
-            flush=True
-        )
-
-        print(
-            "CARD REPORT RESPONSE HEADERS:",
-            dict(response.headers),
-            flush=True
-        )
-
-        print(
-            "CARD REPORT RESPONSE BODY:",
-            response.text,
-            flush=True
-        )
-
-        if response.status_code == 429:
+        try:
 
             print(
                 "========================================",
@@ -915,76 +863,119 @@ def send_card_report(
             )
 
             print(
-                "CARD REPORT 429 DETECTED",
+                f"CARD REPORT ATTEMPT {attempt}",
+                flush=True
+            )
+
+            response = session().post(
+                ANONYMOUS_REPORT_URL,
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
+
+            print(
+                f"CARD REPORT STATUS {attempt}: "
+                f"{response.status_code}",
                 flush=True
             )
 
             print(
-                "SERVER:",
-                response.headers.get("Server"),
+                f"CARD REPORT RESPONSE {attempt}: "
+                f"{response.text}",
                 flush=True
             )
 
-            print(
-                "RETRY-AFTER:",
-                response.headers.get("Retry-After"),
-                flush=True
+            if response.ok:
+
+                print(
+                    "CARD REPORT DELIVERED",
+                    flush=True
+                )
+
+                print(
+                    "========================================",
+                    flush=True
+                )
+
+                return
+
+            render_routing = response.headers.get(
+                "x-render-routing",
+                ""
             )
 
-            print(
-                "CONTENT-TYPE:",
-                response.headers.get("Content-Type"),
-                flush=True
-            )
+            if (
+                response.status_code == 429
+                and render_routing == "hibernate-rate-limited"
+            ):
 
-            print(
-                "VIA:",
-                response.headers.get("Via"),
-                flush=True
-            )
+                print(
+                    "CARD REPORT: RENDER SERVICE IS HIBERNATING",
+                    flush=True
+                )
 
-            print(
-                "X-REQUEST-ID:",
-                response.headers.get("X-Request-ID"),
-                flush=True
-            )
+                if attempt < 3:
 
-            print(
-                "X-RENDER-REQUEST-ID:",
-                response.headers.get("X-Render-Request-ID"),
-                flush=True
-            )
+                    if attempt == 1:
 
-            print(
-                "========================================",
-                flush=True
-            )
+                        wait_time = 70
 
-        if response.ok:
+                    else:
 
-            print(
-                "CARD REPORT DELIVERED",
-                flush=True
-            )
+                        wait_time = 20
 
-        else:
+                    print(
+                        f"CARD REPORT WAITING {wait_time}s "
+                        f"FOR RENDER WAKE-UP",
+                        flush=True
+                    )
+
+                    time.sleep(wait_time)
+
+                    continue
 
             print(
                 "CARD REPORT FAILED - "
-                "NO RETRY IN DIAGNOSTIC MODE",
+                "NON-RETRYABLE RESPONSE",
                 flush=True
             )
 
-    except Exception as error:
+            print(
+                "========================================",
+                flush=True
+            )
 
-        print(
-            "CARD REPORT DIAGNOSTIC ERROR:",
-            repr(error),
-            flush=True
-        )
+            return
+
+        except Exception as error:
+
+            print(
+                f"CARD REPORT ERROR {attempt}: "
+                f"{repr(error)}",
+                flush=True
+            )
+
+            if attempt < 3:
+
+                if attempt == 1:
+
+                    wait_time = 70
+
+                else:
+
+                    wait_time = 20
+
+                print(
+                    f"CARD REPORT WAITING {wait_time}s "
+                    f"BEFORE RETRY",
+                    flush=True
+                )
+
+                time.sleep(wait_time)
 
     print(
-        "CARD REPORT DIAGNOSTIC END",
+        "CARD REPORT FAILED AFTER 3 ATTEMPTS",
         flush=True
     )
 
@@ -2198,6 +2189,4 @@ if __name__ == "__main__":
             )
         ),
         threaded=True
-    )
-
-
+        )
