@@ -15,18 +15,15 @@ API = f"https://api.splus.ir/bot{TOKEN}"
 CHANNEL_URL = "https://splus.ir/life_m23"
 
 
-# آدرس بات ناشناس برای دریافت گزارش کارت
 ANONYMOUS_REPORT_URL = (
     "https://soroush-anonymous-bot.onrender.com/card-report"
 )
 
-# آدرس بیدار کردن/بررسی وضعیت بات ناشناس
 ANONYMOUS_HEALTH_URL = (
     "https://soroush-anonymous-bot.onrender.com/health"
 )
 
 
-# کلید مشترک با بات ناشناس
 CARD_REPORT_SECRET = os.environ.get("CARD_REPORT_SECRET")
 
 if not CARD_REPORT_SECRET:
@@ -831,18 +828,6 @@ def send_card_report(
     color
 ):
 
-    """
-    ارسال مستقل گزارش کارت شعر.
-
-    ابتدا سرویس بات ناشناس با GET /health
-    بررسی و در صورت Hibernate بیدار می‌شود.
-
-    فقط پس از آماده‌شدن واقعی سرویس،
-    گزارش به /card-report ارسال می‌شود.
-
-    این Thread کاملاً مستقل از ساخت و ارسال کارت است.
-    """
-
     payload = {
         "user_id": user_id,
         "username": username,
@@ -868,11 +853,6 @@ def send_card_report(
         "CARD REPORT: STARTING RENDER WAKE-UP CHECK",
         flush=True
     )
-
-    # -------------------------------------------------
-    # مرحله اول:
-    # بیدار کردن / بررسی آماده بودن سرویس
-    # -------------------------------------------------
 
     while True:
 
@@ -929,7 +909,6 @@ def send_card_report(
                     flush=True
                 )
 
-            # سرویس واقعاً پاسخ داده است.
             if health_response.ok:
 
                 print(
@@ -939,7 +918,6 @@ def send_card_report(
 
                 break
 
-            # Render هنوز درگیر Hibernate است.
             if (
                 health_response.status_code == 429
                 and routing == "hibernate-rate-limited"
@@ -976,7 +954,7 @@ def send_card_report(
                 )
 
                 if wait_time <= 0:
-                    break
+                    return
 
                 print(
                     "CARD REPORT: "
@@ -985,13 +963,10 @@ def send_card_report(
                     flush=True
                 )
 
-                time.sleep(
-                    wait_time
-                )
+                time.sleep(wait_time)
 
                 continue
 
-            # پاسخ غیرقابل انتظار از health
             print(
                 "CARD REPORT: HEALTH CHECK FAILED - "
                 "NON-RETRYABLE RESPONSE",
@@ -1007,16 +982,16 @@ def send_card_report(
 
         except Exception as error:
 
-            elapsed = time.time() - health_start
-
             print(
                 "CARD REPORT HEALTH ERROR: "
                 f"{repr(error)}",
                 flush=True
             )
 
+            elapsed = time.time() - health_start
+
             if elapsed >= health_max_wait:
-                break
+                return
 
             print(
                 "CARD REPORT: "
@@ -1025,11 +1000,6 @@ def send_card_report(
             )
 
             time.sleep(10)
-
-    # -------------------------------------------------
-    # مرحله دوم:
-    # ارسال واقعی گزارش پس از بیدار شدن سرویس
-    # -------------------------------------------------
 
     print(
         "CARD REPORT: SENDING REPORT",
@@ -1076,10 +1046,6 @@ def send_card_report(
             ""
         )
 
-        # اگر درست در لحظه ارسال گزارش دوباره
-        # Render به حالت Hibernate برگشته بود،
-        # یک Wake-up دیگر انجام می‌دهیم و فقط
-        # یک بار دیگر گزارش را ارسال می‌کنیم.
         if (
             response.status_code == 429
             and render_routing == "hibernate-rate-limited"
@@ -1175,9 +1141,7 @@ def send_card_report(
                             flush=True
                         )
 
-                        time.sleep(
-                            wait_time
-                        )
+                        time.sleep(wait_time)
 
                         continue
 
@@ -1219,7 +1183,6 @@ def send_card_report(
 
                 return
 
-            # ارسال مجدد گزارش پس از Wake-up دوم
             try:
 
                 response = session().post(
@@ -1990,7 +1953,6 @@ def worker(
                 except Exception:
                     pass
 
-            # ارسال گزارش کاملاً جدا از روند کارت
             design_text = (
                 "با امضای شعرکده"
                 if branded
