@@ -841,165 +841,322 @@ def send_card_report(
         "X-Card-Report-Secret": CARD_REPORT_SECRET
     }
 
-    health_max_wait = 180
-    health_start = time.time()
-
     print(
         "========================================",
         flush=True
     )
 
     print(
-        "CARD REPORT: STARTING RENDER WAKE-UP CHECK",
+        "CARD REPORT: STARTING RENDER WAKE-UP",
         flush=True
     )
 
-    while True:
+    # Render Free services can take about a minute to wake.
+    # 429 + hibernate-rate-limited is generated upstream by Render,
+    # before the request reaches Flask.
+    #
+    # We therefore:
+    # 1. Send one health request.
+    # 2. If Render is hibernating, use exponential backoff + jitter.
+    # 3. Do NOT send /card-report until /health returns 2xx/3xx.
+    # 4. If /card-report itself gets a hibernate 429, repeat the
+    #    wake-up cycle once more.
+    #
+    # The card creation/sending thread is completely independent
+    # from this report thread.
 
-        elapsed = time.time() - health_start
+    def wait_until_awake(
+        max_wait,
+        label="FIRST"
+    ):
 
-        if elapsed >= health_max_wait:
+        started = time.time()
 
-            print(
-                "CARD REPORT: HEALTH CHECK TIMEOUT",
-                flush=True
-            )
+        attempt = 0
 
-            print(
-                "========================================",
-                flush=True
-            )
+        while True:
 
-            return
+            elapsed = time.time() - started
 
-        try:
-
-            health_response = session().get(
-                ANONYMOUS_HEALTH_URL,
-                timeout=20
-            )
-
-            routing = health_response.headers.get(
-                "x-render-routing",
-                ""
-            )
-
-            retry_after = health_response.headers.get(
-                "Retry-After",
-                ""
-            )
-
-            print(
-                "CARD REPORT HEALTH STATUS: "
-                f"{health_response.status_code}",
-                flush=True
-            )
-
-            print(
-                "CARD REPORT HEALTH ROUTING: "
-                f"{routing}",
-                flush=True
-            )
-
-            if retry_after:
+            if elapsed >= max_wait:
 
                 print(
-                    "CARD REPORT HEALTH RETRY-AFTER: "
-                    f"{retry_after}",
+                    f"CARD REPORT: "
+                    f"{label} WAKE-UP TIMEOUT",
                     flush=True
                 )
 
-            if health_response.ok:
+                return False
+
+            attempt += 1
+
+            try:
+
+                health_response = session().get(
+                    ANONYMOUS_HEALTH_URL,
+                    timeout=20
+                )
+
+                routing = (
+                    health_response.headers.get(
+                        "x-render-routing",
+                        ""
+                    )
+                )
+
+                retry_after = (
+                    health_response.headers.get(
+                        "Retry-After",
+                        ""
+                    )
+                )
 
                 print(
-                    "CARD REPORT: ANONYMOUS SERVICE IS AWAKE",
+                    f"CARD REPORT {label} HEALTH "
+                    f"ATTEMPT {attempt}: "
+                    f"{health_response.status_code}",
                     flush=True
                 )
 
-                break
+                print(
+                    f"CARD REPORT {label} HEALTH ROUTING: "
+                    f"{routing}",
+                    flush=True
+                )
 
-            if (
-                health_response.status_code == 429
-                and routing == "hibernate-rate-limited"
-            ):
+                if retry_after:
 
-                wait_time = 10
+                    print(
+                        f"CARD REPORT {label} "
+                        f"RETRY-AFTER: {retry_after}",
+                        flush=True
+                    )
 
-                try:
+                if health_response.ok:
+
+                    print(
+                        f"CARD REPORT: "
+                        f"ANONYMOUS SERVICE IS AWAKE "
+                        f"({label})",
+                        flush=True
+                    )
+
+                    return True
+
+                if (
+                    health_response.status_code == 429
+                    and routing == "hibernate-rate-limited"
+                ):
+
+                    # Render recommends exponential backoff for
+                    # rate-limited requests. Add a small random
+                    # jitter so repeated requests don't hit the
+                    # edge at exactly the same moment.
+                    base_wait = min(
+                        30,
+                        5 * (2 ** (attempt - 1))
+                    )
+
+                    wait_time = (
+                        base_wait
+                        + random.uniform(0.5, 2.5)
+                    )
 
                     if retry_after:
 
-                        wait_time = max(
-                            5,
-                            min(
-                                int(float(retry_after)),
-                                30
+                        try:
+
+                            retry_value = float(
+                                retry_after
                             )
-                        )
 
-                except Exception:
-                    pass
+                            wait_time = max(
+                                wait_time,
+                                retry_value
+                            )
 
-                remaining = max(
-                    0,
-                    int(
-                        health_max_wait
-                        - elapsed
+                        except Exception:
+                            pass
+
+                    wait_time = min(
+                        wait_time,
+                        30
                     )
+
+                    remaining = (
+                        max_wait
+                        - (time.time() - started)
+                    )
+
+                    wait_time = min(
+                        wait_time,
+                        max(
+                            0,
+                            remaining
+                        )
+                    )
+
+                    if wait_time <= 0:
+
+                        return False
+
+                    print(
+                        "CARD REPORT: "
+                        "RENDER IS HIBERNATING - "
+                        f"BACKOFF {wait_time:.1f}s",
+                        flush=True
+                    )
+
+                    time.sleep(
+                        wait_time
+                    )
+
+                    continue
+
+                print(
+                    "CARD REPORT: "
+                    f"{label} HEALTH CHECK "
+                    "FAILED - NON-RETRYABLE RESPONSE",
+                    flush=True
+                )
+
+                return False
+
+            except requests.RequestException as error:
+
+                print(
+                    f"CARD REPORT {label} HEALTH ERROR: "
+                    f"{repr(error)}",
+                    flush=True
+                )
+
+                elapsed = (
+                    time.time()
+                    - started
+                )
+
+                if elapsed >= max_wait:
+
+                    return False
+
+                base_wait = min(
+                    30,
+                    5 * (2 ** max(
+                        0,
+                        attempt - 1
+                    ))
+                )
+
+                wait_time = min(
+                    base_wait
+                    + random.uniform(
+                        0.5,
+                        2.5
+                    ),
+                    30
+                )
+
+                remaining = (
+                    max_wait
+                    - elapsed
                 )
 
                 wait_time = min(
                     wait_time,
-                    remaining
+                    max(
+                        0,
+                        remaining
+                    )
                 )
-
-                if wait_time <= 0:
-                    return
 
                 print(
                     "CARD REPORT: "
-                    "RENDER IS STILL HIBERNATING - "
-                    f"WAITING {wait_time}s",
+                    "HEALTH REQUEST ERROR - "
+                    f"BACKOFF {wait_time:.1f}s",
                     flush=True
                 )
 
-                time.sleep(wait_time)
+                if wait_time <= 0:
 
-                continue
+                    return False
 
-            print(
-                "CARD REPORT: HEALTH CHECK FAILED - "
-                "NON-RETRYABLE RESPONSE",
-                flush=True
-            )
+                time.sleep(
+                    wait_time
+                )
 
-            print(
-                "========================================",
-                flush=True
-            )
+            except Exception as error:
 
-            return
+                print(
+                    f"CARD REPORT {label} "
+                    f"HEALTH UNEXPECTED ERROR: "
+                    f"{repr(error)}",
+                    flush=True
+                )
 
-        except Exception as error:
+                elapsed = (
+                    time.time()
+                    - started
+                )
 
-            print(
-                "CARD REPORT HEALTH ERROR: "
-                f"{repr(error)}",
-                flush=True
-            )
+                if elapsed >= max_wait:
 
-            elapsed = time.time() - health_start
+                    return False
 
-            if elapsed >= health_max_wait:
-                return
+                wait_time = min(
+                    30,
+                    5
+                    + random.uniform(
+                        0.5,
+                        2.5
+                    )
+                )
 
-            print(
-                "CARD REPORT: "
-                "WAITING 10s BEFORE HEALTH RETRY",
-                flush=True
-            )
+                remaining = (
+                    max_wait
+                    - elapsed
+                )
 
-            time.sleep(10)
+                wait_time = min(
+                    wait_time,
+                    max(
+                        0,
+                        remaining
+                    )
+                )
+
+                if wait_time <= 0:
+
+                    return False
+
+                time.sleep(
+                    wait_time
+                )
+
+    # ---------------------------------------------------------
+    # FIRST WAKE-UP
+    # ---------------------------------------------------------
+
+    if not wait_until_awake(
+        180,
+        "FIRST"
+    ):
+
+        print(
+            "CARD REPORT: "
+            "ANONYMOUS SERVICE DID NOT WAKE UP",
+            flush=True
+        )
+
+        print(
+            "========================================",
+            flush=True
+        )
+
+        return
+
+    # ---------------------------------------------------------
+    # FIRST REPORT SEND
+    # ---------------------------------------------------------
 
     print(
         "CARD REPORT: SENDING REPORT",
@@ -1041,11 +1198,19 @@ def send_card_report(
 
             return
 
-        render_routing = response.headers.get(
-            "x-render-routing",
-            ""
+        render_routing = (
+            response.headers.get(
+                "x-render-routing",
+                ""
+            )
         )
 
+        # This means the Render edge still considered the
+        # service hibernating even though the previous health
+        # request had returned successfully.
+        #
+        # Do NOT immediately hammer /card-report again.
+        # Run another complete wake-up cycle with backoff.
         if (
             response.status_code == 429
             and render_routing == "hibernate-rate-limited"
@@ -1059,120 +1224,18 @@ def send_card_report(
 
             print(
                 "CARD REPORT: "
-                "RUNNING SECOND WAKE-UP CHECK",
+                "STARTING SECOND WAKE-UP CYCLE",
                 flush=True
             )
 
-            second_health_start = time.time()
-            second_health_max_wait = 120
-
-            while (
-                time.time()
-                - second_health_start
-                < second_health_max_wait
+            if not wait_until_awake(
+                180,
+                "SECOND"
             ):
-
-                try:
-
-                    health_response = session().get(
-                        ANONYMOUS_HEALTH_URL,
-                        timeout=20
-                    )
-
-                    routing = (
-                        health_response.headers.get(
-                            "x-render-routing",
-                            ""
-                        )
-                    )
-
-                    retry_after = (
-                        health_response.headers.get(
-                            "Retry-After",
-                            ""
-                        )
-                    )
-
-                    print(
-                        "CARD REPORT SECOND HEALTH STATUS: "
-                        f"{health_response.status_code}",
-                        flush=True
-                    )
-
-                    if health_response.ok:
-
-                        print(
-                            "CARD REPORT: "
-                            "ANONYMOUS SERVICE IS AWAKE AGAIN",
-                            flush=True
-                        )
-
-                        break
-
-                    if (
-                        health_response.status_code == 429
-                        and routing == "hibernate-rate-limited"
-                    ):
-
-                        wait_time = 10
-
-                        try:
-
-                            if retry_after:
-
-                                wait_time = max(
-                                    5,
-                                    min(
-                                        int(
-                                            float(
-                                                retry_after
-                                            )
-                                        ),
-                                        30
-                                    )
-                                )
-
-                        except Exception:
-                            pass
-
-                        print(
-                            "CARD REPORT: "
-                            f"SECOND WAKE WAIT {wait_time}s",
-                            flush=True
-                        )
-
-                        time.sleep(wait_time)
-
-                        continue
-
-                    print(
-                        "CARD REPORT: "
-                        "SECOND HEALTH CHECK FAILED",
-                        flush=True
-                    )
-
-                    print(
-                        "========================================",
-                        flush=True
-                    )
-
-                    return
-
-                except Exception as error:
-
-                    print(
-                        "CARD REPORT SECOND HEALTH ERROR: "
-                        f"{repr(error)}",
-                        flush=True
-                    )
-
-                    time.sleep(10)
-
-            else:
 
                 print(
                     "CARD REPORT: "
-                    "SECOND WAKE-UP TIMEOUT",
+                    "SECOND WAKE-UP FAILED",
                     flush=True
                 )
 
@@ -1182,6 +1245,12 @@ def send_card_report(
                 )
 
                 return
+
+            print(
+                "CARD REPORT: "
+                "SENDING REPORT AFTER SECOND WAKE-UP",
+                flush=True
+            )
 
             try:
 
@@ -1207,7 +1276,8 @@ def send_card_report(
                 if response.ok:
 
                     print(
-                        "CARD REPORT DELIVERED AFTER SECOND WAKE-UP",
+                        "CARD REPORT DELIVERED "
+                        "AFTER SECOND WAKE-UP",
                         flush=True
                     )
 
@@ -1217,6 +1287,83 @@ def send_card_report(
                     )
 
                     return
+
+                # If the second POST is still a hibernate 429,
+                # do one final short backoff cycle rather than
+                # sending repeated immediate requests.
+                second_routing = (
+                    response.headers.get(
+                        "x-render-routing",
+                        ""
+                    )
+                )
+
+                if (
+                    response.status_code == 429
+                    and second_routing
+                    == "hibernate-rate-limited"
+                ):
+
+                    print(
+                        "CARD REPORT: "
+                        "SECOND SEND STILL HIBERNATE-RATE-LIMITED",
+                        flush=True
+                    )
+
+                    print(
+                        "CARD REPORT: "
+                        "FINAL WAKE-UP ATTEMPT",
+                        flush=True
+                    )
+
+                    if wait_until_awake(
+                        120,
+                        "FINAL"
+                    ):
+
+                        try:
+
+                            response = session().post(
+                                ANONYMOUS_REPORT_URL,
+                                json=payload,
+                                headers=headers,
+                                timeout=30
+                            )
+
+                            print(
+                                "CARD REPORT FINAL SEND STATUS: "
+                                f"{response.status_code}",
+                                flush=True
+                            )
+
+                            print(
+                                "CARD REPORT FINAL SEND RESPONSE: "
+                                f"{response.text}",
+                                flush=True
+                            )
+
+                            if response.ok:
+
+                                print(
+                                    "CARD REPORT DELIVERED "
+                                    "AFTER FINAL WAKE-UP",
+                                    flush=True
+                                )
+
+                                print(
+                                    "========================================",
+                                    flush=True
+                                )
+
+                                return
+
+                        except Exception as error:
+
+                            print(
+                                "CARD REPORT FINAL SEND ERROR: "
+                                f"{repr(error)}",
+                                flush=True
+                            )
 
             except Exception as error:
 
