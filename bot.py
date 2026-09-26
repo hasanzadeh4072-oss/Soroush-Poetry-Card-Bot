@@ -20,6 +20,11 @@ ANONYMOUS_REPORT_URL = (
     "https://soroush-anonymous-bot.onrender.com/card-report"
 )
 
+# آدرس بیدار کردن/بررسی وضعیت بات ناشناس
+ANONYMOUS_HEALTH_URL = (
+    "https://soroush-anonymous-bot.onrender.com/health"
+)
+
 
 # کلید مشترک با بات ناشناس
 CARD_REPORT_SECRET = os.environ.get("CARD_REPORT_SECRET")
@@ -829,15 +834,13 @@ def send_card_report(
     """
     ارسال مستقل گزارش کارت شعر.
 
-    اگر سرویس بات ناشناس در حالت Hibernate باشد،
-    Render ممکن است قبل از رسیدن درخواست به Flask
-    پاسخ 429 با x-render-routing=hibernate-rate-limited بدهد.
+    ابتدا سرویس بات ناشناس با GET /health
+    بررسی و در صورت Hibernate بیدار می‌شود.
 
-    در این حالت:
-    - کارت شعر قبلاً ساخته و ارسال شده است.
-    - این Thread مستقل می‌ماند.
-    - چند بار با فاصله مناسب تلاش می‌شود.
-    - ساخت یا ارسال کارت تحت تأثیر قرار نمی‌گیرد.
+    فقط پس از آماده‌شدن واقعی سرویس،
+    گزارش به /card-report ارسال می‌شود.
+
+    این Thread کاملاً مستقل از ساخت و ارسال کارت است.
     """
 
     payload = {
@@ -853,90 +856,144 @@ def send_card_report(
         "X-Card-Report-Secret": CARD_REPORT_SECRET
     }
 
-    for attempt in range(1, 4):
+    health_max_wait = 180
+    health_start = time.time()
 
-        try:
+    print(
+        "========================================",
+        flush=True
+    )
+
+    print(
+        "CARD REPORT: STARTING RENDER WAKE-UP CHECK",
+        flush=True
+    )
+
+    # -------------------------------------------------
+    # مرحله اول:
+    # بیدار کردن / بررسی آماده بودن سرویس
+    # -------------------------------------------------
+
+    while True:
+
+        elapsed = time.time() - health_start
+
+        if elapsed >= health_max_wait:
+
+            print(
+                "CARD REPORT: HEALTH CHECK TIMEOUT",
+                flush=True
+            )
 
             print(
                 "========================================",
                 flush=True
             )
 
-            print(
-                f"CARD REPORT ATTEMPT {attempt}",
-                flush=True
+            return
+
+        try:
+
+            health_response = session().get(
+                ANONYMOUS_HEALTH_URL,
+                timeout=20
             )
 
-            response = session().post(
-                ANONYMOUS_REPORT_URL,
-                json=payload,
-                headers=headers,
-                timeout=30
-            )
-
-            print(
-                f"CARD REPORT STATUS {attempt}: "
-                f"{response.status_code}",
-                flush=True
-            )
-
-            print(
-                f"CARD REPORT RESPONSE {attempt}: "
-                f"{response.text}",
-                flush=True
-            )
-
-            if response.ok:
-
-                print(
-                    "CARD REPORT DELIVERED",
-                    flush=True
-                )
-
-                print(
-                    "========================================",
-                    flush=True
-                )
-
-                return
-
-            render_routing = response.headers.get(
+            routing = health_response.headers.get(
                 "x-render-routing",
                 ""
             )
 
-            if (
-                response.status_code == 429
-                and render_routing == "hibernate-rate-limited"
-            ):
+            retry_after = health_response.headers.get(
+                "Retry-After",
+                ""
+            )
+
+            print(
+                "CARD REPORT HEALTH STATUS: "
+                f"{health_response.status_code}",
+                flush=True
+            )
+
+            print(
+                "CARD REPORT HEALTH ROUTING: "
+                f"{routing}",
+                flush=True
+            )
+
+            if retry_after:
 
                 print(
-                    "CARD REPORT: RENDER SERVICE IS HIBERNATING",
+                    "CARD REPORT HEALTH RETRY-AFTER: "
+                    f"{retry_after}",
                     flush=True
                 )
 
-                if attempt < 3:
+            # سرویس واقعاً پاسخ داده است.
+            if health_response.ok:
 
-                    if attempt == 1:
+                print(
+                    "CARD REPORT: ANONYMOUS SERVICE IS AWAKE",
+                    flush=True
+                )
 
-                        wait_time = 70
+                break
 
-                    else:
+            # Render هنوز درگیر Hibernate است.
+            if (
+                health_response.status_code == 429
+                and routing == "hibernate-rate-limited"
+            ):
 
-                        wait_time = 20
+                wait_time = 10
 
-                    print(
-                        f"CARD REPORT WAITING {wait_time}s "
-                        f"FOR RENDER WAKE-UP",
-                        flush=True
+                try:
+
+                    if retry_after:
+
+                        wait_time = max(
+                            5,
+                            min(
+                                int(float(retry_after)),
+                                30
+                            )
+                        )
+
+                except Exception:
+                    pass
+
+                remaining = max(
+                    0,
+                    int(
+                        health_max_wait
+                        - elapsed
                     )
+                )
 
-                    time.sleep(wait_time)
+                wait_time = min(
+                    wait_time,
+                    remaining
+                )
 
-                    continue
+                if wait_time <= 0:
+                    break
 
+                print(
+                    "CARD REPORT: "
+                    "RENDER IS STILL HIBERNATING - "
+                    f"WAITING {wait_time}s",
+                    flush=True
+                )
+
+                time.sleep(
+                    wait_time
+                )
+
+                continue
+
+            # پاسخ غیرقابل انتظار از health
             print(
-                "CARD REPORT FAILED - "
+                "CARD REPORT: HEALTH CHECK FAILED - "
                 "NON-RETRYABLE RESPONSE",
                 flush=True
             )
@@ -950,39 +1007,284 @@ def send_card_report(
 
         except Exception as error:
 
+            elapsed = time.time() - health_start
+
             print(
-                f"CARD REPORT ERROR {attempt}: "
+                "CARD REPORT HEALTH ERROR: "
                 f"{repr(error)}",
                 flush=True
             )
 
-            if attempt < 3:
+            if elapsed >= health_max_wait:
+                break
 
-                if attempt == 1:
+            print(
+                "CARD REPORT: "
+                "WAITING 10s BEFORE HEALTH RETRY",
+                flush=True
+            )
 
-                    wait_time = 70
+            time.sleep(10)
 
-                else:
+    # -------------------------------------------------
+    # مرحله دوم:
+    # ارسال واقعی گزارش پس از بیدار شدن سرویس
+    # -------------------------------------------------
 
-                    wait_time = 20
+    print(
+        "CARD REPORT: SENDING REPORT",
+        flush=True
+    )
+
+    try:
+
+        response = session().post(
+            ANONYMOUS_REPORT_URL,
+            json=payload,
+            headers=headers,
+            timeout=30
+        )
+
+        print(
+            f"CARD REPORT STATUS: "
+            f"{response.status_code}",
+            flush=True
+        )
+
+        print(
+            f"CARD REPORT RESPONSE: "
+            f"{response.text}",
+            flush=True
+        )
+
+        if response.ok:
+
+            print(
+                "CARD REPORT DELIVERED",
+                flush=True
+            )
+
+            print(
+                "========================================",
+                flush=True
+            )
+
+            return
+
+        render_routing = response.headers.get(
+            "x-render-routing",
+            ""
+        )
+
+        # اگر درست در لحظه ارسال گزارش دوباره
+        # Render به حالت Hibernate برگشته بود،
+        # یک Wake-up دیگر انجام می‌دهیم و فقط
+        # یک بار دیگر گزارش را ارسال می‌کنیم.
+        if (
+            response.status_code == 429
+            and render_routing == "hibernate-rate-limited"
+        ):
+
+            print(
+                "CARD REPORT: "
+                "RENDER HIBERNATED AGAIN",
+                flush=True
+            )
+
+            print(
+                "CARD REPORT: "
+                "RUNNING SECOND WAKE-UP CHECK",
+                flush=True
+            )
+
+            second_health_start = time.time()
+            second_health_max_wait = 120
+
+            while (
+                time.time()
+                - second_health_start
+                < second_health_max_wait
+            ):
+
+                try:
+
+                    health_response = session().get(
+                        ANONYMOUS_HEALTH_URL,
+                        timeout=20
+                    )
+
+                    routing = (
+                        health_response.headers.get(
+                            "x-render-routing",
+                            ""
+                        )
+                    )
+
+                    retry_after = (
+                        health_response.headers.get(
+                            "Retry-After",
+                            ""
+                        )
+                    )
+
+                    print(
+                        "CARD REPORT SECOND HEALTH STATUS: "
+                        f"{health_response.status_code}",
+                        flush=True
+                    )
+
+                    if health_response.ok:
+
+                        print(
+                            "CARD REPORT: "
+                            "ANONYMOUS SERVICE IS AWAKE AGAIN",
+                            flush=True
+                        )
+
+                        break
+
+                    if (
+                        health_response.status_code == 429
+                        and routing == "hibernate-rate-limited"
+                    ):
+
+                        wait_time = 10
+
+                        try:
+
+                            if retry_after:
+
+                                wait_time = max(
+                                    5,
+                                    min(
+                                        int(
+                                            float(
+                                                retry_after
+                                            )
+                                        ),
+                                        30
+                                    )
+                                )
+
+                        except Exception:
+                            pass
+
+                        print(
+                            "CARD REPORT: "
+                            f"SECOND WAKE WAIT {wait_time}s",
+                            flush=True
+                        )
+
+                        time.sleep(
+                            wait_time
+                        )
+
+                        continue
+
+                    print(
+                        "CARD REPORT: "
+                        "SECOND HEALTH CHECK FAILED",
+                        flush=True
+                    )
+
+                    print(
+                        "========================================",
+                        flush=True
+                    )
+
+                    return
+
+                except Exception as error:
+
+                    print(
+                        "CARD REPORT SECOND HEALTH ERROR: "
+                        f"{repr(error)}",
+                        flush=True
+                    )
+
+                    time.sleep(10)
+
+            else:
 
                 print(
-                    f"CARD REPORT WAITING {wait_time}s "
-                    f"BEFORE RETRY",
+                    "CARD REPORT: "
+                    "SECOND WAKE-UP TIMEOUT",
                     flush=True
                 )
 
-                time.sleep(wait_time)
+                print(
+                    "========================================",
+                    flush=True
+                )
 
-    print(
-        "CARD REPORT FAILED AFTER 3 ATTEMPTS",
-        flush=True
-    )
+                return
 
-    print(
-        "========================================",
-        flush=True
-    )
+            # ارسال مجدد گزارش پس از Wake-up دوم
+            try:
+
+                response = session().post(
+                    ANONYMOUS_REPORT_URL,
+                    json=payload,
+                    headers=headers,
+                    timeout=30
+                )
+
+                print(
+                    "CARD REPORT SECOND SEND STATUS: "
+                    f"{response.status_code}",
+                    flush=True
+                )
+
+                print(
+                    "CARD REPORT SECOND SEND RESPONSE: "
+                    f"{response.text}",
+                    flush=True
+                )
+
+                if response.ok:
+
+                    print(
+                        "CARD REPORT DELIVERED AFTER SECOND WAKE-UP",
+                        flush=True
+                    )
+
+                    print(
+                        "========================================",
+                        flush=True
+                    )
+
+                    return
+
+            except Exception as error:
+
+                print(
+                    "CARD REPORT SECOND SEND ERROR: "
+                    f"{repr(error)}",
+                    flush=True
+                )
+
+        print(
+            "CARD REPORT FAILED",
+            flush=True
+        )
+
+        print(
+            "========================================",
+            flush=True
+        )
+
+    except Exception as error:
+
+        print(
+            "CARD REPORT SEND ERROR: "
+            f"{repr(error)}",
+            flush=True
+        )
+
+        print(
+            "========================================",
+            flush=True
+        )
 
 
 def expire_pending(chat_id, created_at):
@@ -2189,4 +2491,4 @@ if __name__ == "__main__":
             )
         ),
         threaded=True
-        )
+)
